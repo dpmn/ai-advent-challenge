@@ -25,12 +25,13 @@ class JarvisAgent:
             self,
             api_key: Optional[str] = None,
             base_url: str = "https://foundation-models.api.cloud.ru/v1",
-            model: str = "GigaChat/GigaChat-2-Max",
+            model: str = "Qwen/Qwen3-30B-A3B",
             temperature: float = 0.6,
             max_tokens: int = 2500,
             system_prompt: str = "Ты — полезный AI-ассистент.",
             db_path: str = "memory/jarvis_history.db",
-            session_id: Optional[int] = None
+            session_id: Optional[int] = None,
+            context_limit: int = 40000
     ):
         """Инициализация агента с заданными параметрами."""
         self.api_key = api_key or os.getenv('CLOUDRU_SECRET_KEY')
@@ -40,6 +41,7 @@ class JarvisAgent:
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
         self.db_path = db_path
+        self.context_limit = context_limit
 
         if not self.api_key:
             raise ValueError("API ключ не найден. Установите переменную окружения CLOUDRU_SECRET_KEY")
@@ -67,6 +69,12 @@ class JarvisAgent:
         self.total_tokens_used = 0
         self.total_requests = 0
 
+        # Счётчики токенов для последнего запроса и текущей сессии
+        self.last_usage: Optional[dict] = None
+        self.session_prompt_tokens = self.current_session.get("prompt_tokens", 0)
+        self.session_completion_tokens = self.current_session.get("completion_tokens", 0)
+        self.session_total_tokens = self.current_session.get("total_tokens", 0)
+
     def _init_db(self):
         """Создаёт таблицы в БД, если их нет."""
         with sqlite3.connect(self.db_path) as conn:
@@ -75,7 +83,10 @@ class JarvisAgent:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    prompt_tokens INTEGER DEFAULT 0,
+                    completion_tokens INTEGER DEFAULT 0,
+                    total_tokens INTEGER DEFAULT 0
                 )
             """)
             conn.execute("""
@@ -88,30 +99,43 @@ class JarvisAgent:
                     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
                 )
             """)
+            # Добавляем колонки для существующих БД (старых версий)
+            for col in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {col} INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     def _get_last_session(self) -> Optional[dict]:
         """Возвращает последнюю активную сессию."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at FROM sessions "
-                "ORDER BY last_active_at DESC LIMIT 1"
+                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens "
+                "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
             if row:
-                return {"id": row[0], "name": row[1], "created_at": row[2]}
+                return {
+                    "id": row[0], "name": row[1], "created_at": row[2],
+                    "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5]
+                }
             return None
 
     def _load_session(self, session_id: int) -> Optional[dict]:
         """Загружает сессию по ID."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at FROM sessions WHERE id = ?",
+                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens "
+                "FROM sessions WHERE id = ?",
                 (session_id,)
             )
             row = cursor.fetchone()
             if row:
-                return {"id": row[0], "name": row[1], "created_at": row[2]}
+                return {
+                    "id": row[0], "name": row[1], "created_at": row[2],
+                    "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5]
+                }
             return None
 
     def _load_messages(self) -> list:
@@ -143,6 +167,15 @@ class JarvisAgent:
             )
             conn.commit()
 
+    def _update_session_tokens(self):
+        """Сохраняет счётчики токенов текущей сессии в БД."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET prompt_tokens = ?, completion_tokens = ?, total_tokens = ? WHERE id = ?",
+                (self.session_prompt_tokens, self.session_completion_tokens, self.session_total_tokens, self.current_session["id"])
+            )
+            conn.commit()
+
     def create_session(self, name: Optional[str] = None) -> dict:
         """Создаёт новую сессию."""
         if not name:
@@ -162,6 +195,10 @@ class JarvisAgent:
         if self.system_prompt:
             self.conversation_history.append({"role": "system", "content": self.system_prompt})
 
+        self.session_prompt_tokens = 0
+        self.session_completion_tokens = 0
+        self.session_total_tokens = 0
+
         print(f"✨ Создана новая сессия: {name} (ID: {session_id})")
         return session
 
@@ -174,6 +211,11 @@ class JarvisAgent:
 
         self.current_session = session
         self.conversation_history = self._load_messages()
+
+        self.session_prompt_tokens = session.get("prompt_tokens", 0)
+        self.session_completion_tokens = session.get("completion_tokens", 0)
+        self.session_total_tokens = session.get("total_tokens", 0)
+
         print(f"🔄 Переключено на сессию: {session['name']} (ID: {session_id})")
         return True
 
@@ -181,11 +223,12 @@ class JarvisAgent:
         """Возвращает список всех сессий."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at, last_active_at FROM sessions "
-                "ORDER BY last_active_at DESC"
+                "SELECT id, name, created_at, last_active_at, prompt_tokens, completion_tokens, total_tokens "
+                "FROM sessions ORDER BY last_active_at DESC"
             )
             return [
-                {"id": row[0], "name": row[1], "created_at": row[2], "last_active": row[3]}
+                {"id": row[0], "name": row[1], "created_at": row[2], "last_active": row[3],
+                 "prompt_tokens": row[4], "completion_tokens": row[5], "total_tokens": row[6]}
                 for row in cursor.fetchall()
             ]
 
@@ -272,6 +315,23 @@ class JarvisAgent:
             self._save_message("user", user_input)
             self._save_message("assistant", assistant_message)
 
+            # Обновляем счётчики токенов
+            usage = response.get("usage", {})
+            self.last_usage = usage
+            self.session_prompt_tokens += usage.get("prompt_tokens", 0)
+            self.session_completion_tokens += usage.get("completion_tokens", 0)
+            self.session_total_tokens += usage.get("total_tokens", 0)
+            self._update_session_tokens()
+
+            # Предупреждение о приближении к лимиту контекста
+            total = self.session_prompt_tokens + self.session_completion_tokens
+            if total > self.context_limit * 0.8:
+                pct = round(total / self.context_limit * 100, 1)
+                assistant_message += (
+                    f"\n\n⚠️ Внимание: контекст диалога заполнен на {pct}% "
+                    f"(~{total} токенов из {self.context_limit}). Рекомендуется начать новую сессию."
+                )
+
             return assistant_message
         else:
             if self.conversation_history[-1]["role"] == "user":
@@ -287,16 +347,77 @@ class JarvisAgent:
         self.conversation_history = []
         if self.system_prompt:
             self.conversation_history.append({"role": "system", "content": self.system_prompt})
+
+        self.session_prompt_tokens = 0
+        self.session_completion_tokens = 0
+        self.session_total_tokens = 0
+        self._update_session_tokens()
         print(f"🔄 История сессии '{self.current_session['name']}' очищена.")
+
+    def trim_context(self, n: int = 10):
+        """Обрезает историю, оставляя последние N сообщений (без учёта system prompt)."""
+        if n < 1:
+            self.reset_conversation()
+            return
+
+        messages = [m for m in self.conversation_history if m["role"] != "system"]
+        if len(messages) <= n:
+            print(f"ℹ️ В истории {len(messages)} сообщений, обрезка не требуется.")
+            return
+
+        kept = messages[-n:]
+        removed = len(messages) - n
+
+        self.conversation_history = []
+        if self.system_prompt:
+            self.conversation_history.append({"role": "system", "content": self.system_prompt})
+        self.conversation_history.extend(kept)
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM messages WHERE session_id = ?", (self.current_session["id"],))
+            for msg in kept:
+                conn.execute(
+                    "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
+                    (self.current_session["id"], msg["role"], msg["content"])
+                )
+            conn.commit()
+
+        self.session_prompt_tokens = 0
+        self.session_completion_tokens = 0
+        self.session_total_tokens = 0
+        self._update_session_tokens()
+        print(f"✂️ История обрезана: удалено {removed} сообщений, оставлено {n}.")
 
     def get_stats(self) -> str:
         """Возвращает статистику использования агента."""
         msg_count = len([m for m in self.conversation_history if m["role"] != "system"])
-        return (
-            f"📊 Статистика агента:\n"
-            f"  • Текущая сессия: {self.current_session['name']} (ID: {self.current_session['id']})\n"
-            f"  • Всего запросов: {self.total_requests}\n"
-            f"  • Всего токенов использовано: {self.total_tokens_used}\n"
-            f"  • Сообщений в текущей сессии: {msg_count}\n"
-            f"  • Модель: {self.model}"
-        )
+
+        lines = [
+            "📊 Статистика агента:",
+            f"  • Текущая сессия: {self.current_session['name']} (ID: {self.current_session['id']})",
+            f"  • Всего запросов: {self.total_requests}",
+            f"  • Всего токенов (глобально): {self.total_tokens_used}",
+            f"  • Сообщений в текущей сессии: {msg_count}",
+            f"  • Модель: {self.model}",
+            "",
+            f"  📈 Токены текущей сессии:",
+            f"     Prompt:     {self.session_prompt_tokens}",
+            f"     Completion: {self.session_completion_tokens}",
+            f"     Всего:      {self.session_total_tokens}",
+        ]
+
+        if self.last_usage:
+            lines.extend([
+                "",
+                "  🎯 Последний запрос:",
+                f"     Prompt:     {self.last_usage.get('prompt_tokens', '—')}",
+                f"     Completion: {self.last_usage.get('completion_tokens', '—')}",
+                f"     Всего:      {self.last_usage.get('total_tokens', '—')}",
+            ])
+
+        total = self.session_prompt_tokens + self.session_completion_tokens
+        if total > 0:
+            pct = round(total / self.context_limit * 100, 1)
+            lines.append(f"     Заполнение контекста: {pct}% из {self.context_limit}")
+
+        return "\n".join(lines)
