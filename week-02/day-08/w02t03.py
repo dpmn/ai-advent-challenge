@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from agents.jarvis import JarvisAgent
 from prompt_toolkit import PromptSession
 from prompt_toolkit.key_binding import KeyBindings
