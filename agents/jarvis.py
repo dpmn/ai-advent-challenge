@@ -572,12 +572,20 @@ class JarvisAgent:
         self.branches = {
             0: {
                 "name": "main",
-                "messages": self.conversation_history.copy() if self.conversation_history else []
+                "messages": self.conversation_history.copy() if self.conversation_history else [],
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
             }
         }
         self.current_branch_id = 0
         self._next_branch_id = 1
         self.checkpoint_index = None
+        # Сбрасываем сессионные счётчики — каждый branch считает сам
+        self.session_prompt_tokens = 0
+        self.session_completion_tokens = 0
+        self.session_total_tokens = 0
+        self._update_session_tokens()
         # Восстанавливаем историю из главной ветки
         if 0 in self.branches:
             self.conversation_history = self.branches[0]["messages"].copy()
@@ -622,7 +630,10 @@ class JarvisAgent:
 
         self.branches[branch_id] = {
             "name": name,
-            "messages": new_history
+            "messages": new_history,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
         }
 
         # Переключаемся на новую ветку
@@ -664,15 +675,24 @@ class JarvisAgent:
         if branch_id not in self.branches:
             return f"❌ Ветка с ID {branch_id} не найдена. Используйте: /branches"
 
-        # Сохраняем текущую ветку
-        self.branches[self.current_branch_id]["messages"] = self.conversation_history.copy()
+        # Сохраняем текущую ветку (сообщения + токены)
+        cur = self.branches[self.current_branch_id]
+        cur["messages"] = self.conversation_history.copy()
+        cur["prompt_tokens"] = self.session_prompt_tokens
+        cur["completion_tokens"] = self.session_completion_tokens
+        cur["total_tokens"] = self.session_total_tokens
 
-        # Загружаем новую
+        # Загружаем новую ветку
         self.current_branch_id = branch_id
-        self.conversation_history = self.branches[branch_id]["messages"].copy()
+        nxt = self.branches[branch_id]
+        self.conversation_history = nxt["messages"].copy()
+        self.session_prompt_tokens = nxt["prompt_tokens"]
+        self.session_completion_tokens = nxt["completion_tokens"]
+        self.session_total_tokens = nxt["total_tokens"]
+        self._update_session_tokens()
 
-        branch_name = self.branches[branch_id]["name"]
-        print(f"🔄 Переключено на ветку '{branch_name}' (ID: {branch_id})")
+        branch_name = nxt["name"]
+        print(f"🔄 Переключено на ветку '{branch_name}' (ID: {branch_id}) | токенов: {self.session_total_tokens}")
         return f"✅ Переключено на ветку '{branch_name}'."
 
     # ── Основной метод ────────────────────────────────────────────
@@ -710,9 +730,22 @@ class JarvisAgent:
 
             usage = response.get("usage", {})
             self.last_usage = usage
-            self.session_prompt_tokens += usage.get("prompt_tokens", 0)
-            self.session_completion_tokens += usage.get("completion_tokens", 0)
-            self.session_total_tokens += usage.get("total_tokens", 0)
+            pt = usage.get("prompt_tokens", 0)
+            ct = usage.get("completion_tokens", 0)
+            tt = usage.get("total_tokens", 0)
+
+            if self.context_strategy == "branching":
+                branch = self.branches[self.current_branch_id]
+                branch["prompt_tokens"] += pt
+                branch["completion_tokens"] += ct
+                branch["total_tokens"] += tt
+                self.session_prompt_tokens = branch["prompt_tokens"]
+                self.session_completion_tokens = branch["completion_tokens"]
+                self.session_total_tokens = branch["total_tokens"]
+            else:
+                self.session_prompt_tokens += pt
+                self.session_completion_tokens += ct
+                self.session_total_tokens += tt
             self._update_session_tokens()
 
             total = self.session_prompt_tokens + self.session_completion_tokens
@@ -1033,10 +1066,19 @@ class JarvisAgent:
                 lines.append(f"     {k}: {v[:80]}...")
 
         if self.context_strategy == "branching":
+            cur = self.branches.get(self.current_branch_id, {})
             lines.extend([
                 "",
                 f"  🌿 Ветвление: {len(self.branches)} веток",
-                f"     Текущая ветка: '{self.branches.get(self.current_branch_id, {}).get('name', '?')}' (ID: {self.current_branch_id})",
+                f"     Текущая ветка: '{cur.get('name', '?')}' (ID: {self.current_branch_id})",
+                f"     Токены ветки: prompt {cur.get('prompt_tokens', 0)} + completion {cur.get('completion_tokens', 0)} = {cur.get('total_tokens', 0)}",
             ])
+            for bid, branch in self.branches.items():
+                marker = " 👈" if bid == self.current_branch_id else ""
+                lines.append(
+                    f"       ID {bid}: '{branch['name']}' — "
+                    f"msgs {len([m for m in branch['messages'] if m['role'] != 'system'])}, "
+                    f"tokens {branch['total_tokens']}{marker}"
+                )
 
         return "\n".join(lines)
