@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jarvis Agent</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Left sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h2>Jarvis</h2>
+        <button id="new-session-btn" title="New session">＋</button>
+      </div>
+      <div id="session-list"></div>
+
+      <!-- Settings -->
+      <div class="settings-section">
+        <h3>Settings</h3>
+        <label>Model</label>
+        <select id="model-select"></select>
+
+        <label>Temperature</label>
+        <div class="slider-row">
+          <input type="range" id="temp-slider" min="0" max="2" step="0.05" value="0.7">
+          <span id="temp-value">0.70</span>
+        </div>
+
+        <label>Max tokens</label>
+        <input type="number" id="max-tokens-input" value="2500" min="100" max="16000" step="100">
+
+        <label>Context limit</label>
+        <input type="number" id="context-limit-input" value="40000" min="1000" max="200000" step="1000">
+      </div>
+    </aside>
+
+    <!-- Chat area -->
+    <main id="chat-area">
+      <div id="messages-container"></div>
+
+      <div id="input-area">
+        <textarea id="message-input" rows="2" placeholder="Type a message... (Shift+Enter for new line)"></textarea>
+        <button id="send-btn">Send →</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

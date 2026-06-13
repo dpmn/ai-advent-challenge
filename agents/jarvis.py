@@ -88,6 +88,10 @@ class JarvisAgent:
 
         self.conversation_history = self._load_messages()
 
+        # Если стратегия branching, но ветки не инициализированы (загрузка из БД) — инициализируем
+        if self.context_strategy == "branching" and not self.branches:
+            self._init_branches()
+
         self.total_tokens_used = 0
         self.total_requests = 0
         self.last_usage: Optional[dict] = None
@@ -311,6 +315,9 @@ class JarvisAgent:
         self.current_branch_id = 0
         self._next_branch_id = 1
         self.checkpoint_index = None
+
+        if self.context_strategy == "branching" and not self.branches:
+            self._init_branches()
 
         status = "вкл" if self.compression_enabled else "выкл"
         strat = f" | Стратегия: {self.context_strategy}" if self.context_strategy else ""
@@ -695,6 +702,166 @@ class JarvisAgent:
         print(f"🔄 Переключено на ветку '{branch_name}' (ID: {branch_id}) | токенов: {self.session_total_tokens}")
         return f"✅ Переключено на ветку '{branch_name}'."
 
+    # ── Команды ───────────────────────────────────────────────────
+
+    def _handle_command(self, cmd_input: str) -> str:
+        parts = cmd_input.strip().split(maxsplit=1)
+        cmd = parts[0].lower()
+        arg = parts[1] if len(parts) > 1 else None
+
+        if cmd == "/help":
+            return (
+                "📋 Доступные команды:\n\n"
+                "  /help         — показать этот список\n"
+                "  /stats        — статистика агента\n"
+                "  /sessions     — список сессий\n"
+                "  /session <id> — переключиться на сессию\n"
+                "  /new [name]   — создать новую сессию\n"
+                "  /clear        — очистить историю\n"
+                "  /model [name] — показать/сменить модель\n"
+                "  /temp [value] — показать/сменить температуру\n"
+                "  /strategy [type] — показать/сменить стратегию\n"
+                "  /compression [on|off|toggle] — управление сжатием\n"
+                "  /context      — информация о контексте\n"
+                "  /checkpoint   — сохранить checkpoint (branching)\n"
+                "  /branch <name> — создать ветку\n"
+                "  /branches     — список веток\n"
+                "  /switch <id>  — переключить ветку"
+            )
+
+        if cmd == "/stats":
+            return self.get_stats()
+
+        if cmd == "/sessions":
+            sessions = self.list_sessions()
+            if not sessions:
+                return "Нет сессий."
+            lines = ["📂 Сессии:"]
+            for s in sessions:
+                marker = " 👈" if s["id"] == self.current_session["id"] else ""
+                strategy = f" | {s['context_strategy']}" if s.get("context_strategy") else ""
+                lines.append(f"  ID {s['id']}: {s['name']}{marker}{strategy}")
+            return "\n".join(lines)
+
+        if cmd == "/session":
+            if not arg:
+                return f"Текущая сессия: {self.current_session['name']} (ID: {self.current_session['id']})"
+            try:
+                sid = int(arg.strip())
+                if self.switch_session(sid):
+                    return f"✅ Переключено на сессию: {self.current_session['name']}"
+                return f"❌ Сессия с ID {sid} не найдена."
+            except ValueError:
+                return "❌ Укажите числовой ID сессии."
+
+        if cmd == "/new":
+            name = arg.strip() if arg else None
+            self.create_session(name)
+            return f"✅ Создана новая сессия: {self.current_session['name']}"
+
+        if cmd == "/clear":
+            self.reset_conversation()
+            return "✅ История диалога очищена."
+
+        if cmd == "/model":
+            if not arg:
+                return f"Текущая модель: {self.model}"
+            new_model = arg.strip()
+            self.model = new_model
+            return f"✅ Модель изменена: {new_model}"
+
+        if cmd == "/temp":
+            if not arg:
+                return f"Текущая температура: {self.temperature}"
+            try:
+                val = float(arg.strip())
+                if 0 <= val <= 2:
+                    self.temperature = val
+                    return f"✅ Температура изменена: {val}"
+                return "❌ Температура должна быть от 0 до 2."
+            except ValueError:
+                return "❌ Укажите числовое значение (0.0 – 2.0)."
+
+        if cmd == "/strategy":
+            if not arg:
+                cur = self.context_strategy or "выкл"
+                return f"Текущая стратегия: {cur}"
+            strategy_map = {
+                "off": None, "выкл": None,
+                "sliding_window": "sliding_window", "sliding": "sliding_window",
+                "sticky_facts": "sticky_facts", "sticky": "sticky_facts",
+                "branching": "branching", "branch": "branching",
+            }
+            arg_lower = arg.strip().lower()
+            if arg_lower in strategy_map:
+                return self.set_strategy(strategy_map[arg_lower])
+            return "❌ Допустимые стратегии: off, sliding_window, sticky_facts, branching"
+
+        if cmd == "/compression":
+            if not arg:
+                status = "вкл" if self.compression_enabled else "выкл"
+                return f"Сжатие истории: {status}"
+            arg_lower = arg.strip().lower()
+            if arg_lower in ("on", "вкл", "1"):
+                self.enable_compression()
+                return "✅ Сжатие истории включено"
+            if arg_lower in ("off", "выкл", "0"):
+                self.disable_compression()
+                return "✅ Сжатие истории выключено"
+            if arg_lower in ("toggle", "switch"):
+                self.toggle_compression()
+                status = "вкл" if self.compression_enabled else "выкл"
+                return f"✅ Сжатие истории: {status}"
+            return "❌ Используйте: /compression [on|off|toggle]"
+
+        if cmd == "/context":
+            lines = ["📐 Контекст диалога:"]
+            total = self.session_prompt_tokens + self.session_completion_tokens
+            pct = round(total / self.context_limit * 100, 1) if self.context_limit > 0 else 0
+            lines.append(f"  Токенов в сессии: {total} / {self.context_limit} ({pct}%)")
+            non_system = [m for m in self.conversation_history if m["role"] != "system"]
+            lines.append(f"  Сообщений: {len(non_system)}")
+            lines.append(f"  Модель: {self.model}")
+            lines.append(f"  Стратегия: {self.context_strategy or 'выкл'}")
+            lines.append(f"  Сжатие: {'вкл' if self.compression_enabled else 'выкл'}")
+            if self.context_strategy == "sliding_window":
+                lines.append("  Окно: последние 5 сообщений")
+            elif self.context_strategy == "sticky_facts":
+                lines.append(f"  Фактов: {len(self.sticky_facts)}")
+            elif self.context_strategy == "branching":
+                lines.append(f"  Веток: {len(self.branches)}")
+                cur = self.branches.get(self.current_branch_id, {})
+                lines.append(f"  Текущая ветка: '{cur.get('name', '?')}'")
+            return "\n".join(lines)
+
+        if cmd == "/checkpoint":
+            return self.save_checkpoint()
+
+        if cmd == "/branch":
+            if not arg:
+                return "❌ Укажите имя ветки: /branch <name>"
+            return self.create_branch(arg.strip())
+
+        if cmd == "/branches":
+            branches = self.list_branches()
+            if not branches:
+                return "Ветвление не активно. Используйте: /strategy branching"
+            lines = ["🌿 Ветки:"]
+            for b in branches:
+                lines.append(f"  ID {b['id']}: '{b['name']}' — {b['messages']} сообщений{b['current']}")
+            return "\n".join(lines)
+
+        if cmd == "/switch":
+            if not arg:
+                return "❌ Укажите ID ветки: /switch <id>"
+            try:
+                bid = int(arg.strip())
+                return self.switch_branch(bid)
+            except ValueError:
+                return "❌ Укажите числовой ID ветки."
+
+        return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."
+
     # ── Основной метод ────────────────────────────────────────────
 
     def chat(self, user_input: str) -> str:
@@ -703,6 +870,17 @@ class JarvisAgent:
             return "Пожалуйста, введите ваш запрос."
 
         self.conversation_history.append({"role": "user", "content": user_input})
+        self._save_message("user", user_input)
+
+        # ── Команды ──────────────────────────────────────────
+        if user_input.startswith("/"):
+            resp = self._handle_command(user_input)
+            if resp:
+                self.conversation_history.append({"role": "command", "content": resp})
+                self._save_message("command", resp)
+            return resp
+
+        # ── Обычный чат ──────────────────────────────────────
 
         # Выбираем стратегию построения сообщений
         if self.context_strategy == "sliding_window":
@@ -725,7 +903,6 @@ class JarvisAgent:
             assistant_message = response["content"]
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
 
-            self._save_message("user", user_input)
             self._save_message("assistant", assistant_message)
 
             usage = response.get("usage", {})
