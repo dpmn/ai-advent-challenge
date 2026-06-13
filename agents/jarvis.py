@@ -602,6 +602,8 @@ class JarvisAgent:
             return "❌ Режим ветвления не активен."
         if self.checkpoint_index is None:
             return "❌ Сначала сохраните checkpoint: /checkpoint"
+        if any(b["name"] == name for b in self.branches.values()):
+            return f"❌ Ветка с именем '{name}' уже существует. Используйте другое имя."
 
         # Сохраняем текущую ветку
         self.branches[self.current_branch_id]["messages"] = self.conversation_history.copy()

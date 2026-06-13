@@ -9,5 +9,5 @@
 | 2      | 7    | Сохранение контекста | done   | [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/GPyPRoeCqKu-9g                                         |
 | 2      | 8    | Работа с токенами | done   | [jarvis.py](../agents/jarvis.py) |https://disk.yandex.ru/i/gmATHkhF7ALcfw|
 | 2      | 9    | Управление контекстом: сжатие истории | done   | [jarvis.py](../agents/jarvis.py) / [w02t04.py](../week-02/day-09/w02t04.py) |https://disk.yandex.ru/i/qHNPbc89b5zNCw|
-| 2      | 10   | Управление контекстом: разные стратегии | done   | [jarvis.py](../agents/jarvis.py) / [w02t05.py](../week-02/day-10/w02t05.py) | |
+| 2      | 10   | Управление контекстом: разные стратегии | done   | [jarvis.py](../agents/jarvis.py) / [w02t05.py](../week-02/day-10/w02t05.py) |https://disk.yandex.ru/i/3xDk4HxIfA0Bcg |
 | 3      | 11   |  | todo   | |                                          |

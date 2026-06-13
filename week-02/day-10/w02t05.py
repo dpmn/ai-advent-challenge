@@ -112,6 +112,15 @@ def run_cli():
                 agent.create_session(name)
                 continue
 
+            elif user_input.lower().startswith('/switch-branch '):
+                parts = user_input.split()
+                if len(parts) != 2 or not parts[1].isdigit():
+                    print("❌ Используйте: /switch-branch <id>")
+                    continue
+                result = agent.switch_branch(int(parts[1]))
+                print(f"\n{result}")
+                continue
+
             elif user_input.lower().startswith('/switch'):
                 parts = user_input.split()
                 if len(parts) != 2 or not parts[1].isdigit():
