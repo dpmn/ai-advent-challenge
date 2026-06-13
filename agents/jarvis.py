@@ -23,6 +23,10 @@ class JarvisAgent:
     - Несколько изолированных сессий диалога
     - Переключение между сессиями
     - Автоматическое восстановление истории при перезапуске
+    - Стратегии управления контекстом:
+      • sliding_window — только последние 5 сообщений
+      • sticky_facts — ключевые факты + последние 5 сообщений
+      • branching — ветки диалога от checkpoint
     """
 
     def __init__(
@@ -38,7 +42,6 @@ class JarvisAgent:
             context_limit: int = 40000,
             compression_enabled: Optional[bool] = None
     ):
-        """Инициализация агента с заданными параметрами."""
         self.api_key = api_key or os.getenv('CLOUDRU_SECRET_KEY')
         self.base_url = base_url
         self.model = model
@@ -51,13 +54,10 @@ class JarvisAgent:
         if not self.api_key:
             raise ValueError("API ключ не найден. Установите переменную окружения CLOUDRU_SECRET_KEY")
 
-        # Инициализация БД
         self._init_db()
 
-        # Режим сжатия по умолчанию (до загрузки сессии)
         self.compression_enabled = compression_enabled if compression_enabled is not None else True
 
-        # Загрузка или создание сессии
         if session_id is not None:
             self.current_session = self._load_session(session_id)
             if not self.current_session:
@@ -69,31 +69,38 @@ class JarvisAgent:
             else:
                 self.current_session = self.create_session()
 
-        # Переопределяем режим из сохранённого в сессии (если не задан явный параметр)
         if compression_enabled is None:
             saved = self.current_session.get("compression_enabled")
             if saved is not None:
                 self.compression_enabled = bool(saved)
 
-        # Загружаем историю текущей сессии
+        # ─── Стратегии управления контекстом ──────────────────────
+        saved_strategy = self.current_session.get("context_strategy")
+        self.context_strategy: Optional[str] = saved_strategy if saved_strategy else None
+        # sticky_facts for key-value memory
+        saved_facts = self.current_session.get("sticky_facts")
+        self.sticky_facts: dict = json.loads(saved_facts) if saved_facts and saved_facts != "{}" else {}
+        # branching state
+        self.branches: dict = {}  # {branch_id: {"name": str, "messages": [msg, ...]}}
+        self.current_branch_id: int = 0
+        self._next_branch_id: int = 1
+        self.checkpoint_index: Optional[int] = None
+
         self.conversation_history = self._load_messages()
 
-        # Счётчики для статистики
         self.total_tokens_used = 0
         self.total_requests = 0
-
-        # Счётчики токенов для последнего запроса и текущей сессии
         self.last_usage: Optional[dict] = None
-        
-        # Параметры сжатия истории
+
         self.compression_interval = 5
         self.compression_history: list = self._load_compressed_summaries()
         self.session_prompt_tokens = self.current_session.get("prompt_tokens", 0)
         self.session_completion_tokens = self.current_session.get("completion_tokens", 0)
         self.session_total_tokens = self.current_session.get("total_tokens", 0)
 
+    # ─────────────── БД: инициализация ────────────────────────────
+
     def _init_db(self):
-        """Создаёт таблицы в БД, если их нет."""
         db_dir = Path(self.db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self.db_path) as conn:
@@ -130,23 +137,40 @@ class JarvisAgent:
                     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
                 )
             """)
-            # Добавляем колонки для существующих БД (старых версий)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS branches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    parent_branch_id INTEGER DEFAULT 0,
+                    checkpoint_message_index INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+                )
+            """)
             for col in ("prompt_tokens", "completion_tokens", "total_tokens"):
                 try:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {col} INTEGER DEFAULT 0")
                 except sqlite3.OperationalError:
                     pass
-            try:
-                conn.execute("ALTER TABLE sessions ADD COLUMN compression_enabled INTEGER DEFAULT 1")
-            except sqlite3.OperationalError:
-                pass
+            for col_migration in [
+                ("compression_enabled", "INTEGER DEFAULT 1"),
+                ("context_strategy", "TEXT DEFAULT NULL"),
+                ("sticky_facts", "TEXT DEFAULT '{}'"),
+            ]:
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_migration[0]} {col_migration[1]}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
+    # ─────────────── Сессии ───────────────────────────────────────
+
     def _get_last_session(self) -> Optional[dict]:
-        """Возвращает последнюю активную сессию."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, compression_enabled "
+                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
+                "compression_enabled, context_strategy, sticky_facts "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -154,15 +178,15 @@ class JarvisAgent:
                 return {
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
-                    "compression_enabled": row[6]
+                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8]
                 }
             return None
 
     def _load_session(self, session_id: int) -> Optional[dict]:
-        """Загружает сессию по ID."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, compression_enabled "
+                "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
+                "compression_enabled, context_strategy, sticky_facts "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -171,12 +195,11 @@ class JarvisAgent:
                 return {
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
-                    "compression_enabled": row[6]
+                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8]
                 }
             return None
 
     def _load_messages(self) -> list:
-        """Загружает историю сообщений текущей сессии."""
         history = []
         if self.system_prompt:
             history.append({"role": "system", "content": self.system_prompt})
@@ -191,46 +214,7 @@ class JarvisAgent:
                 history.append({"role": row[0], "content": row[1]})
         return history
 
-    def _load_compressed_summaries(self) -> list:
-        """Загружает сжатые summary для текущей сессии."""
-        summaries = []
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "SELECT content, source_count, tokens_before, tokens_after "
-                "FROM compressed_summaries WHERE session_id = ? ORDER BY created_at ASC",
-                (self.current_session["id"],)
-            )
-            for row in cursor.fetchall():
-                summaries.append({
-                    "type": "summary",
-                    "content": row[0],
-                    "source_messages": row[1],
-                    "tokens_before": row[2],
-                    "tokens_after": row[3]
-                })
-        return summaries
-
-    def _save_compressed_summary(self, content: str, source_count: int, tokens_before: int, tokens_after: int):
-        """Сохраняет одно сжатое summary в БД."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "INSERT INTO compressed_summaries (session_id, content, source_count, tokens_before, tokens_after) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (self.current_session["id"], content, source_count, tokens_before, tokens_after)
-            )
-            conn.commit()
-
-    def _clear_compressed_summaries(self):
-        """Удаляет все сжатые summary для текущей сессии."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "DELETE FROM compressed_summaries WHERE session_id = ?",
-                (self.current_session["id"],)
-            )
-            conn.commit()
-
     def _save_message(self, role: str, content: str):
-        """Сохраняет одно сообщение в БД."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
@@ -242,8 +226,20 @@ class JarvisAgent:
             )
             conn.commit()
 
+    def _delete_old_messages(self, keep_count: int):
+        """Удаляет все сообщения из БД, кроме последних keep_count (для sliding window)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                DELETE FROM messages WHERE id NOT IN (
+                    SELECT id FROM messages
+                    WHERE session_id = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                ) AND session_id = ?
+            """, (self.current_session["id"], keep_count, self.current_session["id"]))
+            conn.commit()
+
     def _update_session_tokens(self):
-        """Сохраняет счётчики токенов текущей сессии в БД."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE sessions SET prompt_tokens = ?, completion_tokens = ?, total_tokens = ? WHERE id = ?",
@@ -252,7 +248,6 @@ class JarvisAgent:
             conn.commit()
 
     def create_session(self, name: Optional[str] = None) -> dict:
-        """Создаёт новую сессию."""
         if not name:
             name = f"Сессия от {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
@@ -264,13 +259,23 @@ class JarvisAgent:
             session_id = cursor.lastrowid
             conn.commit()
 
-        session = {"id": session_id, "name": name, "created_at": datetime.now().isoformat(), "compression_enabled": self.compression_enabled}
+        session = {
+            "id": session_id, "name": name, "created_at": datetime.now().isoformat(),
+            "compression_enabled": self.compression_enabled,
+            "context_strategy": None, "sticky_facts": "{}"
+        }
         self.current_session = session
         self.conversation_history = []
         if self.system_prompt:
             self.conversation_history.append({"role": "system", "content": self.system_prompt})
 
         self.compression_history = []
+        self.context_strategy = None
+        self.sticky_facts = {}
+        self.branches = {}
+        self.current_branch_id = 0
+        self._next_branch_id = 1
+        self.checkpoint_index = None
 
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
@@ -280,7 +285,6 @@ class JarvisAgent:
         return session
 
     def switch_session(self, session_id: int) -> bool:
-        """Переключается на другую сессию."""
         session = self._load_session(session_id)
         if not session:
             print(f"❌ Сессия с ID {session_id} не найдена")
@@ -298,31 +302,40 @@ class JarvisAgent:
         if saved is not None:
             self.compression_enabled = bool(saved)
 
+        # Загружаем стратегию
+        saved_strategy = session.get("context_strategy")
+        self.context_strategy = saved_strategy if saved_strategy else None
+        saved_facts = session.get("sticky_facts")
+        self.sticky_facts = json.loads(saved_facts) if saved_facts and saved_facts != "{}" else {}
+        self.branches = {}
+        self.current_branch_id = 0
+        self._next_branch_id = 1
+        self.checkpoint_index = None
+
         status = "вкл" if self.compression_enabled else "выкл"
-        print(f"🔄 Переключено на сессию: {session['name']} (ID: {session_id}) | Сжатие: {status}")
+        strat = f" | Стратегия: {self.context_strategy}" if self.context_strategy else ""
+        print(f"🔄 Переключено на сессию: {session['name']} (ID: {session_id}) | Сжатие: {status}{strat}")
         return True
 
     def list_sessions(self) -> list:
-        """Возвращает список всех сессий."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at, last_active_at, prompt_tokens, completion_tokens, total_tokens, compression_enabled "
+                "SELECT id, name, created_at, last_active_at, prompt_tokens, completion_tokens, total_tokens, "
+                "compression_enabled, context_strategy "
                 "FROM sessions ORDER BY last_active_at DESC"
             )
             return [
                 {"id": row[0], "name": row[1], "created_at": row[2], "last_active": row[3],
                  "prompt_tokens": row[4], "completion_tokens": row[5], "total_tokens": row[6],
-                 "compression_enabled": row[7]}
+                 "compression_enabled": row[7], "context_strategy": row[8]}
                 for row in cursor.fetchall()
             ]
 
     def delete_session(self, session_id: int) -> bool:
-        """Удаляет сессию и все её сообщения."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             conn.commit()
             if cursor.rowcount > 0:
-                # Если удалили текущую сессию — переключаемся на другую
                 if self.current_session["id"] == session_id:
                     last = self._get_last_session()
                     if last:
@@ -332,13 +345,13 @@ class JarvisAgent:
                 return True
         return False
 
+    # ─────────────── API ──────────────────────────────────────────
+
     def _build_messages(self, user_input: str) -> list:
-        """Формирует список сообщений для отправки в API."""
         self.conversation_history.append({"role": "user", "content": user_input})
         return self.conversation_history
 
     def _call_api(self, messages: list) -> dict:
-        """Инкапсулированная логика вызова API."""
         payload = {
             "model": self.model,
             "max_tokens": self.max_tokens,
@@ -383,16 +396,305 @@ class JarvisAgent:
         except Exception as e:
             return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
+    # ═══════════════════════════════════════════════════════════════
+    # СТРАТЕГИИ УПРАВЛЕНИЯ КОНТЕКСТОМ
+    # ═══════════════════════════════════════════════════════════════
+
+    def _save_strategy_state(self):
+        """Сохраняет стратегию и sticky_facts в БД."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET context_strategy = ?, sticky_facts = ? WHERE id = ?",
+                (self.context_strategy, json.dumps(self.sticky_facts, ensure_ascii=False),
+                 self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["context_strategy"] = self.context_strategy
+        self.current_session["sticky_facts"] = json.dumps(self.sticky_facts, ensure_ascii=False)
+
+    def set_strategy(self, strategy: Optional[str]) -> str:
+        """
+        Устанавливает стратегию управления контекстом.
+        strategy: None / "sliding_window" / "sticky_facts" / "branching"
+        При установке стратегии сжатие автоматически отключается.
+        """
+        valid = {None, "sliding_window", "sticky_facts", "branching"}
+        if strategy not in valid:
+            return f"❌ Неизвестная стратегия. Допустимые: {[s for s in valid if s is not None]}"
+
+        old_strategy = self.context_strategy
+        self.context_strategy = strategy
+
+        # Отключаем сжатие при включении стратегии
+        if strategy is not None and self.compression_enabled:
+            self.disable_compression()
+
+        # При переходе на sticky_facts — извлекаем факты из истории
+        if strategy == "sticky_facts" and old_strategy != "sticky_facts":
+            if not self.sticky_facts:
+                self._extract_facts_initial()
+
+        # При переходе на branching — сбрасываем ветки
+        if strategy == "branching" and old_strategy != "branching":
+            self._init_branches()
+
+        # При выключении стратегии — чистим ветки
+        if strategy is None and old_strategy == "branching":
+            self.branches = {}
+            self.current_branch_id = 0
+            self._next_branch_id = 1
+            self.checkpoint_index = None
+
+        self._save_strategy_state()
+
+        strat_name = strategy if strategy else "выкл"
+        print(f"🔀 Стратегия управления контекстом: {strat_name}")
+        return f"✅ Стратегия установлена: {strat_name}"
+
+    # ── Sliding Window ────────────────────────────────────────────
+
+    def _get_sliding_window_messages(self, window_size: int = 5) -> list:
+        """Возвращает только последние window_size сообщений."""
+        result = []
+        if self.system_prompt:
+            result.append({"role": "system", "content": self.system_prompt})
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        # После добавления user-сообщения в chat() — берём последние N
+        result.extend(non_system[-window_size:])
+        return result
+
+    def _apply_sliding_window(self, window_size: int = 5):
+        """Обрезает conversation_history и БД до последних window_size сообщений."""
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        if len(non_system) <= window_size:
+            return
+
+        # Оставляем последние window_size
+        kept = non_system[-window_size:]
+        self.conversation_history = []
+        if self.system_prompt:
+            self.conversation_history.append({"role": "system", "content": self.system_prompt})
+        self.conversation_history.extend(kept)
+
+        # Синхронизируем БД
+        self._delete_old_messages(window_size)
+
+    # ── Sticky Facts ──────────────────────────────────────────────
+
+    def _get_sticky_facts_messages(self, window_size: int = 5) -> list:
+        """Возвращает факты + последние window_size сообщений."""
+        result = []
+        if self.system_prompt:
+            result.append({"role": "system", "content": self.system_prompt})
+        if self.sticky_facts:
+            facts_lines = []
+            for k, v in self.sticky_facts.items():
+                facts_lines.append(f"  • {k}: {v}")
+            facts_str = "📌 Ключевые факты диалога:\n" + "\n".join(facts_lines)
+            result.append({"role": "system", "content": facts_str})
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        result.extend(non_system[-window_size:])
+        return result
+
+    def _extract_facts_initial(self):
+        """Извлекает факты из всей имеющейся истории при первом включении sticky_facts."""
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        if len(non_system) < 2:
+            return
+
+        dialog_text = "\n\n".join(
+            f"{m['role'].upper()}: {m['content']}" for m in non_system
+        )
+        prompt = (
+            "Извлеки ключевые факты из диалога ниже. "
+            "Верни результат в формате JSON: {\"факты\": [\"факт1\", \"факт2\", ...]}. "
+            "Только JSON, без пояснений.\n\nДиалог:\n" + dialog_text
+        )
+
+        fact_messages = [
+            {"role": "system", "content": "Ты — анализатор фактов. Отвечай только JSON."},
+            {"role": "user", "content": prompt}
+        ]
+        response = self._call_api(fact_messages)
+        if response["success"]:
+            self._parse_and_store_facts(response["content"])
+
+    def _extract_facts(self, current_user_msg: str, current_assistant_msg: str):
+        """Обновляет sticky_facts на основе последнего обмена."""
+        old_facts_str = json.dumps(self.sticky_facts, ensure_ascii=False, indent=2)
+
+        prompt = (
+            "У меня есть текущие факты диалога:\n"
+            f"{old_facts_str}\n\n"
+            "Последний обмен:\n"
+            f"USER: {current_user_msg}\n"
+            f"ASSISTANT: {current_assistant_msg}\n\n"
+            "Обнови список фактов: добавь новые важные сведения, "
+            "удали устаревшие, обобщи при необходимости. "
+            "Факты — это любые важные данные: цель, ограничения, "
+            "предпочтения, принятые решения, договорённости, имена, сроки. "
+            "Верни результат в формате JSON: {\"факты\": [\"факт1\", \"факт2\", ...]}. "
+            "Только JSON, без пояснений."
+        )
+
+        fact_messages = [
+            {"role": "system", "content": "Ты — анализатор фактов. Отвечай только JSON."},
+            {"role": "user", "content": prompt}
+        ]
+        response = self._call_api(fact_messages)
+        if response["success"]:
+            self._parse_and_store_facts(response["content"])
+            self._save_strategy_state()
+
+    def _parse_and_store_facts(self, raw: str):
+        """Парсит JSON-ответ и обновляет self.sticky_facts."""
+        try:
+            # Ищем JSON в ответе
+            json_start = raw.find('{')
+            json_end = raw.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                raw = raw[json_start:json_end]
+            data = json.loads(raw)
+            facts_list = data.get("факты", data.get("facts", []))
+            if facts_list:
+                new_facts = {}
+                for i, fact in enumerate(facts_list):
+                    key = f"Факт {i + 1}"
+                    new_facts[key] = fact
+                self.sticky_facts = new_facts
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # ── Branching ─────────────────────────────────────────────────
+
+    def _init_branches(self):
+        """Инициализирует ветвление: создаёт главную ветку (branch 0)."""
+        self.branches = {
+            0: {
+                "name": "main",
+                "messages": self.conversation_history.copy() if self.conversation_history else []
+            }
+        }
+        self.current_branch_id = 0
+        self._next_branch_id = 1
+        self.checkpoint_index = None
+        # Восстанавливаем историю из главной ветки
+        if 0 in self.branches:
+            self.conversation_history = self.branches[0]["messages"].copy()
+
+    def _get_branching_messages(self) -> list:
+        """Возвращает сообщения текущей ветки."""
+        return self.conversation_history
+
+    def save_checkpoint(self) -> str:
+        """Сохраняет checkpoint в текущей ветке."""
+        if self.context_strategy != "branching":
+            return "❌ Режим ветвления не активен. Используйте: /strategy branching"
+
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        self.checkpoint_index = len(non_system)
+        print(f"📍 Checkpoint сохранён на сообщении #{self.checkpoint_index} в ветке '{self.branches[self.current_branch_id]['name']}'")
+        return f"✅ Checkpoint сохранён. Следующая ветка начнётся отсюда (сообщение #{self.checkpoint_index})."
+
+    def create_branch(self, name: str) -> str:
+        """Создаёт новую ветку от checkpoint."""
+        if self.context_strategy != "branching":
+            return "❌ Режим ветвления не активен."
+        if self.checkpoint_index is None:
+            return "❌ Сначала сохраните checkpoint: /checkpoint"
+
+        # Сохраняем текущую ветку
+        self.branches[self.current_branch_id]["messages"] = self.conversation_history.copy()
+
+        # Создаём новую ветку с историей до checkpoint
+        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        checkpoint_msgs = non_system[:self.checkpoint_index]
+
+        branch_id = self._next_branch_id
+        self._next_branch_id += 1
+
+        new_history = []
+        if self.system_prompt:
+            new_history.append({"role": "system", "content": self.system_prompt})
+        new_history.extend(checkpoint_msgs)
+
+        self.branches[branch_id] = {
+            "name": name,
+            "messages": new_history
+        }
+
+        # Переключаемся на новую ветку
+        self.current_branch_id = branch_id
+        self.conversation_history = new_history.copy()
+
+        # Сохраняем в БД информацию о ветке
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO branches (session_id, name, parent_branch_id, checkpoint_message_index) "
+                "VALUES (?, ?, ?, ?)",
+                (self.current_session["id"], name, self.current_branch_id, self.checkpoint_index)
+            )
+            conn.commit()
+
+        print(f"🌿 Создана ветка '{name}' (ID: {branch_id}) от checkpoint #{self.checkpoint_index}")
+        return f"✅ Ветка '{name}' создана. Вы переключены на неё."
+
+    def list_branches(self) -> list:
+        """Возвращает список всех веток."""
+        if self.context_strategy != "branching":
+            return []
+        result = []
+        for bid, branch in self.branches.items():
+            msg_count = len([m for m in branch["messages"] if m["role"] != "system"])
+            current = " 👈 (текущая)" if bid == self.current_branch_id else ""
+            result.append({
+                "id": bid,
+                "name": branch["name"],
+                "messages": msg_count,
+                "current": current
+            })
+        return result
+
+    def switch_branch(self, branch_id: int) -> str:
+        """Переключается на другую ветку."""
+        if self.context_strategy != "branching":
+            return "❌ Режим ветвления не активен."
+        if branch_id not in self.branches:
+            return f"❌ Ветка с ID {branch_id} не найдена. Используйте: /branches"
+
+        # Сохраняем текущую ветку
+        self.branches[self.current_branch_id]["messages"] = self.conversation_history.copy()
+
+        # Загружаем новую
+        self.current_branch_id = branch_id
+        self.conversation_history = self.branches[branch_id]["messages"].copy()
+
+        branch_name = self.branches[branch_id]["name"]
+        print(f"🔄 Переключено на ветку '{branch_name}' (ID: {branch_id})")
+        return f"✅ Переключено на ветку '{branch_name}'."
+
+    # ── Основной метод ────────────────────────────────────────────
+
     def chat(self, user_input: str) -> str:
         """Основной метод агента: принимает запрос и возвращает ответ."""
         if not user_input or not user_input.strip():
             return "Пожалуйста, введите ваш запрос."
 
         self.conversation_history.append({"role": "user", "content": user_input})
-        if self.compression_enabled:
-            messages = self.get_compressed_messages()
+
+        # Выбираем стратегию построения сообщений
+        if self.context_strategy == "sliding_window":
+            messages = self._get_sliding_window_messages()
+        elif self.context_strategy == "sticky_facts":
+            messages = self._get_sticky_facts_messages()
+        elif self.context_strategy == "branching":
+            messages = self._get_branching_messages()
         else:
-            messages = self.get_raw_messages()
+            if self.compression_enabled:
+                messages = self.get_compressed_messages()
+            else:
+                messages = self.get_raw_messages()
+
         tokens_before = sum(self._count_tokens(m["content"]) for m in messages if m["role"] != "system")
 
         response = self._call_api(messages)
@@ -419,19 +721,32 @@ class JarvisAgent:
                     f"(~{total} токенов из {self.context_limit}). Рекомендуется начать новую сессию."
                 )
 
-            if self.compression_enabled and len([m for m in self.conversation_history if m["role"] != "system"]) % self.compression_interval == 0:
-                comp_result = self.compress_history()
-                if comp_result:
-                    assistant_message += (
-                        f"\n\n📦 История сжата: {comp_result['tokens_before']} → {comp_result['tokens_after']} "
-                        f"токенов (экономия {comp_result['compression_rate']}%)"
-                    )
+            # Автосжатие (только без стратегии)
+            if not self.context_strategy and self.compression_enabled:
+                non_system = [m for m in self.conversation_history if m["role"] != "system"]
+                if len(non_system) % self.compression_interval == 0:
+                    comp_result = self.compress_history()
+                    if comp_result:
+                        assistant_message += (
+                            f"\n\n📦 История сжата: {comp_result['tokens_before']} → {comp_result['tokens_after']} "
+                            f"токенов (экономия {comp_result['compression_rate']}%)"
+                        )
+
+            # Обновление фактов после ответа (sticky_facts)
+            if self.context_strategy == "sticky_facts":
+                self._extract_facts(user_input, assistant_message)
+
+            # Обрезка истории (sliding_window)
+            if self.context_strategy == "sliding_window":
+                self._apply_sliding_window()
 
             return assistant_message
         else:
             if self.conversation_history and self.conversation_history[-1]["role"] == "user":
                 self.conversation_history.pop()
             return f"❌ Ошибка: {response.get('error', 'Неизвестная ошибка')}\n{response.get('details', '')}"
+
+    # ─────────────── Управление историей ──────────────────────────
 
     def reset_conversation(self):
         """Очищает историю текущей сессии (но не удаляет саму сессию)."""
@@ -445,6 +760,15 @@ class JarvisAgent:
 
         self.compression_history = []
         self._clear_compressed_summaries()
+
+        # Сброс стратегий
+        self.sticky_facts = {}
+        self.branches = {}
+        self.current_branch_id = 0
+        self._next_branch_id = 1
+        self.checkpoint_index = None
+        if self.context_strategy:
+            self._save_strategy_state()
 
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
@@ -489,8 +813,9 @@ class JarvisAgent:
         self._update_session_tokens()
         print(f"✂️ История обрезана: удалено {removed} сообщений, оставлено {n}.")
 
+    # ─────────────── Сжатие истории (компрессия) ──────────────────
+
     def _save_compression_mode(self):
-        """Сохраняет режим сжатия текущей сессии в БД."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE sessions SET compression_enabled = ? WHERE id = ?",
@@ -500,26 +825,22 @@ class JarvisAgent:
         self.current_session["compression_enabled"] = self.compression_enabled
 
     def enable_compression(self):
-        """Включает сжатие истории для текущей сессии."""
         self.compression_enabled = True
         self._save_compression_mode()
         print("✅ Сжатие истории включено")
 
     def disable_compression(self):
-        """Выключает сжатие истории для текущей сессии."""
         self.compression_enabled = False
         self._save_compression_mode()
         print("✅ Сжатие истории выключено")
 
     def toggle_compression(self):
-        """Переключает режим сжатия истории."""
         if self.compression_enabled:
             self.disable_compression()
         else:
             self.enable_compression()
 
     def compress_now(self) -> Optional[dict]:
-        """Принудительное сжатие истории (без отправки сообщения в API)."""
         messages = [m for m in self.conversation_history if m["role"] != "system"]
         if len(messages) < self.compression_interval:
             print(f"ℹ️ В истории {len(messages)} сообщений, нужно минимум {self.compression_interval} для сжатия.")
@@ -527,7 +848,6 @@ class JarvisAgent:
         return self.compress_history()
 
     def get_raw_messages(self) -> list:
-        """Возвращает сырую историю (без сжатия) для отправки в API."""
         result = []
         if self.system_prompt:
             result.append({"role": "system", "content": self.system_prompt})
@@ -535,61 +855,51 @@ class JarvisAgent:
         return result
 
     def get_compressed_messages(self) -> list:
-        """
-        Собирает полную историю с учётом сжатых фрагментов.
-        Возвращает историю, где каждые N сообщений заменены на их summary.
-        """
         result = []
-        
+
         if self.system_prompt:
             result.append({"role": "system", "content": self.system_prompt})
-        
+
         for item in self.compression_history:
             if item["type"] == "summary":
                 result.append({"role": "system", "content": f"[АРХИВ: {item['content']}]"})
-        
+
         result.extend([m for m in self.conversation_history if m["role"] != "system"])
-        
+
         return result
 
     def _count_tokens(self, text: str) -> int:
-        """Приближённый подсчёт токенов (1 токен ≈ 4 символа для English, ≈ 3 для Russian)."""
         return max(1, len(text) // 4)
 
     def compress_history(self) -> Optional[dict]:
-        """
-        Сжимает историю: берёт первые N сообщений, отправляет на суммаризацию,
-        сохраняет summary в отдельную историю сжатия.
-        Возвращает summary или None, если сжатие не требуется.
-        """
         messages = [m for m in self.conversation_history if m["role"] != "system"]
-        
+
         if len(messages) < self.compression_interval:
             return None
-        
+
         to_compress = messages[:self.compression_interval]
         remaining = messages[self.compression_interval:]
-        
+
         history_text = "\n\n".join([f"{m['role'].upper()}: {m['content']}" for m in to_compress])
         token_count_before = sum(self._count_tokens(m['content']) for m in to_compress)
-        
+
         compress_prompt = (
             "Суммаризируй следующий фрагмент диалога в виде краткого описания основных тем и ключевых фактов. "
             "Сохрани важную информацию, но сократи объём минимум в 5 раз.\n\n"
             f"Диалог:\n{history_text}"
         )
-        
+
         messages_for_compress = [
             {"role": "system", "content": "Ты — эксперт по суммаризации диалогов."},
             {"role": "user", "content": compress_prompt}
         ]
-        
+
         response = self._call_api(messages_for_compress)
-        
+
         if response["success"]:
             summary = response["content"]
             token_count_after = self._count_tokens(summary)
-            
+
             item = {
                 "type": "summary",
                 "content": summary,
@@ -599,34 +909,72 @@ class JarvisAgent:
             }
             self.compression_history.append(item)
             self._save_compressed_summary(summary, self.compression_interval, token_count_before, token_count_after)
-            
+
             self.conversation_history = []
             if self.system_prompt:
                 self.conversation_history.append({"role": "system", "content": self.system_prompt})
             self.conversation_history.extend(remaining)
-            
+
             comp_rate = round((1 - token_count_after / token_count_before) * 100, 1) if token_count_before > 0 else 0
-            
+
             print(f"📦 История сжата: {len(to_compress)} сообщений → summary (экономия {comp_rate}%, "
                   f"{token_count_before} → {token_count_after} токенов)")
-            
+
             return {
                 "summary": summary,
                 "tokens_before": token_count_before,
                 "tokens_after": token_count_after,
                 "compression_rate": comp_rate
             }
-        
+
         return None
 
+    def _load_compressed_summaries(self) -> list:
+        summaries = []
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT content, source_count, tokens_before, tokens_after "
+                "FROM compressed_summaries WHERE session_id = ? ORDER BY created_at ASC",
+                (self.current_session["id"],)
+            )
+            for row in cursor.fetchall():
+                summaries.append({
+                    "type": "summary",
+                    "content": row[0],
+                    "source_messages": row[1],
+                    "tokens_before": row[2],
+                    "tokens_after": row[3]
+                })
+        return summaries
+
+    def _save_compressed_summary(self, content: str, source_count: int, tokens_before: int, tokens_after: int):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO compressed_summaries (session_id, content, source_count, tokens_before, tokens_after) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (self.current_session["id"], content, source_count, tokens_before, tokens_after)
+            )
+            conn.commit()
+
+    def _clear_compressed_summaries(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "DELETE FROM compressed_summaries WHERE session_id = ?",
+                (self.current_session["id"],)
+            )
+            conn.commit()
+
+    # ─────────────── Статистика ───────────────────────────────────
+
     def get_stats(self) -> str:
-        """Возвращает статистику использования агента."""
         msg_count = len([m for m in self.conversation_history if m["role"] != "system"])
 
         comp_status = "вкл" if self.compression_enabled else "выкл"
+        strat_name = self.context_strategy if self.context_strategy else "выкл"
         lines = [
             "📊 Статистика агента:",
             f"  • Текущая сессия: {self.current_session['name']} (ID: {self.current_session['id']})",
+            f"  • Стратегия контекста: {strat_name}",
             f"  • Режим сжатия: {comp_status}",
             f"  • Всего запросов: {self.total_requests}",
             f"  • Всего токенов (глобально): {self.total_tokens_used}",
@@ -666,5 +1014,27 @@ class JarvisAgent:
                     f"     Фрагмент {i+1}: {item['source_messages']} сообщений → {item['tokens_after']} токенов "
                     f"(экономия {item['tokens_before'] - item['tokens_after']} токенов)"
                 )
+
+        if self.context_strategy == "sliding_window":
+            lines.extend([
+                "",
+                "  🪟 Sliding Window: активен",
+                f"     Окно: последние 5 сообщений",
+            ])
+
+        if self.context_strategy == "sticky_facts":
+            lines.extend([
+                "",
+                f"  📌 Sticky Facts: {len(self.sticky_facts)} фактов",
+            ])
+            for k, v in self.sticky_facts.items():
+                lines.append(f"     {k}: {v[:80]}...")
+
+        if self.context_strategy == "branching":
+            lines.extend([
+                "",
+                f"  🌿 Ветвление: {len(self.branches)} веток",
+                f"     Текущая ветка: '{self.branches.get(self.current_branch_id, {}).get('name', '?')}' (ID: {self.current_branch_id})",
+            ])
 
         return "\n".join(lines)
