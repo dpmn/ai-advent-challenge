@@ -42,6 +42,7 @@ ai-advent-challenge/
 │  ├─ lessions/           # Конспекты лекций
 │  │  ├─ week-01.md
 │  │  └─ week-02.md
+│  ├─ database-schema.md  # Описание схемы базы данных
 │  └─ progress.md         # Прогресс прохождения
 ├─ week-01/               # Задания недели 1 (day-01..05)
 ├─ week-02/               # Задания недели 2 (day-06..10)
@@ -70,6 +71,7 @@ ai-advent-challenge/
 - Тебе нужно провести анализ результатов и записать выводы в этом же README. Раздел "Задание" **не редактируй**!
 - Актуализируй структуру проекта в [AGENTS.md](AGENTS.md), если понадобится.
 - Актуализируй статус по заданию в [progress.md](docs/progress.md).
+- Актуализируй схему базы данных, если требуется.
 
 ## WebUI
 
@@ -118,7 +120,7 @@ python .\webui\app.py
 ## Стек и окружение
 
 - Операционная система: Windows 11, opencode работает на WSL.
-- Язык программирования: Python 3.12.
+- Технологии: Python 3.12, Flask
 - API для кода заданий: **Cloud.ru, сервис Foundation Models** (оплата в рублях, OpenAI-совместимый доступ).
   - Спецификация API: https://cloud.ru/docs/foundation-models/ug/topics/api-ref__specs
   - base_url: `https://foundation-models.api.cloud.ru/v1`
