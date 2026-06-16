@@ -28,6 +28,8 @@
 | `compression_enabled` | INTEGER DEFAULT 1 | Флаг включённого сжатия (0/1) |
 | `context_strategy` | TEXT DEFAULT NULL | Стратегия управления контекстом: `sliding_window`, `sticky_facts`, `branching` или NULL |
 | `sticky_facts` | TEXT DEFAULT '{}' | JSON-объект с ключевыми фактами (для стратегии sticky_facts) |
+| `task_context` | TEXT DEFAULT '{}' | JSON-объект с рабочей памятью (TaskContext) — данные текущей задачи |
+| `profile_name` | TEXT DEFAULT 'default' | Имя активного профиля (долговременная память) |
 
 **Важные поля для архитектуры:**
 - Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`

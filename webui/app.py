@@ -113,6 +113,8 @@ def get_settings():
         "context_limit": agent.context_limit,
         "context_strategy": agent.context_strategy,
         "compression_enabled": agent.compression_enabled,
+        "profile_name": agent.profile.profile_name,
+        "task_context": agent.task_context.to_dict(),
     })
 
 

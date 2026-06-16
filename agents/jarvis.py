@@ -3,7 +3,7 @@ import json
 import urllib.request
 import urllib.error
 import sqlite3
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 
@@ -13,6 +13,118 @@ load_dotenv()
 
 _AGENTS_DIR = Path(__file__).parent.resolve()
 _DEFAULT_DB_PATH = str(_AGENTS_DIR / "memory" / "jarvis_history.db")
+_PROFILES_DIR = _AGENTS_DIR / "memory" / "profiles"
+
+
+class TaskContext:
+    """
+    Рабочая память (Working Memory) — данные текущей задачи.
+    Хранится в оперативной памяти, может быть сериализована/загружена.
+    """
+
+    def __init__(self):
+        self._data: Dict[str, Any] = {}
+
+    def set(self, key: str, value: Any):
+        self._data[key] = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._data.get(key, default)
+
+    def clear(self):
+        self._data.clear()
+
+    def to_prompt_block(self) -> str:
+        if not self._data:
+            return ""
+        lines = ["📋 Текущая задача (TaskContext):"]
+        for k, v in self._data.items():
+            lines.append(f"  • {k}: {v}")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        return dict(self._data)
+
+    def load_dict(self, data: dict):
+        self._data = dict(data)
+
+    def remove(self, key: str):
+        self._data.pop(key, None)
+
+    def keys(self):
+        return self._data.keys()
+
+
+class Profile:
+    """
+    Долговременная память (Long-term Memory) — профиль пользователя,
+    решения, предпочтения, знания. Хранится в виде markdown файлов
+    в agents/memory/profiles/.
+    """
+
+    def __init__(self, profile_name: str = "default"):
+        self.profile_name = profile_name
+        self._data: Dict[str, str] = {}
+        self._profiles_dir = _PROFILES_DIR
+        self._profiles_dir.mkdir(parents=True, exist_ok=True)
+        self._load()
+
+    def _file_path(self) -> Path:
+        return self._profiles_dir / f"{self.profile_name}.md"
+
+    def _load(self):
+        path = self._file_path()
+        if path.exists():
+            content = path.read_text(encoding="utf-8")
+            current_key = None
+            current_value = []
+            for line in content.split("\n"):
+                if line.startswith("## "):
+                    if current_key:
+                        self._data[current_key] = "\n".join(current_value).strip()
+                    current_key = line[3:].strip()
+                    current_value = []
+                elif current_key:
+                    current_value.append(line)
+            if current_key:
+                self._data[current_key] = "\n".join(current_value).strip()
+
+    def save(self):
+        path = self._file_path()
+        lines = [f"# Profile: {self.profile_name}"]
+        for k, v in self._data.items():
+            lines.append(f"\n## {k}")
+            lines.append(v)
+        path.write_text("\n".join(lines), encoding="utf-8")
+
+    def set(self, key: str, value: str):
+        self._data[key] = value
+        self.save()
+
+    def get(self, key: str, default: str = "") -> str:
+        return self._data.get(key, default)
+
+    def to_prompt_block(self) -> str:
+        if not self._data:
+            return ""
+        lines = ["👤 Профиль пользователя (Profile):"]
+        for k, v in self._data.items():
+            first_line = v.split("\n")[0] if v else ""
+            lines.append(f"  • {k}: {first_line[:120]}")
+        return "\n".join(lines)
+
+    def to_full_prompt_block(self) -> str:
+        if not self._data:
+            return ""
+        lines = ["👤 Профиль пользователя:"]
+        for k, v in self._data.items():
+            lines.append(f"\n[{k}]\n{v}")
+        return "\n".join(lines)
+
+    def list_profiles(self) -> list:
+        return sorted(
+            p.stem for p in self._profiles_dir.glob("*.md")
+        ) or ["default"]
 
 
 class JarvisAgent:
@@ -27,6 +139,10 @@ class JarvisAgent:
       • sliding_window — только последние 5 сообщений
       • sticky_facts — ключевые факты + последние 5 сообщений
       • branching — ветки диалога от checkpoint
+    - Трёхуровневую модель памяти:
+      • Short-term — текущий диалог (сессия)
+      • Working — TaskContext (данные текущей задачи)
+      • Long-term — Profile (профиль, предпочтения, знания)
     """
 
     def __init__(
@@ -91,6 +207,20 @@ class JarvisAgent:
         # Если стратегия branching, но ветки не инициализированы (загрузка из БД) — инициализируем
         if self.context_strategy == "branching" and not self.branches:
             self._init_branches()
+
+        # ─── Трёхуровневая модель памяти ──────────────────────
+        self.task_context = TaskContext()
+        saved_task = self.current_session.get("task_context")
+        if saved_task:
+            try:
+                self.task_context.load_dict(json.loads(saved_task))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        profile_name = self.current_session.get("profile_name", "default")
+        if not profile_name:
+            profile_name = "default"
+        self.profile = Profile(profile_name)
 
         self.total_tokens_used = 0
         self.total_requests = 0
@@ -161,6 +291,8 @@ class JarvisAgent:
                 ("compression_enabled", "INTEGER DEFAULT 1"),
                 ("context_strategy", "TEXT DEFAULT NULL"),
                 ("sticky_facts", "TEXT DEFAULT '{}'"),
+                ("task_context", "TEXT DEFAULT '{}'"),
+                ("profile_name", "TEXT DEFAULT 'default'"),
             ]:
                 try:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_migration[0]} {col_migration[1]}")
@@ -174,7 +306,7 @@ class JarvisAgent:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
-                "compression_enabled, context_strategy, sticky_facts "
+                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -182,7 +314,8 @@ class JarvisAgent:
                 return {
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
-                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8]
+                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8],
+                    "task_context": row[9], "profile_name": row[10]
                 }
             return None
 
@@ -190,7 +323,7 @@ class JarvisAgent:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
-                "compression_enabled, context_strategy, sticky_facts "
+                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -199,7 +332,8 @@ class JarvisAgent:
                 return {
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
-                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8]
+                    "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8],
+                    "task_context": row[9], "profile_name": row[10]
                 }
             return None
 
@@ -266,7 +400,8 @@ class JarvisAgent:
         session = {
             "id": session_id, "name": name, "created_at": datetime.now().isoformat(),
             "compression_enabled": self.compression_enabled,
-            "context_strategy": None, "sticky_facts": "{}"
+            "context_strategy": None, "sticky_facts": "{}",
+            "task_context": "{}", "profile_name": "default"
         }
         self.current_session = session
         self.conversation_history = []
@@ -280,6 +415,9 @@ class JarvisAgent:
         self.current_branch_id = 0
         self._next_branch_id = 1
         self.checkpoint_index = None
+
+        self.task_context = TaskContext()
+        self.profile = Profile("default")
 
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
@@ -318,6 +456,17 @@ class JarvisAgent:
 
         if self.context_strategy == "branching" and not self.branches:
             self._init_branches()
+
+        # Восстанавливаем трёхуровневую память
+        saved_task = session.get("task_context")
+        self.task_context = TaskContext()
+        if saved_task:
+            try:
+                self.task_context.load_dict(json.loads(saved_task))
+            except (json.JSONDecodeError, TypeError):
+                pass
+        profile_name = session.get("profile_name", "default") or "default"
+        self.profile = Profile(profile_name)
 
         status = "вкл" if self.compression_enabled else "выкл"
         strat = f" | Стратегия: {self.context_strategy}" if self.context_strategy else ""
@@ -419,6 +568,19 @@ class JarvisAgent:
         self.current_session["context_strategy"] = self.context_strategy
         self.current_session["sticky_facts"] = json.dumps(self.sticky_facts, ensure_ascii=False)
 
+    def _save_memory_state(self):
+        """Сохраняет task_context и profile_name в БД."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET task_context = ?, profile_name = ? WHERE id = ?",
+                (json.dumps(self.task_context.to_dict(), ensure_ascii=False),
+                 self.profile.profile_name,
+                 self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["task_context"] = json.dumps(self.task_context.to_dict(), ensure_ascii=False)
+        self.current_session["profile_name"] = self.profile.profile_name
+
     def set_strategy(self, strategy: Optional[str]) -> str:
         """
         Устанавливает стратегию управления контекстом.
@@ -465,7 +627,7 @@ class JarvisAgent:
         result = []
         if self.system_prompt:
             result.append({"role": "system", "content": self.system_prompt})
-        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        non_system = [m for m in self.conversation_history if m["role"] not in ("system", "command")]
         # После добавления user-сообщения в chat() — берём последние N
         result.extend(non_system[-window_size:])
         return result
@@ -499,7 +661,7 @@ class JarvisAgent:
                 facts_lines.append(f"  • {k}: {v}")
             facts_str = "📌 Ключевые факты диалога:\n" + "\n".join(facts_lines)
             result.append({"role": "system", "content": facts_str})
-        non_system = [m for m in self.conversation_history if m["role"] != "system"]
+        non_system = [m for m in self.conversation_history if m["role"] not in ("system", "command")]
         result.extend(non_system[-window_size:])
         return result
 
@@ -598,8 +760,13 @@ class JarvisAgent:
             self.conversation_history = self.branches[0]["messages"].copy()
 
     def _get_branching_messages(self) -> list:
-        """Возвращает сообщения текущей ветки."""
-        return self.conversation_history
+        """Возвращает сообщения текущей ветки (без command-сообщений)."""
+        result = []
+        for m in self.conversation_history:
+            if m["role"] == "command":
+                continue
+            result.append(m)
+        return result
 
     def save_checkpoint(self) -> str:
         """Сохраняет checkpoint в текущей ветке."""
@@ -726,7 +893,12 @@ class JarvisAgent:
                 "  /checkpoint   — сохранить checkpoint (branching)\n"
                 "  /branch <name> — создать ветку\n"
                 "  /branches     — список веток\n"
-                "  /switch <id>  — переключить ветку"
+                "  /switch <id>  — переключить ветку\n"
+                "  /task [key value] — показать/задать рабочую память\n"
+                "  /task clear   — очистить рабочую память\n"
+                "  /profile [name] — показать/сменить профиль\n"
+                "  /profile set <k> <v> — задать поле профиля\n"
+                "  /profiles     — список доступных профилей"
             )
 
         if cmd == "/stats":
@@ -832,6 +1004,12 @@ class JarvisAgent:
                 lines.append(f"  Веток: {len(self.branches)}")
                 cur = self.branches.get(self.current_branch_id, {})
                 lines.append(f"  Текущая ветка: '{cur.get('name', '?')}'")
+            # Memory model info
+            lines.append("")
+            lines.append("🧠 Модель памяти:")
+            tc = self.task_context.to_dict()
+            lines.append(f"  Working (TaskContext): {len(tc)} полей")
+            lines.append(f"  Long-term (Profile): '{self.profile.profile_name}' — {len(self.profile._data)} полей")
             return "\n".join(lines)
 
         if cmd == "/checkpoint":
@@ -859,6 +1037,67 @@ class JarvisAgent:
                 return self.switch_branch(bid)
             except ValueError:
                 return "❌ Укажите числовой ID ветки."
+
+        # ── Рабочая память (TaskContext) ─────────────────────
+
+        if cmd == "/task":
+            if not arg:
+                data = self.task_context.to_dict()
+                if not data:
+                    return "📋 Рабочая память пуста."
+                lines = ["📋 Рабочая память (TaskContext):"]
+                for k, v in data.items():
+                    lines.append(f"  • {k}: {v}")
+                return "\n".join(lines)
+            parts = arg.strip().split(maxsplit=1)
+            sub = parts[0].lower()
+            if sub == "clear":
+                self.task_context.clear()
+                self._save_memory_state()
+                return "✅ Рабочая память очищена."
+            if len(parts) < 2:
+                return "❌ Используйте: /task <key> <value> или /task clear"
+            self.task_context.set(parts[0], parts[1])
+            self._save_memory_state()
+            return f"✅ Задано: {parts[0]} = {parts[1]}"
+
+        # ── Долговременная память (Profile) ──────────────────
+
+        if cmd == "/profile":
+            if not arg:
+                data = self.profile._data
+                if not data:
+                    return "👤 Профиль пуст. Используйте /profile set <key> <value>"
+                lines = [f"👤 Профиль: {self.profile.profile_name}"]
+                for k, v in data.items():
+                    first = v.split("\n")[0][:100] if v else ""
+                    lines.append(f"  • {k}: {first}")
+                return "\n".join(lines)
+            parts = arg.strip().split(maxsplit=2)
+            sub = parts[0].lower()
+            if sub == "set" and len(parts) >= 3:
+                self.profile.set(parts[1], parts[2])
+                self._save_memory_state()
+                return f"✅ Профиль обновлён: {parts[1]} = {parts[2]}"
+            elif sub == "set" and len(parts) < 3:
+                return "❌ Используйте: /profile set <key> <value>"
+            else:
+                # Переключение профиля
+                name = parts[0]
+                if name not in self.profile.list_profiles():
+                    return f"❌ Профиль '{name}' не найден. Доступны: {', '.join(self.profile.list_profiles())}"
+                self.profile = Profile(name)
+                self._save_memory_state()
+                return f"✅ Переключено на профиль: {name}"
+
+        if cmd == "/profiles":
+            profiles = self.profile.list_profiles()
+            current = self.profile.profile_name
+            lines = ["📂 Доступные профили:"]
+            for p in profiles:
+                marker = " 👈" if p == current else ""
+                lines.append(f"  • {p}{marker}")
+            return "\n".join(lines)
 
         return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."
 
@@ -894,6 +1133,19 @@ class JarvisAgent:
                 messages = self.get_compressed_messages()
             else:
                 messages = self.get_raw_messages()
+
+        # Инжектируем трёхуровневую модель памяти
+        memory_blocks = []
+        profile_block = self.profile.to_full_prompt_block()
+        if profile_block:
+            memory_blocks.append(profile_block)
+        task_block = self.task_context.to_prompt_block()
+        if task_block:
+            memory_blocks.append(task_block)
+        if memory_blocks:
+            memory_text = "\n\n".join(memory_blocks)
+            messages.insert(1, {"role": "system", "content": memory_text})
+            self._save_memory_state()
 
         tokens_before = sum(self._count_tokens(m["content"]) for m in messages if m["role"] != "system")
 
@@ -982,6 +1234,10 @@ class JarvisAgent:
         if self.context_strategy:
             self._save_strategy_state()
 
+        self.task_context = TaskContext()
+        self.profile = Profile(self.profile.profile_name)
+        self._save_memory_state()
+
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
         self.session_total_tokens = 0
@@ -1063,7 +1319,7 @@ class JarvisAgent:
         result = []
         if self.system_prompt:
             result.append({"role": "system", "content": self.system_prompt})
-        result.extend([m for m in self.conversation_history if m["role"] != "system"])
+        result.extend([m for m in self.conversation_history if m["role"] not in ("system", "command")])
         return result
 
     def get_compressed_messages(self) -> list:
@@ -1076,7 +1332,7 @@ class JarvisAgent:
             if item["type"] == "summary":
                 result.append({"role": "system", "content": f"[АРХИВ: {item['content']}]"})
 
-        result.extend([m for m in self.conversation_history if m["role"] != "system"])
+        result.extend([m for m in self.conversation_history if m["role"] not in ("system", "command")])
 
         return result
 
