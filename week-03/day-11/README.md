@@ -32,7 +32,7 @@
 
 | Файл | Что сделано |
 |------|-------------|
-| `agents/jarvis.py` | Добавлены классы `TaskContext` (рабочая память) и `Profile` (долговременная память). Интегрированы в пайплайн чата — все три слоя инжектируются в system prompt перед запросом. Добавлены команды `/task`, `/profile`, `/profiles`. |
+| `agents/jarvis.py` | Добавлены классы `TaskContext` (рабочая память) и `Profile` (долговременная память). Интегрированы в пайплайн чата — все три слоя инжектируются в system prompt перед запросом. Добавлены команды `/task`, `/profile`, `/profile new`, `/profiles`. Фильтрация `command`-сообщений из API-вызовов (все сборщики контекста). Команды больше не сохраняются как `user`-сообщения в историю. Вывод system prompt в логи (`[JARVIS] System prompt for API call`). |
 | `webui/app.py` | API `/api/settings` теперь возвращает `profile_name` и `task_context`. |
 | `docs/database-schema.md` | Добавлены поля `task_context` (TEXT) и `profile_name` (TEXT) в таблицу sessions. |
 | `docs/progress.md` | Статус обновлён на done. |
