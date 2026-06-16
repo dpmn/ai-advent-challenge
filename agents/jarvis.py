@@ -898,6 +898,7 @@ class JarvisAgent:
                 "  /task clear   — очистить рабочую память\n"
                 "  /profile [name] — показать/сменить профиль\n"
                 "  /profile set <k> <v> — задать поле профиля\n"
+                "  /profile new <name> — создать новый профиль\n"
                 "  /profiles     — список доступных профилей"
             )
 
@@ -1081,11 +1082,20 @@ class JarvisAgent:
                 return f"✅ Профиль обновлён: {parts[1]} = {parts[2]}"
             elif sub == "set" and len(parts) < 3:
                 return "❌ Используйте: /profile set <key> <value>"
+            elif sub == "new" and len(parts) >= 2:
+                name = parts[1]
+                profiles = self.profile.list_profiles()
+                if name in profiles:
+                    return f"❌ Профиль '{name}' уже существует."
+                self.profile = Profile(name)
+                self._save_memory_state()
+                return f"✅ Создан и активирован профиль: {name}"
             else:
                 # Переключение профиля
                 name = parts[0]
-                if name not in self.profile.list_profiles():
-                    return f"❌ Профиль '{name}' не найден. Доступны: {', '.join(self.profile.list_profiles())}"
+                profiles = self.profile.list_profiles()
+                if name not in profiles:
+                    return f"❌ Профиль '{name}' не найден. Доступны: {', '.join(profiles)}"
                 self.profile = Profile(name)
                 self._save_memory_state()
                 return f"✅ Переключено на профиль: {name}"
@@ -1108,16 +1118,18 @@ class JarvisAgent:
         if not user_input or not user_input.strip():
             return "Пожалуйста, введите ваш запрос."
 
-        self.conversation_history.append({"role": "user", "content": user_input})
-        self._save_message("user", user_input)
-
         # ── Команды ──────────────────────────────────────────
+        # Команды не попадают в историю как user-сообщения,
+        # чтобы не засорять контекст служебным мусором.
         if user_input.startswith("/"):
             resp = self._handle_command(user_input)
             if resp:
                 self.conversation_history.append({"role": "command", "content": resp})
                 self._save_message("command", resp)
             return resp
+
+        self.conversation_history.append({"role": "user", "content": user_input})
+        self._save_message("user", user_input)
 
         # ── Обычный чат ──────────────────────────────────────
 
@@ -1148,6 +1160,11 @@ class JarvisAgent:
             self._save_memory_state()
 
         tokens_before = sum(self._count_tokens(m["content"]) for m in messages if m["role"] != "system")
+
+        print(f"[JARVIS] System prompt for API call ({len(messages)} msgs):")
+        for i, m in enumerate(messages):
+            preview = m["content"][:200].replace("\n", "\\n")
+            print(f"  [{i}] role={m['role']}: {preview}")
 
         response = self._call_api(messages)
 

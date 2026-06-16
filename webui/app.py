@@ -19,10 +19,10 @@ AVAILABLE_MODELS = json.loads(os.getenv("AVAILABLE_MODELS", json.dumps(DEFAULT_M
 
 agent = JarvisAgent(
     model=AVAILABLE_MODELS[0],
-    temperature=0.7,
+    temperature=0.3,
     system_prompt="Ты — полезный AI-ассистент по имени Jarvis. Отвечай кратко и по делу.",
     context_limit=40000,
-    max_tokens=2500,
+    max_tokens=5000,
 )
 
 

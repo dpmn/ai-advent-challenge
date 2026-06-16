@@ -66,17 +66,17 @@ def main():
     print("Зададим контекст задачи — схему таблиц базы данных.")
     agent.task_context.set("database", "sales_analytics")
     agent.task_context.set(
-        "table: orders",
+        "table.orders",
         "id (INT PK), customer_id (INT FK), order_date (DATE), "
         "total_amount (DECIMAL), status (TEXT)",
     )
     agent.task_context.set(
-        "table: customers",
+        "table.customers",
         "id (INT PK), name (TEXT), email (TEXT), "
         "registration_date (DATE), country (TEXT)",
     )
     agent.task_context.set(
-        "table: order_items",
+        "table.order_items",
         "id (INT PK), order_id (INT FK), product_name (TEXT), "
         "quantity (INT), unit_price (DECIMAL)",
     )

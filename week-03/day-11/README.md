@@ -103,9 +103,9 @@
 | № | Команда | Что происходит |
 |---|---------|----------------|
 | 1 | `/task database sales_analytics` | Задаём имя БД |
-| 2 | `/task table: orders id (INT PK), customer_id (INT FK), order_date (DATE), total_amount (DECIMAL), status (TEXT)` | Описываем таблицу orders |
-| 3 | `/task table: customers id (INT PK), name (TEXT), email (TEXT), registration_date (DATE), country (TEXT)` | Описываем таблицу customers |
-| 4 | `/task table: order_items id (INT PK), order_id (INT FK), product_name (TEXT), quantity (INT), unit_price (DECIMAL)` | Описываем table order_items |
+| 2 | `/task table.orders id (INT PK), customer_id (INT FK), order_date (DATE), total_amount (DECIMAL), status (TEXT)` | Описываем таблицу orders |
+| 3 | `/task table.customers id (INT PK), name (TEXT), email (TEXT), registration_date (DATE), country (TEXT)` | Описываем таблицу customers |
+| 4 | `/task table.order_items id (INT PK), order_id (INT FK), product_name (TEXT), quantity (INT), unit_price (DECIMAL)` | Описываем таблицу order_items |
 | 5 | `/task current_task Подготовить дашборд продаж за текущий месяц` | Текущая цель |
 
 **Показать результат:**

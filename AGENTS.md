@@ -93,7 +93,7 @@ python .\webui\app.py
 - `GET /api/sessions/<id>/messages` — сообщения сессии
 - `POST /api/chat` — отправить сообщение агенту
 - `GET /api/models` — список моделей
-- `GET/POST /api/settings` — чтение/обновление настроек (model, temperature, max_tokens, context_limit)
+- `GET/POST /api/settings` — чтение/обновление настроек: model, temperature, max_tokens, context_limit, context_strategy, compression_enabled, profile_name (только чтение), task_context (только чтение)
 
 ## Слэш-команды JarvisAgent
 
@@ -119,6 +119,7 @@ python .\webui\app.py
 /task clear   — очистить рабочую память
 /profile [name] — показать/сменить профиль
 /profile set <k> <v> — задать поле профиля
+/profile new <name> — создать новый профиль
 /profiles     — список доступных профилей
 ```
 
@@ -126,6 +127,9 @@ python .\webui\app.py
 ## Стек и окружение
 
 - Операционная система: Windows 11, opencode работает на WSL.
+- Команды в opencode выполняются в **WSL (bash)**, поэтому используй `python3`, `ls`, `rm` (Unix-style).
+  Windows-пути с обратными слешами (`.\webui\app.py`) НЕ работают — только прямой слеш: `./webui/app.py`.
+  Пути с пробелами экранируй кавычками: `"C:/Users/..."`.
 - Технологии: Python 3.12, Flask
 - API для кода заданий: **Cloud.ru, сервис Foundation Models** (оплата в рублях, OpenAI-совместимый доступ).
   - Спецификация API: https://cloud.ru/docs/foundation-models/ug/topics/api-ref__specs
@@ -137,6 +141,16 @@ python .\webui\app.py
   - Qwen/Qwen3-Coder-Next - для задач средней сложности
   - MiniMaxAI/MiniMax-M2.5 - для тяжёлых задач
 
+
+## Стиль кода
+
+- Все публичные классы, методы и функции документируй **docstring** (однострочным или многострочным). Исключение — тривиальные геттеры/сеттеры в одну строку.
+- Пример:
+  ```python
+  def chat(self, user_input: str) -> str:
+      """Принимает запрос пользователя, возвращает ответ агента."""
+  ```
+- Внутренние/приватные методы (`_*`) — docstring по необходимости, если логика неочевидна.
 
 ## Git / безопасность
 
