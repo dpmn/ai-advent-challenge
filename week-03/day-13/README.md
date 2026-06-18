@@ -38,8 +38,8 @@
 
 | Файл | Изменения |
 |------|-----------|
-| `agents/state_machine.py` | **Новый модуль**. Содержит `AgentState` (enum), `StageAgent` (агент этапа с изолированной историей), `PipelineAgent` (оркестратор 4 этапов), `call_llm()` (отдельный вызов API), `ALLOWED_TRANSITIONS` (карта разрешённых переходов), `STAGE_SYSTEM_PROMPTS` (дефолтные промпты) и `STAGE_DEFAULT_MODELS` (модели по умолчанию для каждого этапа) |
-| `agents/jarvis.py` | Интеграция State Machine: новые колонки в БД (`sm_enabled`, `sm_validation_enabled`, `sm_current_state`, `sm_artifacts`, `sm_stage_configs`), новая таблица `stage_messages`, создание `PipelineAgent` при загрузке SM-сессии, маршрутизация `chat()` через пайплайн, новые команды `/sm`, `/step`, `/artifact`, обновлён `/new` с поддержкой `sm`-флага, обновлён `/help` и `/context` |
+| `agents/state_machine.py` | **Новый модуль**. Содержит `AgentState` (enum), `StageAgent` (агент этапа с изолированной историей), `PipelineAgent` (оркестратор 4 этапов), `call_llm()` (отдельный вызов API), `ALLOWED_TRANSITIONS` (карта разрешённых переходов, включая `DONE → PLANNING`), `STAGE_SYSTEM_PROMPTS` (дефолтные промпты) и `STAGE_DEFAULT_MODELS` (модели по умолчанию для каждого этапа). `PipelineAgent.chat()` при авто-прогрессии возвращает `list[(AgentState, str)]` — каждый этап отдельным элементом |
+| `agents/jarvis.py` | Интеграция State Machine: новые колонки в БД (`sm_enabled`, `sm_validation_enabled`, `sm_current_state`, `sm_artifacts`, `sm_stage_configs`), новая таблица `stage_messages`, создание `PipelineAgent` при загрузке SM-сессии, маршрутизация `chat()` через пайплайн с сохранением каждого этапа как отдельного сообщения, новые команды `/sm`, `/step`, `/artifact`, обновлён `/new` с поддержкой `sm`-флага, обновлён `/help` и `/context` |
 | `webui/app.py` | POST `/api/sessions` принимает `sm_enabled`, GET `/api/settings` возвращает SM-статус |
 | `webui/static/script.js` | Диалог создания сессии: имя с суффиксом ` sm` включает SM, SM-бейдж в списке сессий, индикатор этапа SM в настройках |
 | `webui/static/style.css` | Стили для `.sm-badge` и `.sm-indicator` |
@@ -131,18 +131,20 @@
 
 | № | Действие | Ожидаемый результат |
 |---|----------|---------------------|
-| 1 | `Напиши скрипт на Python, который читает CSV и выводит статистику по колонкам` | Ответ содержит ВСЕ 4 этапа подряд: `[PLANNING]` → `[EXECUTION]` → `[VALIDATION]` → `[DONE]` |
+| 1 | `Напиши скрипт на Python, который читает CSV и выводит статистику по колонкам` | В чате появляются **4 отдельных сообщения** (пузырька): `[PLANNING]`, `[EXECUTION]`, `[VALIDATION]`, `[DONE]` — каждый этап своим сообщением |
 | 2 | Проверить `/step` | `Текущий этап: DONE` — автомат сам прошёл все этапы |
 | 3 | Проверить `/artifact` | Видны артефакты всех 4 этапов (plan, execution, validation, done) |
 
 ---
 
-### Шаг 9. Запрещённые переходы
+### Шаг 9. Запрещённые и разрешённые переходы
 
 | № | Действие | Ожидаемый результат |
 |---|----------|---------------------|
 | 1 | Создать новую SM-сессию: `Test sm` | Сессия создана |
 | 2 | `/step DONE` (без прохождения PLANNING→EXECUTION→VALIDATION→DONE) | `Переход из PLANNING в DONE запрещён. Допустимые: EXECUTION` |
+| 3 | Пройти все этапы по порядку: PLANNING → EXECUTION → VALIDATION → DONE | Четыре перехода выполнены успешно |
+| 4 | `/step PLANNING` (возврат из DONE) | `Переход на этап PLANNING выполнен.` — итеративная доработка задачи |
 
 ---
 
@@ -163,7 +165,7 @@
 2. **4 этапа: PLANNING → EXECUTION → VALIDATION → DONE** с изолированными StageAgent'ами
 3. **Ручной режим (с валидацией)** — `/step STAGE` для перехода, пауза на любом этапе
 4. **Авто-режим (без валидации)** — `/sm validate off` → один запрос проходит все 4 этапа
-5. **Запрещённые переходы** — блокируются `ALLOWED_TRANSITIONS`
+5. **Запрещённые и разрешённые переходы** — блокируются `ALLOWED_TRANSITIONS` (`DONE → PLANNING` разрешён для итеративной доработки)
 6. **Ре-вход на этап** — `/step PLANNING` восстанавливает историю этапа
 7. **SM-режим неизменяем** — после создания сессии нельзя включить/выключить SM
 8. **Артефакты этапов** — `/artifact` показывает результаты всех пройденных этапов

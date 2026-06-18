@@ -26,7 +26,7 @@ ALLOWED_TRANSITIONS: Dict[AgentState, List[AgentState]] = {
     AgentState.PLANNING: [AgentState.EXECUTION],
     AgentState.EXECUTION: [AgentState.VALIDATION, AgentState.PLANNING],
     AgentState.VALIDATION: [AgentState.DONE, AgentState.EXECUTION],
-    AgentState.DONE: [],
+    AgentState.DONE: [AgentState.PLANNING],
 }
 
 STAGE_SYSTEM_PROMPTS: Dict[AgentState, str] = {

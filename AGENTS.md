@@ -29,6 +29,7 @@ ai-advent-challenge/
 ├─ .gitignore             # Git-игноры
 ├─ agents/
 │  ├─ jarvis.py           # Основной код агента
+│  ├─ state_machine.py    # StageAgent, PipelineAgent, AgentState (state machine)
 │  └─ memory/
 │     ├─ jarvis_history.db  # SQLite-память агента
 │     └─ profiles/           # Markdown-файлы профилей (long-term memory)
@@ -121,6 +122,10 @@ python .\webui\app.py
 /profile set <k> <v> — задать поле профиля
 /profile new <name> — создать новый профиль
 /profiles     — список доступных профилей
+/sm           — статус State Machine
+/sm validate [on|off] — вкл/выкл валидацию перед переходом этапов
+/step [STAGE] — показать/сменить этап SM
+/artifact     — артефакты этапов SM
 ```
 
 
