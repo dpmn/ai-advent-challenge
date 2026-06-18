@@ -64,6 +64,7 @@ ai-advent-challenge/
 
 - При получении нового задания я буду создавать файл week-xx -> day-xx -> README.md, в котором пропишу суть задания.
 - Я попрошу тебя выполнить задание дня X.
+- Изучи документацию по БД проекта: [database-schema.md](docs/database-schema.md).
 - Если доработка касается агента — правишь `agents/jarvis.py`.
 - Если доработка касается интерфейса — правишь файлы в `webui/` (Flask-роуты, шаблон, стили, скрипты).
 - Сделай минимальную проверку работоспособности кода, запустив `python .\webui\app.py`, и протестируй через браузер (http://127.0.0.1:5000) или curl.
@@ -94,7 +95,7 @@ python .\webui\app.py
 - `GET /api/sessions/<id>/messages` — сообщения сессии
 - `POST /api/chat` — отправить сообщение агенту
 - `GET /api/models` — список моделей
-- `GET/POST /api/settings` — чтение/обновление настроек: model, temperature, max_tokens, context_limit, context_strategy, compression_enabled, profile_name (только чтение), task_context (только чтение)
+- `GET/POST /api/settings` — чтение/обновление настроек: model, temperature, max_tokens, context_limit, context_strategy, compression_enabled, profile_name (только чтение), task_context (только чтение), State Machine
 
 ## Слэш-команды JarvisAgent
 
