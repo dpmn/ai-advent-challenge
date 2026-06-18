@@ -30,10 +30,16 @@
 | `sticky_facts` | TEXT DEFAULT '{}' | JSON-объект с ключевыми фактами (для стратегии sticky_facts) |
 | `task_context` | TEXT DEFAULT '{}' | JSON-объект с рабочей памятью (TaskContext) — данные текущей задачи |
 | `profile_name` | TEXT DEFAULT 'default' | Имя активного профиля (долговременная память) |
+| `sm_enabled` | INTEGER DEFAULT 0 | Флаг State Machine (0/1). Устанавливается при создании сессии, не меняется |
+| `sm_validation_enabled` | INTEGER DEFAULT 1 | Флаг валидации перед переходом между этапами SM (0/1) |
+| `sm_current_state` | TEXT DEFAULT 'PLANNING' | Текущий этап SM: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE` |
+| `sm_artifacts` | TEXT DEFAULT '{}' | JSON-объект с артефактами этапов (plan, execution, validation, done) |
+| `sm_stage_configs` | TEXT DEFAULT '{}' | JSON-объект с per-stage настройками LLM (model, temperature, max_tokens) |
 
 **Важные поля для архитектуры:**
-- Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`
+- Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`, `stage_messages.session_id`
 - `context_strategy` определяет логику хранения/обработки сообщений
+- `sm_enabled` включает State Machine-маршрутизацию в `chat()`
 
 ---
 
@@ -108,6 +114,30 @@
 
 ---
 
+### stage_messages
+
+Хранит изолированную историю сообщений каждого этапа State Machine.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID записи |
+| `session_id` | INTEGER NOT NULL | ID сессии (связь с `sessions.id`) |
+| `stage` | TEXT NOT NULL | Этап SM: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE` |
+| `role` | TEXT NOT NULL | Роль сообщения: `user`, `assistant` |
+| `content` | TEXT NOT NULL | Текст сообщения |
+| `timestamp` | TIMESTAMP | Время создания (автоматически: CURRENT_TIMESTAMP) |
+
+**Связи:**
+- Внешний ключ: `FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE`
+- При удалении сессии **автоматически удаляются** все сообщения этапов
+
+**Использование:**
+- При инициализации `PipelineAgent` загружает историю каждого этапа отдельно
+- Каждый `StageAgent` работает только со своими сообщениями (фильтр по `stage`)
+- Позволяет ре-входить на этап без потери контекста
+
+---
+
 ## Схема связей
 
 ```
@@ -119,8 +149,11 @@ sessions
     ├── 1:N ──▶ compressed_summaries
     │               └── (пример: сессия №5 имеет 8 суммаризаций)
     │
-    └── 1:N ──▶ branches
-                    └── (пример: сессия №5 имеет 3 ветки: main, experiment, fallback)
+    ├── 1:N ──▶ branches
+    │               └── (пример: сессия №5 имеет 3 ветки: main, experiment, fallback)
+    │
+    └── 1:N ──▶ stage_messages
+                    └── (пример: сессия №5 имеет 12 сообщений этапов SM)
 ```
 
 **ON DELETE CASCADE**: удаление сессии → автоматическое удаление всех связанных данных.

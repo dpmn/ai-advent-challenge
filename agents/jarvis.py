@@ -9,6 +9,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from agents.state_machine import PipelineAgent
+
 load_dotenv()
 
 _AGENTS_DIR = Path(__file__).parent.resolve()
@@ -222,6 +224,33 @@ class JarvisAgent:
             profile_name = "default"
         self.profile = Profile(profile_name)
 
+        # ─── State Machine ────────────────────────────────────
+        self.pipeline = None
+        sm_enabled = self.current_session.get("sm_enabled", False)
+        if sm_enabled:
+            sm_validation = self.current_session.get("sm_validation_enabled", True)
+            sm_current_state = self.current_session.get("sm_current_state", "PLANNING")
+            sm_artifacts_raw = self.current_session.get("sm_artifacts", "{}")
+            sm_stage_configs_raw = self.current_session.get("sm_stage_configs", "{}")
+            try:
+                sm_artifacts = json.loads(sm_artifacts_raw) if sm_artifacts_raw else {}
+            except (json.JSONDecodeError, TypeError):
+                sm_artifacts = {}
+            try:
+                sm_stage_configs = json.loads(sm_stage_configs_raw) if sm_stage_configs_raw else {}
+            except (json.JSONDecodeError, TypeError):
+                sm_stage_configs = {}
+            self.pipeline = PipelineAgent(
+                session_id=self.current_session["id"],
+                api_key=self.api_key,
+                base_url=self.base_url,
+                db_path=self.db_path,
+                current_state=sm_current_state,
+                artifacts=sm_artifacts,
+                validation_enabled=sm_validation,
+                stage_configs=sm_stage_configs,
+            )
+
         self.total_tokens_used = 0
         self.total_requests = 0
         self.last_usage: Optional[dict] = None
@@ -282,6 +311,17 @@ class JarvisAgent:
                     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS stage_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    stage TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+                )
+            """)
             for col in ("prompt_tokens", "completion_tokens", "total_tokens"):
                 try:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {col} INTEGER DEFAULT 0")
@@ -298,6 +338,17 @@ class JarvisAgent:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_migration[0]} {col_migration[1]}")
                 except sqlite3.OperationalError:
                     pass
+            for sm_col in [
+                ("sm_enabled", "INTEGER DEFAULT 0"),
+                ("sm_validation_enabled", "INTEGER DEFAULT 1"),
+                ("sm_current_state", "TEXT DEFAULT 'PLANNING'"),
+                ("sm_artifacts", "TEXT DEFAULT '{}'"),
+                ("sm_stage_configs", "TEXT DEFAULT '{}'"),
+            ]:
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {sm_col[0]} {sm_col[1]}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     # ─────────────── Сессии ───────────────────────────────────────
@@ -306,7 +357,8 @@ class JarvisAgent:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
-                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name "
+                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
+                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -315,7 +367,9 @@ class JarvisAgent:
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
                     "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8],
-                    "task_context": row[9], "profile_name": row[10]
+                    "task_context": row[9], "profile_name": row[10],
+                    "sm_enabled": row[11], "sm_validation_enabled": row[12],
+                    "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                 }
             return None
 
@@ -323,7 +377,8 @@ class JarvisAgent:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
-                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name "
+                "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
+                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -333,7 +388,9 @@ class JarvisAgent:
                     "id": row[0], "name": row[1], "created_at": row[2],
                     "prompt_tokens": row[3], "completion_tokens": row[4], "total_tokens": row[5],
                     "compression_enabled": row[6], "context_strategy": row[7], "sticky_facts": row[8],
-                    "task_context": row[9], "profile_name": row[10]
+                    "task_context": row[9], "profile_name": row[10],
+                    "sm_enabled": row[11], "sm_validation_enabled": row[12],
+                    "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                 }
             return None
 
@@ -385,14 +442,14 @@ class JarvisAgent:
             )
             conn.commit()
 
-    def create_session(self, name: Optional[str] = None) -> dict:
+    def create_session(self, name: Optional[str] = None, sm_enabled: bool = False) -> dict:
         if not name:
             name = f"Сессия от {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "INSERT INTO sessions (name, compression_enabled) VALUES (?, ?)",
-                (name, int(self.compression_enabled))
+                "INSERT INTO sessions (name, compression_enabled, sm_enabled) VALUES (?, ?, ?)",
+                (name, int(self.compression_enabled), int(sm_enabled))
             )
             session_id = cursor.lastrowid
             conn.commit()
@@ -401,7 +458,9 @@ class JarvisAgent:
             "id": session_id, "name": name, "created_at": datetime.now().isoformat(),
             "compression_enabled": self.compression_enabled,
             "context_strategy": None, "sticky_facts": "{}",
-            "task_context": "{}", "profile_name": "default"
+            "task_context": "{}", "profile_name": "default",
+            "sm_enabled": int(sm_enabled), "sm_validation_enabled": 1,
+            "sm_current_state": "PLANNING", "sm_artifacts": "{}", "sm_stage_configs": "{}",
         }
         self.current_session = session
         self.conversation_history = []
@@ -419,11 +478,24 @@ class JarvisAgent:
         self.task_context = TaskContext()
         self.profile = Profile("default")
 
+        self.pipeline = None
+        if sm_enabled:
+            sm_validation = True
+            self.pipeline = PipelineAgent(
+                session_id=session_id,
+                api_key=self.api_key,
+                base_url=self.base_url,
+                db_path=self.db_path,
+                current_state="PLANNING",
+                validation_enabled=sm_validation,
+            )
+
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
         self.session_total_tokens = 0
 
-        print(f"✨ Создана новая сессия: {name} (ID: {session_id})")
+        print(f"✨ Создана новая сессия: {name} (ID: {session_id})"
+              f"{' [SM]' if sm_enabled else ''}")
         return session
 
     def switch_session(self, session_id: int) -> bool:
@@ -468,22 +540,51 @@ class JarvisAgent:
         profile_name = session.get("profile_name", "default") or "default"
         self.profile = Profile(profile_name)
 
+        # ─── State Machine ────────────────────────────────
+        sm_enabled = session.get("sm_enabled", False)
+        if sm_enabled:
+            sm_validation = session.get("sm_validation_enabled", True)
+            sm_current_state = session.get("sm_current_state", "PLANNING")
+            sm_artifacts_raw = session.get("sm_artifacts", "{}")
+            sm_stage_configs_raw = session.get("sm_stage_configs", "{}")
+            try:
+                sm_artifacts = json.loads(sm_artifacts_raw) if sm_artifacts_raw else {}
+            except (json.JSONDecodeError, TypeError):
+                sm_artifacts = {}
+            try:
+                sm_stage_configs = json.loads(sm_stage_configs_raw) if sm_stage_configs_raw else {}
+            except (json.JSONDecodeError, TypeError):
+                sm_stage_configs = {}
+            self.pipeline = PipelineAgent(
+                session_id=session_id,
+                api_key=self.api_key,
+                base_url=self.base_url,
+                db_path=self.db_path,
+                current_state=sm_current_state,
+                artifacts=sm_artifacts,
+                validation_enabled=sm_validation,
+                stage_configs=sm_stage_configs,
+            )
+        else:
+            self.pipeline = None
+
         status = "вкл" if self.compression_enabled else "выкл"
         strat = f" | Стратегия: {self.context_strategy}" if self.context_strategy else ""
-        print(f"🔄 Переключено на сессию: {session['name']} (ID: {session_id}) | Сжатие: {status}{strat}")
+        sm_tag = " | SM" if self.pipeline else ""
+        print(f"🔄 Переключено на сессию: {session['name']} (ID: {session_id}) | Сжатие: {status}{strat}{sm_tag}")
         return True
 
     def list_sessions(self) -> list:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT id, name, created_at, last_active_at, prompt_tokens, completion_tokens, total_tokens, "
-                "compression_enabled, context_strategy "
+                "SELECT id, name, created_at, last_active_at, prompt_tokens, completion_tokens, "
+                "total_tokens, compression_enabled, context_strategy, sm_enabled "
                 "FROM sessions ORDER BY last_active_at DESC"
             )
             return [
                 {"id": row[0], "name": row[1], "created_at": row[2], "last_active": row[3],
                  "prompt_tokens": row[4], "completion_tokens": row[5], "total_tokens": row[6],
-                 "compression_enabled": row[7], "context_strategy": row[8]}
+                 "compression_enabled": row[7], "context_strategy": row[8], "sm_enabled": row[9]}
                 for row in cursor.fetchall()
             ]
 
@@ -580,6 +681,27 @@ class JarvisAgent:
             conn.commit()
         self.current_session["task_context"] = json.dumps(self.task_context.to_dict(), ensure_ascii=False)
         self.current_session["profile_name"] = self.profile.profile_name
+
+    def _save_sm_state(self):
+        """Сохраняет состояние PipelineAgent в БД сессии."""
+        if not self.pipeline:
+            return
+        state = self.pipeline.to_dict()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET sm_current_state = ?, sm_artifacts = ?, "
+                "sm_validation_enabled = ? WHERE id = ?",
+                (
+                    state["current_state"],
+                    json.dumps(state["artifacts"], ensure_ascii=False),
+                    int(state["validation_enabled"]),
+                    self.current_session["id"],
+                )
+            )
+            conn.commit()
+        self.current_session["sm_current_state"] = state["current_state"]
+        self.current_session["sm_artifacts"] = json.dumps(state["artifacts"], ensure_ascii=False)
+        self.current_session["sm_validation_enabled"] = int(state["validation_enabled"])
 
     def set_strategy(self, strategy: Optional[str]) -> str:
         """
@@ -883,7 +1005,7 @@ class JarvisAgent:
                 "  /stats        — статистика агента\n"
                 "  /sessions     — список сессий\n"
                 "  /session <id> — переключиться на сессию\n"
-                "  /new [name]   — создать новую сессию\n"
+                "  /new [name]   — создать новую сессию (/new sm — с SM)\n"
                 "  /clear        — очистить историю\n"
                 "  /model [name] — показать/сменить модель\n"
                 "  /temp [value] — показать/сменить температуру\n"
@@ -894,6 +1016,10 @@ class JarvisAgent:
                 "  /branch <name> — создать ветку\n"
                 "  /branches     — список веток\n"
                 "  /switch <id>  — переключить ветку\n"
+                "  /sm           — статус State Machine\n"
+                "  /sm validate [on|off] — вкл/выкл валидацию\n"
+                "  /step [STAGE] — показать/сменить этап SM\n"
+                "  /artifact     — артефакты этапов SM\n"
                 "  /task [key value] — показать/задать рабочую память\n"
                 "  /task clear   — очистить рабочую память\n"
                 "  /profile [name] — показать/сменить профиль\n"
@@ -928,9 +1054,18 @@ class JarvisAgent:
                 return "❌ Укажите числовой ID сессии."
 
         if cmd == "/new":
-            name = arg.strip() if arg else None
-            self.create_session(name)
-            return f"✅ Создана новая сессия: {self.current_session['name']}"
+            sm_enabled = False
+            if arg and arg.strip().lower().startswith("sm "):
+                sm_enabled = True
+                sm_name = arg.strip()[3:].strip()
+                self.create_session(sm_name if sm_name else None, sm_enabled=True)
+            elif arg and arg.strip().lower() == "sm":
+                self.create_session(None, sm_enabled=True)
+            else:
+                name = arg.strip() if arg else None
+                self.create_session(name)
+            tag = " [SM]" if sm_enabled else ""
+            return f"✅ Создана новая сессия: {self.current_session['name']}{tag}"
 
         if cmd == "/clear":
             self.reset_conversation()
@@ -1005,6 +1140,13 @@ class JarvisAgent:
                 lines.append(f"  Веток: {len(self.branches)}")
                 cur = self.branches.get(self.current_branch_id, {})
                 lines.append(f"  Текущая ветка: '{cur.get('name', '?')}'")
+            # SM info
+            if self.pipeline:
+                lines.append("")
+                lines.append("🤖 State Machine:")
+                lines.append(f"  Этап: {self.pipeline.current_state.value}")
+                lines.append(f"  Валидация: {'вкл' if self.pipeline.validation_enabled else 'выкл'}")
+                lines.append(f"  Артефактов: {len(self.pipeline.artifacts)}")
             # Memory model info
             lines.append("")
             lines.append("🧠 Модель памяти:")
@@ -1038,6 +1180,43 @@ class JarvisAgent:
                 return self.switch_branch(bid)
             except ValueError:
                 return "❌ Укажите числовой ID ветки."
+
+        # ── State Machine ────────────────────────────────────
+
+        if cmd == "/sm":
+            if not self.pipeline:
+                return (
+                    "State Machine не активен.\n"
+                    "Создайте SM-сессию: /new sm [name]"
+                )
+            parts = cmd_input.strip().split(maxsplit=2)
+            if len(parts) == 1:
+                val_status = "вкл" if self.pipeline.validation_enabled else "выкл"
+                return (
+                    f"🤖 State Machine:\n"
+                    f"  Этап: {self.pipeline.current_state.value}\n"
+                    f"  Валидация: {val_status}\n"
+                    f"  Артефактов: {len(self.pipeline.artifacts)}\n"
+                    f"Команды: /sm validate [on|off], /step, /artifact"
+                )
+            if parts[1] == "validate" and len(parts) == 3:
+                resp = self.pipeline._handle_sm_validate_command(cmd_input)
+                self._save_sm_state()
+                return resp
+            return "Используйте: /sm, /sm validate [on|off]"
+
+        if cmd == "/step":
+            if not self.pipeline:
+                return "State Machine не активен. Создайте SM-сессию: /new sm [name]"
+            resp = self.pipeline._handle_step_command(cmd_input)
+            self._save_sm_state()
+            self._save_message("command", resp)
+            return resp
+
+        if cmd == "/artifact":
+            if not self.pipeline:
+                return "State Machine не активен."
+            return self.pipeline._handle_artifact_command()
 
         # ── Рабочая память (TaskContext) ─────────────────────
 
@@ -1130,6 +1309,25 @@ class JarvisAgent:
 
         self.conversation_history.append({"role": "user", "content": user_input})
         self._save_message("user", user_input)
+
+        # ── State Machine routing ──────────────────────────────
+        if self.pipeline is not None:
+            result = self.pipeline.chat(user_input)
+            if isinstance(result, list):
+                # Несколько этапов (авто-прогрессия) — каждый как отдельное сообщение
+                combined = ""
+                for state, stage_response in result:
+                    msg = f"[{state.value}]\n{stage_response}"
+                    self.conversation_history.append({"role": "assistant", "content": msg})
+                    self._save_message("assistant", msg)
+                    combined = (combined + "\n\n---\n\n" + msg) if combined else msg
+                self._save_sm_state()
+                return combined
+            else:
+                # Команда — сохраняем как command
+                self.conversation_history.append({"role": "command", "content": result})
+                self._save_message("command", result)
+                return result
 
         # ── Обычный чат ──────────────────────────────────────
 
@@ -1250,6 +1448,20 @@ class JarvisAgent:
         self.checkpoint_index = None
         if self.context_strategy:
             self._save_strategy_state()
+
+        # Сброс State Machine
+        if self.pipeline:
+            sm_enabled = self.current_session.get("sm_enabled", False)
+            sm_validation = self.current_session.get("sm_validation_enabled", True)
+            self.pipeline = PipelineAgent(
+                session_id=self.current_session["id"],
+                api_key=self.api_key,
+                base_url=self.base_url,
+                db_path=self.db_path,
+                current_state="PLANNING",
+                validation_enabled=sm_validation,
+            )
+            self._save_sm_state()
 
         self.task_context = TaskContext()
         self.profile = Profile(self.profile.profile_name)
