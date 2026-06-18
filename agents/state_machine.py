@@ -313,15 +313,15 @@ class PipelineAgent:
         self.current_state = target
         return f"Переход на этап {target.value} выполнен."
 
-    def chat(self, user_input: str) -> str:
+    def chat(self, user_input: str):
         """
         Принимает запрос, маршрутизирует текущему StageAgent'у, управляет переходами.
 
+        Для команд возвращает str.
+        Для обычного чата возвращает list[(AgentState, str)] — каждый этап отдельно.
+
         Args:
             user_input: сообщение пользователя или команда.
-
-        Returns:
-            ответ (один или несколько этапов при авто-прогрессии).
         """
         if user_input.startswith("/step"):
             return self._handle_step_command(user_input)
@@ -330,12 +330,12 @@ class PipelineAgent:
         if user_input.startswith("/sm validate"):
             return self._handle_sm_validate_command(user_input)
 
-        result_parts = []
+        stages: list = []
 
         agent = self._get_current_agent()
         response = agent.chat(user_input, self.artifacts)
         self._save_artifact(self.current_state, response)
-        result_parts.append(f"[{self.current_state.value}]\n{response}")
+        stages.append((self.current_state, response))
 
         if not self.validation_enabled:
             progress_count = 0
@@ -351,11 +351,11 @@ class PipelineAgent:
                 )
                 next_response = next_agent.chat(auto_prompt, self.artifacts)
                 self._save_artifact(self.current_state, next_response)
-                result_parts.append(f"\n---\n[{self.current_state.value}]\n{next_response}")
+                stages.append((self.current_state, next_response))
                 progress_count += 1
 
         self._save_all_stage_messages()
-        return "\n".join(result_parts)
+        return stages
 
     def _handle_step_command(self, user_input: str) -> str:
         """Обрабатывает /step — просмотр и смену этапа."""

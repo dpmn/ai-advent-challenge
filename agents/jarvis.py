@@ -1312,11 +1312,22 @@ class JarvisAgent:
 
         # ── State Machine routing ──────────────────────────────
         if self.pipeline is not None:
-            response = self.pipeline.chat(user_input)
-            self.conversation_history.append({"role": "assistant", "content": response})
-            self._save_message("assistant", response)
-            self._save_sm_state()
-            return response
+            result = self.pipeline.chat(user_input)
+            if isinstance(result, list):
+                # Несколько этапов (авто-прогрессия) — каждый как отдельное сообщение
+                combined = ""
+                for state, stage_response in result:
+                    msg = f"[{state.value}]\n{stage_response}"
+                    self.conversation_history.append({"role": "assistant", "content": msg})
+                    self._save_message("assistant", msg)
+                    combined = (combined + "\n\n---\n\n" + msg) if combined else msg
+                self._save_sm_state()
+                return combined
+            else:
+                # Команда — сохраняем как command
+                self.conversation_history.append({"role": "command", "content": result})
+                self._save_message("command", result)
+                return result
 
         # ── Обычный чат ──────────────────────────────────────
 
