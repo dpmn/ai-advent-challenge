@@ -316,3 +316,25 @@ body {
   color: #646464;
   font-size: 16px;
 }
+
+/* ──── SM badge ─────────────────────────────── */
+
+.sm-badge {
+  display: inline-block;
+  background: #cc7832;
+  color: #2b2b2b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+
+.sm-indicator {
+  font-size: 11px;
+  color: #cc7832;
+  padding: 4px 0 0;
+  font-weight: 500;
+}

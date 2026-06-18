@@ -12,3 +12,4 @@
 | 2      | 10   | Управление контекстом: разные стратегии | done   | [jarvis.py](../agents/jarvis.py) / [w02t05.py](../week-02/day-10/w02t05.py) | https://disk.yandex.ru/i/3xDk4HxIfA0Bcg   |
 | 3      | 11   | Модель памяти ассистента | done | [jarvis.py](../agents/jarvis.py) / [w03d01.py](../week-03/day-11/w03d01.py) | https://disk.yandex.ru/i/tV5b6rFPiTxyDQ   |
 | 3      | 12   | Персонализация ассистента | done | см. день 11 (реализовано там же) | https://disk.yandex.ru/i/sPVvfNwBOnKSYw, https://disk.yandex.ru/i/LcDiAsA_YKcamw |
+| 3      | 13   | Конечный автомат (State Machine) | done | [state_machine.py](../agents/state_machine.py) / [jarvis.py](../agents/jarvis.py) | |

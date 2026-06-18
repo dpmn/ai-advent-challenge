@@ -51,8 +51,9 @@ function renderSessions(sessions, currentId) {
     const div = document.createElement("div");
     div.className = "session-item" + (s.id === currentId ? " active" : "");
     div.title = escHtml(s.name);
+    const smBadge = s.sm_enabled ? ' <span class="sm-badge">SM</span>' : "";
     div.innerHTML = `
-      <span class="session-name">${escHtml(s.name)}</span>
+      <span class="session-name">${escHtml(s.name)}${smBadge}</span>
       <button class="session-delete" data-id="${s.id}">✕</button>
     `;
     div.onclick = (e) => {
@@ -77,12 +78,18 @@ async function switchSession(id) {
 }
 
 async function createSession() {
-  const name = prompt("Session name:", "");
+  const name = prompt("Session name (append ' sm' for State Machine):", "");
   if (name === null) return;
+  let smEnabled = false;
+  let cleanName = name.trim();
+  if (cleanName.toLowerCase().endsWith(" sm")) {
+    smEnabled = true;
+    cleanName = cleanName.slice(0, -3).trim();
+  }
   await fetch("/api/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: name || undefined }),
+    body: JSON.stringify({ name: cleanName || undefined, sm_enabled: smEnabled }),
   });
   loadSessions();
 }
@@ -154,6 +161,8 @@ async function sendMessage() {
 
     // Replace all messages with server state (ensures consistency)
     renderMessages(data.messages);
+    loadSettings(); // Refresh SM/AI settings
+    loadSessions(); // Refresh session list
   } catch (err) {
     container.appendChild(
       createBubble("system", "Error: " + err.message)
@@ -191,6 +200,22 @@ async function loadSettings() {
   ).toFixed(2);
   document.getElementById("max-tokens-input").value = data.max_tokens;
   document.getElementById("context-limit-input").value = data.context_limit;
+
+  // SM status
+  const smSection = document.getElementById("sm-section");
+  const smStatus = document.getElementById("sm-status");
+  const sm = data.sm || { enabled: false };
+  if (sm.enabled) {
+    smSection.style.display = "block";
+    if (sm.current_state) {
+      const valStatus = sm.validation_enabled ? "val on" : "val off";
+      smStatus.textContent = `Stage: ${sm.current_state} | ${valStatus}`;
+    } else {
+      smStatus.textContent = "Active";
+    }
+  } else {
+    smSection.style.display = "none";
+  }
 }
 
 async function updateSettings() {

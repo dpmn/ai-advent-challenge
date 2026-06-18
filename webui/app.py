@@ -48,7 +48,8 @@ def list_sessions():
 def create_session():
     data = request.get_json(silent=True) or {}
     name = data.get("name")
-    agent.create_session(name)
+    sm_enabled = data.get("sm_enabled", False)
+    agent.create_session(name, sm_enabled=sm_enabled)
     return jsonify({"session": agent.current_session}), 201
 
 
@@ -106,6 +107,18 @@ def list_models():
 
 @app.route("/api/settings", methods=["GET"])
 def get_settings():
+    sm_info = None
+    if agent.pipeline:
+        sm_info = {
+            "enabled": True,
+            "current_state": agent.pipeline.current_state.value,
+            "validation_enabled": agent.pipeline.validation_enabled,
+            "artifacts_count": len(agent.pipeline.artifacts),
+        }
+    else:
+        sm_enabled = agent.current_session.get("sm_enabled", False)
+        sm_info = {"enabled": bool(sm_enabled)} if sm_enabled else {"enabled": False}
+
     return jsonify({
         "model": agent.model,
         "temperature": agent.temperature,
@@ -115,6 +128,7 @@ def get_settings():
         "compression_enabled": agent.compression_enabled,
         "profile_name": agent.profile.profile_name,
         "task_context": agent.task_context.to_dict(),
+        "sm": sm_info,
     })
 
 
