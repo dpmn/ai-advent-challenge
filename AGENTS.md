@@ -30,9 +30,11 @@ ai-advent-challenge/
 ├─ agents/
 │  ├─ jarvis.py           # Основной код агента
 │  ├─ state_machine.py    # StageAgent, PipelineAgent, AgentState (state machine)
+│  ├─ invariants.py       # Система инвариантов (Invariant, AgentValidator, InvariantManager)
 │  └─ memory/
 │     ├─ jarvis_history.db  # SQLite-память агента
-│     └─ profiles/           # Markdown-файлы профилей (long-term memory)
+│     ├─ profiles/           # Markdown-файлы профилей (long-term memory)
+│     └─ invariants/         # Markdown-файлы инвариантов (no-external-libs, no-numpy-pandas)
 ├─ webui/
 │  ├─ app.py              # Flask-сервер
 │  ├─ templates/
@@ -95,7 +97,7 @@ python .\webui\app.py
 - `GET /api/sessions/<id>/messages` — сообщения сессии
 - `POST /api/chat` — отправить сообщение агенту
 - `GET /api/models` — список моделей
-- `GET/POST /api/settings` — чтение/обновление настроек: model, temperature, max_tokens, context_limit, context_strategy, compression_enabled, profile_name (только чтение), task_context (только чтение), State Machine
+- `GET/POST /api/settings` — чтение/обновление настроек: model, temperature, max_tokens, context_limit, context_strategy, compression_enabled, profile_name (только чтение), task_context (только чтение), State Machine, invariants_enabled, invariants
 
 ## Слэш-команды JarvisAgent
 
@@ -127,6 +129,10 @@ python .\webui\app.py
 /sm validate [on|off] — вкл/выкл валидацию перед переходом этапов
 /step [STAGE] — показать/сменить этап SM
 /artifact     — артефакты этапов SM
+/invariant [on|off] — вкл/выкл проверку инвариантов
+/invariant toggle <name> — вкл/выкл конкретный инвариант
+/invariant show <name> — показать инвариант
+/invariants   — список инвариантов
 ```
 
 

@@ -10,12 +10,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from agents.state_machine import PipelineAgent
+from agents.invariants import InvariantManager, AgentValidator, ForbiddenLibrariesInvariant, RequiredTechStackInvariant
 
 load_dotenv()
 
 _AGENTS_DIR = Path(__file__).parent.resolve()
 _DEFAULT_DB_PATH = str(_AGENTS_DIR / "memory" / "jarvis_history.db")
 _PROFILES_DIR = _AGENTS_DIR / "memory" / "profiles"
+_INVARIANTS_DIR = _AGENTS_DIR / "memory" / "invariants"
 
 
 class TaskContext:
@@ -224,6 +226,14 @@ class JarvisAgent:
             profile_name = "default"
         self.profile = Profile(profile_name)
 
+        # ─── Инварианты ───────────────────────────────────────
+        self._invariants_dir = _INVARIANTS_DIR
+        self._invariants_dir.mkdir(parents=True, exist_ok=True)
+        self._invariants: list = []
+        self._validator: Optional[AgentValidator] = None
+        self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
+        self._load_invariants()
+
         # ─── State Machine ────────────────────────────────────
         self.pipeline = None
         sm_enabled = self.current_session.get("sm_enabled", False)
@@ -349,6 +359,14 @@ class JarvisAgent:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {sm_col[0]} {sm_col[1]}")
                 except sqlite3.OperationalError:
                     pass
+            for inv_col in [
+                ("invariants_enabled", "INTEGER DEFAULT 1"),
+                ("invariants_config", "TEXT DEFAULT '{}'"),
+            ]:
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {inv_col[0]} {inv_col[1]}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     # ─────────────── Сессии ───────────────────────────────────────
@@ -358,7 +376,8 @@ class JarvisAgent:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
-                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs "
+                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
+                "invariants_enabled, invariants_config "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -370,6 +389,7 @@ class JarvisAgent:
                     "task_context": row[9], "profile_name": row[10],
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
+                    "invariants_enabled": row[16], "invariants_config": row[17],
                 }
             return None
 
@@ -378,7 +398,8 @@ class JarvisAgent:
             cursor = conn.execute(
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
-                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs "
+                "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
+                "invariants_enabled, invariants_config "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -391,6 +412,7 @@ class JarvisAgent:
                     "task_context": row[9], "profile_name": row[10],
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
+                    "invariants_enabled": row[16], "invariants_config": row[17],
                 }
             return None
 
@@ -461,6 +483,7 @@ class JarvisAgent:
             "task_context": "{}", "profile_name": "default",
             "sm_enabled": int(sm_enabled), "sm_validation_enabled": 1,
             "sm_current_state": "PLANNING", "sm_artifacts": "{}", "sm_stage_configs": "{}",
+            "invariants_enabled": 1, "invariants_config": "{}",
         }
         self.current_session = session
         self.conversation_history = []
@@ -477,6 +500,9 @@ class JarvisAgent:
 
         self.task_context = TaskContext()
         self.profile = Profile("default")
+
+        self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
+        self._load_invariants()
 
         self.pipeline = None
         if sm_enabled:
@@ -539,6 +565,9 @@ class JarvisAgent:
                 pass
         profile_name = session.get("profile_name", "default") or "default"
         self.profile = Profile(profile_name)
+
+        self.invariants_enabled = bool(session.get("invariants_enabled", True))
+        self._load_invariants()
 
         # ─── State Machine ────────────────────────────────
         sm_enabled = session.get("sm_enabled", False)
@@ -702,6 +731,32 @@ class JarvisAgent:
         self.current_session["sm_current_state"] = state["current_state"]
         self.current_session["sm_artifacts"] = json.dumps(state["artifacts"], ensure_ascii=False)
         self.current_session["sm_validation_enabled"] = int(state["validation_enabled"])
+
+    def _load_invariants(self):
+        all_invariants = InvariantManager.load_all(self._invariants_dir)
+        config_raw = self.current_session.get("invariants_config", "{}")
+        try:
+            config = json.loads(config_raw) if config_raw else {}
+        except (json.JSONDecodeError, TypeError):
+            config = {}
+        enabled_ids = config.get("enabled_ids", [])
+        if enabled_ids:
+            for inv in all_invariants:
+                inv.enabled = inv.name in enabled_ids
+        self._invariants = all_invariants
+        self._validator = AgentValidator(self._invariants) if self.invariants_enabled else None
+
+    def _save_invariants_state(self):
+        enabled_ids = [inv.name for inv in self._invariants if inv.enabled]
+        config = json.dumps({"enabled_ids": enabled_ids}, ensure_ascii=False)
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET invariants_enabled = ?, invariants_config = ? WHERE id = ?",
+                (int(self.invariants_enabled), config, self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["invariants_enabled"] = int(self.invariants_enabled)
+        self.current_session["invariants_config"] = config
 
     def set_strategy(self, strategy: Optional[str]) -> str:
         """
@@ -1025,7 +1080,11 @@ class JarvisAgent:
                 "  /profile [name] — показать/сменить профиль\n"
                 "  /profile set <k> <v> — задать поле профиля\n"
                 "  /profile new <name> — создать новый профиль\n"
-                "  /profiles     — список доступных профилей"
+                "  /profiles     — список доступных профилей\n"
+                "  /invariant [on|off] — вкл/выкл проверку инвариантов\n"
+                "  /invariant toggle <name> — вкл/выкл конкретный инвариант\n"
+                "  /invariant show <name> — показать инвариант\n"
+                "  /invariants — список инвариантов"
             )
 
         if cmd == "/stats":
@@ -1288,6 +1347,54 @@ class JarvisAgent:
                 lines.append(f"  • {p}{marker}")
             return "\n".join(lines)
 
+        if cmd == "/invariant":
+            if not arg:
+                if not self._invariants:
+                    return "Инварианты не загружены."
+                lines = ["⚠️ Инварианты:"]
+                for inv in self._invariants:
+                    status = "✅" if inv.enabled else "❌"
+                    lines.append(f"  {status} {inv.name}")
+                return "\n".join(lines)
+
+            parts = arg.strip().split(maxsplit=2)
+            sub = parts[0].lower()
+
+            if sub == "toggle" and len(parts) >= 2:
+                name = parts[1]
+                for inv in self._invariants:
+                    if inv.name == name:
+                        inv.enabled = not inv.enabled
+                        self._validator = AgentValidator(self._invariants) if self.invariants_enabled else None
+                        self._save_invariants_state()
+                        status = "включён" if inv.enabled else "выключен"
+                        return f"✅ Инвариант '{name}' {status}."
+                return f"❌ Инвариант '{name}' не найден."
+
+            elif sub == "show" and len(parts) >= 2:
+                name = parts[1]
+                for inv in self._invariants:
+                    if inv.name == name:
+                        return inv.get_prompt_block()
+                return f"❌ Инвариант '{name}' не найден."
+
+            elif sub == "on":
+                self.invariants_enabled = True
+                self._validator = AgentValidator(self._invariants)
+                self._save_invariants_state()
+                return "✅ Проверка инвариантов включена."
+
+            elif sub == "off":
+                self.invariants_enabled = False
+                self._validator = None
+                self._save_invariants_state()
+                return "✅ Проверка инвариантов выключена."
+
+            return "❌ Используйте: /invariant, /invariant toggle <name>, /invariant show <name>, /invariant on, /invariant off"
+
+        if cmd == "/invariants":
+            return self._handle_command("/invariant")
+
         return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."
 
     # ── Основной метод ────────────────────────────────────────────
@@ -1352,6 +1459,10 @@ class JarvisAgent:
         task_block = self.task_context.to_prompt_block()
         if task_block:
             memory_blocks.append(task_block)
+        if self.invariants_enabled and self._validator:
+            inv_block = self._validator.get_prompt_blocks()
+            if inv_block:
+                memory_blocks.append(inv_block)
         if memory_blocks:
             memory_text = "\n\n".join(memory_blocks)
             messages.insert(1, {"role": "system", "content": memory_text})
@@ -1368,6 +1479,31 @@ class JarvisAgent:
 
         if response["success"]:
             assistant_message = response["content"]
+
+            # Валидация инвариантов (с retry)
+            if self.invariants_enabled and self._validator:
+                max_retries = 2
+                for attempt in range(max_retries + 1):
+                    violation = self._validator.validate(assistant_message)
+                    if not violation:
+                        break
+                    if attempt < max_retries:
+                        retry_messages = messages.copy()
+                        retry_messages.append({"role": "user", "content": assistant_message})
+                        retry_messages.append({
+                            "role": "system",
+                            "content": f"⚠️ Нарушение инварианта: {violation}\nИсправь ответ."
+                        })
+                        retry_response = self._call_api(retry_messages)
+                        if retry_response["success"]:
+                            assistant_message = retry_response["content"]
+                        else:
+                            break
+                else:
+                    assistant_message += (
+                        f"\n\n⚠️ Инвариант нарушен. Не удалось исправить: {violation}"
+                    )
+
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
 
             self._save_message("assistant", assistant_message)
@@ -1466,6 +1602,8 @@ class JarvisAgent:
         self.task_context = TaskContext()
         self.profile = Profile(self.profile.profile_name)
         self._save_memory_state()
+
+        self._load_invariants()
 
         self.session_prompt_tokens = 0
         self.session_completion_tokens = 0
