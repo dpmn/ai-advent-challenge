@@ -501,6 +501,9 @@ class JarvisAgent:
         self.task_context = TaskContext()
         self.profile = Profile("default")
 
+        self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
+        self._load_invariants()
+
         self.pipeline = None
         if sm_enabled:
             sm_validation = True
