@@ -14,3 +14,4 @@
 | 3      | 12   | Персонализация ассистента | done | см. день 11 (реализовано там же) | https://disk.yandex.ru/i/sPVvfNwBOnKSYw, https://disk.yandex.ru/i/LcDiAsA_YKcamw |
 | 3      | 13   | Конечный автомат (State Machine) | done | [state_machine.py](../agents/state_machine.py) / [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/fgccVRj9Bgombw|
 | 3      | 14   | Инварианты и ограничения состояния | done | [invariants.py](../agents/invariants.py) / [jarvis.py](../agents/jarvis.py) / [app.py](../webui/app.py) | https://disk.yandex.ru/i/v5QPx5UfIGiyag |
+| 3      | 15   | Контролируемые переходы состояний | done | [state_machine.py](../agents/state_machine.py) / [jarvis.py](../agents/jarvis.py) |https://disk.yandex.ru/i/0mZxvi3K1kLCSQ |
