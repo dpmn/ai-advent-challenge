@@ -129,6 +129,11 @@ def get_settings():
         "profile_name": agent.profile.profile_name,
         "task_context": agent.task_context.to_dict(),
         "sm": sm_info,
+        "invariants_enabled": agent.invariants_enabled,
+        "invariants": [
+            {"name": inv.name, "enabled": inv.enabled}
+            for inv in agent._invariants
+        ],
     })
 
 
@@ -145,6 +150,12 @@ def update_settings():
         agent.max_tokens = int(data["max_tokens"])
     if "context_limit" in data:
         agent.context_limit = int(data["context_limit"])
+    if "invariants_enabled" in data:
+        val = bool(data["invariants_enabled"])
+        if val:
+            agent._handle_command("/invariant on")
+        else:
+            agent._handle_command("/invariant off")
     return jsonify({
         "model": agent.model,
         "temperature": agent.temperature,
