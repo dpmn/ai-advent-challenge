@@ -37,6 +37,8 @@
 | `sm_stage_configs` | TEXT DEFAULT '{}' | JSON-объект с per-stage настройками LLM (model, temperature, max_tokens) |
 | `invariants_enabled` | INTEGER DEFAULT 1 | Глобальный флаг проверки инвариантов |
 | `invariants_config` | TEXT DEFAULT '{}' | JSON с enabled_ids — какие инварианты активны в сессии |
+| `mcp_enabled` | INTEGER DEFAULT 0 | Флаг включённого MCP (0/1) |
+| `mcp_config` | TEXT DEFAULT '{}' | JSON-объект с конфигурацией MCP-серверов |
 
 **Важные поля для архитектуры:**
 - Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`, `stage_messages.session_id`

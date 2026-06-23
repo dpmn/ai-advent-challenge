@@ -22,6 +22,24 @@
         <div id="sm-status" class="sm-indicator">—</div>
       </div>
 
+      <!-- MCP -->
+      <div class="settings-section" id="mcp-section">
+        <h3>
+          MCP
+          <label class="mcp-toggle">
+            <input type="checkbox" id="mcp-enabled-checkbox">
+            <span id="mcp-enabled-label">off</span>
+          </label>
+        </h3>
+        <div id="mcp-servers-list"></div>
+        <div class="mcp-add-form">
+          <input type="text" id="mcp-add-name" placeholder="name (e.g. grep-app)">
+          <input type="text" id="mcp-add-url" placeholder="https://... or stdio cmd">
+          <button id="mcp-add-btn">Add server</button>
+        </div>
+        <div id="mcp-tools-info" class="mcp-tools-info"></div>
+      </div>
+
       <!-- Settings -->
       <div class="settings-section">
         <h3>Settings</h3>

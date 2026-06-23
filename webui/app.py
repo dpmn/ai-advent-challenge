@@ -172,6 +172,79 @@ def stats():
     return jsonify({"stats": agent.get_stats()})
 
 
+# ──────── MCP ───────────────────────────────────────────────────
+
+
+@app.route("/api/mcp", methods=["GET"])
+def mcp_list():
+    """Возвращает статус MCP и список настроенных серверов."""
+    return jsonify({
+        "enabled": bool(agent.mcp_enabled),
+        "servers": agent.mcp_manager.list_servers(),
+        "tools": [
+            {"name": t["function"]["name"],
+             "description": t["function"].get("description", "")}
+            for t in agent.mcp_manager.get_openai_tools()
+        ],
+    })
+
+
+@app.route("/api/mcp/toggle", methods=["POST"])
+def mcp_toggle():
+    """Включает/выключает использование MCP-инструментов для текущей сессии."""
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled", not agent.mcp_enabled))
+    if enabled:
+        result = agent._handle_command("/mcp on")
+    else:
+        result = agent._handle_command("/mcp off")
+    return jsonify({"enabled": agent.mcp_enabled, "message": result})
+
+
+@app.route("/api/mcp/add", methods=["POST"])
+def mcp_add():
+    """Добавляет новый MCP-сервер в конфиг."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    url = (data.get("url") or "").strip()
+    transport = (data.get("transport") or "http").strip()
+    if not name or not url:
+        return jsonify({"error": "name и url обязательны"}), 400
+    try:
+        entry = agent.mcp_manager.add_server(name, transport, url,
+                                             headers=data.get("headers"),
+                                             enabled=data.get("enabled", True))
+        return jsonify({"server": entry}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/mcp/<name>", methods=["DELETE"])
+def mcp_remove(name):
+    """Удаляет MCP-сервер."""
+    if agent.mcp_manager.remove_server(name):
+        return jsonify({"removed": name})
+    return jsonify({"error": "not found"}), 404
+
+
+@app.route("/api/mcp/<name>/connect", methods=["POST"])
+def mcp_connect(name):
+    """Подключается к указанному MCP-серверу."""
+    try:
+        info = agent.mcp_manager.connect_server(name)
+        return jsonify({"connected": name, "info": info})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/mcp/<name>/disconnect", methods=["POST"])
+def mcp_disconnect(name):
+    """Отключает MCP-сервер."""
+    if agent.mcp_manager.disconnect_server(name):
+        return jsonify({"disconnected": name})
+    return jsonify({"error": "not connected"}), 404
+
+
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug, threaded=False)

@@ -12,10 +12,10 @@ metadata:
 
 ## Структура файлов
 
-- `webui/app.py` — Flask-сервер (~80 строк кода + ~230 строк импорта/настроек)
-- `webui/templates/index.html` — SPA-шаблон (58 строк, статический)
-- `webui/static/script.js` — фронтенд (vanilla JS, ~250 строк)
-- `webui/static/style.css` — Darcula-тема (~250 строк)
+- `webui/app.py` — Flask-сервер (~80 строк кода + ~250 строк импорта/настроек/роутов)
+- `webui/templates/index.html` — SPA-шаблон (58+ строк, добавлена #mcp-section в sidebar)
+- `webui/static/script.js` — фронтенд (vanilla JS, ~350 строк, добавлены MCP-функции)
+- `webui/static/style.css` — Darcula-тема (~350 строк, добавлены MCP-стили)
 
 ## Flask-сервер (`webui/app.py`)
 
@@ -46,6 +46,12 @@ agent = JarvisAgent(
 | GET | `/api/settings` | Все настройки |
 | POST | `/api/settings` | Обновить model, temperature, max_tokens, context_limit, invariants_enabled |
 | GET | `/api/stats` | Статистика агента (текст) |
+| GET | `/api/mcp` | MCP-статус: `{enabled, servers: [...], tools: [...]}` |
+| POST | `/api/mcp/toggle` | Вкл/выкл MCP. Body: `{enabled: bool}` |
+| POST | `/api/mcp/add` | Добавить сервер. Body: `{name, url, transport?}` |
+| DELETE | `/api/mcp/<name>` | Удалить сервер |
+| POST | `/api/mcp/<name>/connect` | Подключить сервер |
+| POST | `/api/mcp/<name>/disconnect` | Отключить сервер |
 
 ### Добавление нового эндпоинта
 1. Добавить метод/роут в `app.py`
@@ -73,6 +79,15 @@ let currentSessionId = null;
 
 DOMContentLoaded → loadSessions(), loadModels(), loadSettings()
 ```
+
+### MCP-функции
+- `loadMcp()` — GET /api/mcp, загружает MCP-статус
+- `renderMcp(data)` — отрисовывает MCP-секцию: чекбокс, список серверов, tools-info
+- `toggleMcp()` — POST /api/mcp/toggle, переключает вкл/выкл
+- `addMcpServer()` — POST /api/mcp/add, берёт name/url из формы
+- `mcpServerAction(name, action)` — connect/disconnect/delete сервера
+
+Инициализация: `loadMcp()` вызывается в `DOMContentLoaded`.
 
 ### Функции для работы с сессиями
 - `loadSessions()` — GET /api/sessions, обновляет список
@@ -142,6 +157,9 @@ document.getElementById("element-id").addEventListener("change", async () => {
 │   ├── .sidebar-header → h2 "Jarvis" + #new-session-btn
 │   ├── #session-list → динамический список
 │   ├── #sm-section (hidden) → h3 "State Machine" + #sm-status
+│   ├── #mcp-section (always visible) → h3 "MCP" + #mcp-toggle (checkbox) + #mcp-status (on/off)
+│   │                                       #mcp-servers (список серверов) + #mcp-tools-info
+│   │                                       #mcp-add-form (name + url + Add server button)
 │   └── .settings-section → h3 "Settings" + элементы
 └── #chat-area
     ├── #messages-container → flex column, gap 12px, overflow-y scroll
@@ -192,6 +210,15 @@ document.getElementById("element-id").addEventListener("change", async () => {
 ```css
 background: #cc7832; color: #2b2b2b; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 8px;
 ```
+
+### MCP-стили
+- `.mcp-toggle` — чекбокс MCP
+- `.mcp-server-item` — строка сервера с именем, точкой статуса, кол-вом tools
+- `.mcp-dot` — кружок статуса (серый ⚪), `.mcp-dot.connected` — зелёный 🟢
+- `.mcp-server-actions` — кнопки ▶ / ✕ / 🗑
+- `.mcp-add-form` — форма добавления сервера
+- `.mcp-tools-info` — строка с активными инструментами
+- `.mcp-empty` — заглушка "Нет серверов"
 
 ### Скроллбар
 ```css

@@ -15,6 +15,9 @@ metadata:
 - `agents/jarvis.py` — основной агент (~1800 строк), один класс `JarvisAgent`
 - `agents/state_machine.py` — FSM (~400 строк): `AgentState` (enum), `StageAgent`, `PipelineAgent`
 - `agents/invariants.py` — система инвариантов (~300 строк): `Invariant` (ABC), `ForbiddenLibrariesInvariant`, `RequiredTechStackInvariant`, `AgentValidator`, `InvariantManager`
+- `agents/mcp_manager.py` — MCP-клиент (~400 строк): `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
+- `agents/mcp/__init__.py` — пакет для MCP-конфигов
+- `agents/mcp/servers.json` — конфигурация MCP-серверов (name, url, transport, enabled)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
@@ -39,6 +42,8 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | sm_artifacts / sm_stage_configs | TEXT JSON | Артефакты и конфиги SM |
 | invariants_enabled | INTEGER 0/1 | Флаг инвариантов |
 | invariants_config | TEXT JSON | `{"enabled_ids": [...]}` |
+| mcp_enabled | INTEGER 0/1 | Флаг MCP включён/выключен |
+| mcp_config | TEXT JSON | Конфигурация MCP-серверов |
 
 ### messages
 `session_id → sessions.id`, `role` (user/assistant/system/command), `content`, `timestamp`
@@ -98,6 +103,45 @@ response = agent._call_api(messages)
 - Каждые 5 сообщений — LLM создаёт саммари
 - Хранится в таблице `compressed_summaries`
 - В `chat()` обновляется после ответа
+
+## MCP Integration (`mcp_manager.py`)
+
+### McpServerManager
+- Создаётся в `JarvisAgent.__init__()` как `self.mcp_manager`
+- Загружает серверы из `agents/mcp/servers.json`
+- Управляет коллекцией `McpConnection` (подключение/отключение)
+- Конвертирует инструменты в OpenAI tool-calling формат (`convert_to_openai_tools()`)
+- Состояние MCP (`mcp_enabled`) привязано к сессии, хранится в колонке `sessions.mcp_enabled`
+
+### McpConnection
+- Синхронный JSON-RPC 2.0 клиент через `urllib.request`
+- Handshake: `initialize` → `notifications/initialized` → `tools/list`
+- Поддерживает: `tools/list` (с пагинацией), `tools/call`
+- SSE-ответы: `_parse_sse_response()` для серверов, возвращающих SSE
+
+### Tool-calling в `chat()`
+1. Если `mcp_enabled=True` и есть активные инструменты — `_call_api()` получает параметр `tools`
+2. API Cloud.ru FM поддерживает tool calling (только на Qwen-Coder-Next / MiniMax-M2.5, НЕ на Qwen3-30B-A3B)
+3. Ответ с `tool_calls` → извлекается `arguments`, вызывается `tools/call` через `McpConnection`
+4. Результат вызова инструмента сохраняется как `command`-сообщение с префиксом `🔧`
+5. Повторный вызов API с результатами инструмента для получения финального ответа
+
+### Команды `/mcp` (в `_handle_command()`)
+- `/mcp` — статус (вкл/выкл, список серверов, инструменты)
+- `/mcp on` / `/mcp off` — вкл/выкл MCP
+- `/mcp connect <name>` — подключить сервер
+- `/mcp disconnect <name>` — отключить сервер
+- `/mcp add <name> <url> [transport]` — добавить сервер
+- `/mcp remove <name>` — удалить сервер
+- `/mcp tools` — список инструментов всех подключённых серверов
+
+### Миграция БД
+```python
+# в _init_db():
+("mcp_enabled", "INTEGER DEFAULT 0"),
+("mcp_config", "TEXT DEFAULT '{}'"),
+# ALTER TABLE ADD COLUMN в try/except OperationalError
+```
 
 ## State Machine (`state_machine.py`)
 
