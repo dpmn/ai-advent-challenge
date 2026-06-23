@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from agents.state_machine import PipelineAgent
 from agents.invariants import InvariantManager, AgentValidator, ForbiddenLibrariesInvariant, RequiredTechStackInvariant
+from agents.mcp_manager import McpServerManager
 
 load_dotenv()
 
@@ -176,6 +177,9 @@ class JarvisAgent:
 
         self._init_db()
 
+        self._invariants_dir = _INVARIANTS_DIR
+        self._invariants_dir.mkdir(parents=True, exist_ok=True)
+
         self.compression_enabled = compression_enabled if compression_enabled is not None else True
 
         if session_id is not None:
@@ -227,8 +231,6 @@ class JarvisAgent:
         self.profile = Profile(profile_name)
 
         # ─── Инварианты ───────────────────────────────────────
-        self._invariants_dir = _INVARIANTS_DIR
-        self._invariants_dir.mkdir(parents=True, exist_ok=True)
         self._invariants: list = []
         self._validator: Optional[AgentValidator] = None
         self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
@@ -260,6 +262,13 @@ class JarvisAgent:
                 validation_enabled=sm_validation,
                 stage_configs=sm_stage_configs,
             )
+
+        # ─── MCP ──────────────────────────────────────────────
+        # Менеджер MCP-серверов общий на весь агент; флаг mcp_enabled
+        # хранится в сессии и определяет, передавать ли tools в API.
+        self.mcp_manager = McpServerManager()
+        self.mcp_enabled = bool(self.current_session.get("mcp_enabled", False))
+        self.mcp_max_iterations = 10
 
         self.total_tokens_used = 0
         self.total_requests = 0
@@ -367,6 +376,14 @@ class JarvisAgent:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {inv_col[0]} {inv_col[1]}")
                 except sqlite3.OperationalError:
                     pass
+            for mcp_col in [
+                ("mcp_enabled", "INTEGER DEFAULT 0"),
+                ("mcp_config", "TEXT DEFAULT '{}'"),
+            ]:
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {mcp_col[0]} {mcp_col[1]}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     # ─────────────── Сессии ───────────────────────────────────────
@@ -377,7 +394,7 @@ class JarvisAgent:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -390,6 +407,7 @@ class JarvisAgent:
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
+                    "mcp_enabled": row[18], "mcp_config": row[19],
                 }
             return None
 
@@ -399,7 +417,7 @@ class JarvisAgent:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -413,6 +431,7 @@ class JarvisAgent:
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
+                    "mcp_enabled": row[18], "mcp_config": row[19],
                 }
             return None
 
@@ -484,6 +503,7 @@ class JarvisAgent:
             "sm_enabled": int(sm_enabled), "sm_validation_enabled": 1,
             "sm_current_state": "PLANNING", "sm_artifacts": "{}", "sm_stage_configs": "{}",
             "invariants_enabled": 1, "invariants_config": "{}",
+            "mcp_enabled": 0, "mcp_config": "{}",
         }
         self.current_session = session
         self.conversation_history = []
@@ -503,6 +523,9 @@ class JarvisAgent:
 
         self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
         self._load_invariants()
+
+        # MCP: новая сессия по умолчанию выключена
+        self.mcp_enabled = False
 
         self.pipeline = None
         if sm_enabled:
@@ -568,6 +591,9 @@ class JarvisAgent:
 
         self.invariants_enabled = bool(session.get("invariants_enabled", True))
         self._load_invariants()
+
+        # MCP
+        self.mcp_enabled = bool(session.get("mcp_enabled", False))
 
         # ─── State Machine ────────────────────────────────
         sm_enabled = session.get("sm_enabled", False)
@@ -637,13 +663,22 @@ class JarvisAgent:
         self.conversation_history.append({"role": "user", "content": user_input})
         return self.conversation_history
 
-    def _call_api(self, messages: list) -> dict:
+    def _call_api(self, messages: list, tools: Optional[list] = None) -> dict:
+        """Прямой вызов Cloud.ru FM /chat/completions.
+
+        Если задан `tools` (OpenAI tool-calling формат), они передаются модели
+        и в ответе может появиться поле `tool_calls`.
+        """
         payload = {
             "model": self.model,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
             "messages": messages
         }
+        if tools:
+            payload["tools"] = tools
+            # tool_choice не задаём: некоторые модели Cloud.ru не поддерживают
+            # "auto" и возвращают 400. Поведение по умолчанию — модель сама решает.
 
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -661,7 +696,8 @@ class JarvisAgent:
                 result = json.loads(resp.read().decode("utf-8"))
                 choice = result.get("choices", [{}])[0]
                 message = choice.get("message", {})
-                content = message.get("content", "")
+                content = message.get("content", "") or ""
+                tool_calls = message.get("tool_calls") or []
                 usage = result.get("usage", {})
 
                 self.total_requests += 1
@@ -670,6 +706,7 @@ class JarvisAgent:
                 return {
                     "success": True,
                     "content": content,
+                    "tool_calls": tool_calls,
                     "usage": usage,
                     "finish_reason": choice.get("finish_reason", "unknown")
                 }
@@ -757,6 +794,16 @@ class JarvisAgent:
             conn.commit()
         self.current_session["invariants_enabled"] = int(self.invariants_enabled)
         self.current_session["invariants_config"] = config
+
+    def _save_mcp_state(self):
+        """Сохраняет mcp_enabled в БД для текущей сессии."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET mcp_enabled = ? WHERE id = ?",
+                (int(self.mcp_enabled), self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["mcp_enabled"] = int(self.mcp_enabled)
 
     def set_strategy(self, strategy: Optional[str]) -> str:
         """
@@ -1084,7 +1131,14 @@ class JarvisAgent:
                 "  /invariant [on|off] — вкл/выкл проверку инвариантов\n"
                 "  /invariant toggle <name> — вкл/выкл конкретный инвариант\n"
                 "  /invariant show <name> — показать инвариант\n"
-                "  /invariants — список инвариантов"
+                "  /invariants — список инвариантов\n"
+                "  /mcp          — статус MCP-серверов\n"
+                "  /mcp on|off   — вкл/выкл tool-calling через MCP\n"
+                "  /mcp connect <name> — подключить сервер\n"
+                "  /mcp disconnect <name> — отключить сервер\n"
+                "  /mcp add <name> <url> [transport] — добавить сервер\n"
+                "  /mcp remove <name> — удалить сервер\n"
+                "  /mcp tools    — список инструментов"
             )
 
         if cmd == "/stats":
@@ -1395,6 +1449,92 @@ class JarvisAgent:
         if cmd == "/invariants":
             return self._handle_command("/invariant")
 
+        # ── MCP ───────────────────────────────────────────────
+        if cmd == "/mcp":
+            if not arg:
+                # Краткий статус
+                status = "вкл" if self.mcp_enabled else "выкл"
+                servers = self.mcp_manager.list_servers()
+                lines = [f"🔌 MCP: {status}"]
+                if not servers:
+                    lines.append("  Серверы не настроены. Используйте /mcp add <name> <url>")
+                else:
+                    for s in servers:
+                        mark = "🟢" if s["connected"] else "⚪"
+                        tools = f" ({s['tools_count']} tools)" if s["connected"] else ""
+                        lines.append(f"  {mark} {s['name']} [{s['transport']}] {s['url']}{tools}")
+                lines.append("")
+                lines.append("Команды: /mcp connect <name>, /mcp disconnect <name>,")
+                lines.append("         /mcp add <name> <url> [http], /mcp remove <name>, /mcp tools,")
+                lines.append("         /mcp on|off (явное управление)")
+                return "\n".join(lines)
+
+            parts = arg.strip().split()
+            sub = parts[0].lower()
+
+            if sub == "on":
+                self.mcp_enabled = True
+                self._save_mcp_state()
+                # Авто-подключение всех enabled серверов
+                results = self.mcp_manager.connect_all_enabled()
+                lines = ["✅ MCP включён."]
+                for name, status in results.items():
+                    lines.append(f"  • {name}: {status}")
+                return "\n".join(lines) if results else "✅ MCP включён. Нет серверов для подключения."
+
+            if sub == "off":
+                self.mcp_enabled = False
+                self._save_mcp_state()
+                return "✅ MCP выключен. Инструменты не передаются модели."
+
+            if sub == "connect" and len(parts) >= 2:
+                name = parts[1]
+                try:
+                    info = self.mcp_manager.connect_server(name)
+                    self.mcp_enabled = True
+                    self._save_mcp_state()
+                    return f"✅ '{name}' подключён. Инструментов: {info['tools_count']}."
+                except Exception as e:
+                    return f"❌ Не удалось подключить '{name}': {e}"
+
+            if sub == "disconnect" and len(parts) >= 2:
+                name = parts[1]
+                if self.mcp_manager.disconnect_server(name):
+                    if not self.mcp_manager.has_active_tools():
+                        self.mcp_enabled = False
+                        self._save_mcp_state()
+                        return f"✅ '{name}' отключён. MCP автоматически выключен — нет активных серверов."
+                    return f"✅ '{name}' отключён."
+                return f"❌ '{name}' не был подключён."
+
+            if sub == "add" and len(parts) >= 3:
+                name = parts[1]
+                url = parts[2]
+                transport = parts[3] if len(parts) >= 4 else "http"
+                entry = self.mcp_manager.add_server(name, transport, url)
+                return f"✅ Сервер '{entry['name']}' добавлен ({entry['transport']} → {entry['url']})."
+
+            if sub == "remove" and len(parts) >= 2:
+                name = parts[1]
+                if self.mcp_manager.remove_server(name):
+                    return f"✅ Сервер '{name}' удалён."
+                return f"❌ Сервер '{name}' не найден."
+
+            if sub == "tools":
+                tools = self.mcp_manager.get_openai_tools()
+                if not tools:
+                    return "Нет активных инструментов. Подключите сервер через /mcp connect <name>."
+                lines = [f"🛠 Доступные инструменты ({len(tools)}):"]
+                for t in tools:
+                    fn = t["function"]
+                    desc = (fn.get("description") or "").split("\n")[0][:80]
+                    lines.append(f"  • {fn['name']}: {desc}")
+                return "\n".join(lines)
+
+            return ("❌ Используйте: /mcp, /mcp on|off, /mcp connect <name>, "
+                    "/mcp disconnect <name>, /mcp add <name> <url> [transport], "
+                    "/mcp remove <name>, /mcp tools")
+
         return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."
 
     # ── Основной метод ────────────────────────────────────────────
@@ -1468,17 +1608,66 @@ class JarvisAgent:
             messages.insert(1, {"role": "system", "content": memory_text})
             self._save_memory_state()
 
-        tokens_before = sum(self._count_tokens(m["content"]) for m in messages if m["role"] != "system")
+        # ── MCP: build tools list ─────────────────────────
+        mcp_tools: list = []
+        if self.mcp_enabled and self.mcp_manager.has_active_tools():
+            mcp_tools = self.mcp_manager.get_openai_tools()
 
-        print(f"[JARVIS] System prompt for API call ({len(messages)} msgs):")
-        for i, m in enumerate(messages):
-            preview = m["content"][:200].replace("\n", "\\n")
-            print(f"  [{i}] role={m['role']}: {preview}")
+        tool_trace_lines: list[str] = []
+        usage_pt = 0
+        usage_ct = 0
+        usage_tt = 0
 
-        response = self._call_api(messages)
+        response = self._call_api(messages, tools=mcp_tools or None)
+
+        if response["success"] and mcp_tools:
+            # Loop: пока модель просит вызвать инструменты — выполняем и шлём дальше.
+            iterations = 0
+            while response.get("tool_calls") and iterations < self.mcp_max_iterations:
+                iterations += 1
+                tcalls = response["tool_calls"]
+                # 1. Добавляем сообщение ассистента с tool_calls в messages для следующего вызова.
+                assistant_with_calls = {
+                    "role": "assistant",
+                    "content": response.get("content") or "",
+                    "tool_calls": tcalls,
+                }
+                messages.append(assistant_with_calls)
+                # 2. Исполняем каждый tool_call и добавляем результаты.
+                for call in tcalls:
+                    call_id = call.get("id", "")
+                    fn = call.get("function", {})
+                    tname = fn.get("name", "")
+                    targs = fn.get("arguments", "{}")
+                    print(f"[JARVIS][MCP] tool call: {tname}({str(targs)[:200]})")
+                    tresult = self.mcp_manager.execute_tool(tname, targs)
+                    print(f"[JARVIS][MCP] result: {tresult[:200]}")
+                    tool_trace_lines.append(f"🔧 {tname}: {tresult[:300]}")
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": call_id,
+                        "content": tresult,
+                    })
+                # Аккумулируем токены промежуточных вызовов
+                u = response.get("usage", {}) or {}
+                usage_pt += u.get("prompt_tokens", 0)
+                usage_ct += u.get("completion_tokens", 0)
+                usage_tt += u.get("total_tokens", 0)
+                # 3. Следующий вызов
+                response = self._call_api(messages, tools=mcp_tools)
+                if not response["success"]:
+                    break
 
         if response["success"]:
-            assistant_message = response["content"]
+            assistant_message = response["content"] or ""
+
+            # Если loop завершился без текста (например, всё ещё tool_calls после лимита),
+            # подставим сообщение о превышении лимита.
+            if not assistant_message and response.get("tool_calls"):
+                assistant_message = (
+                    f"⚠️ Превышен лимит итераций tool-calling ({self.mcp_max_iterations}). "
+                    "Модель продолжает запрашивать инструменты."
+                )
 
             # Валидация инвариантов (с retry)
             if self.invariants_enabled and self._validator:
@@ -1508,11 +1697,18 @@ class JarvisAgent:
 
             self._save_message("assistant", assistant_message)
 
+            # Сохраняем след вызовов MCP-инструментов как command-сообщение,
+            # чтобы он был виден в UI и истории.
+            if tool_trace_lines:
+                trace_text = "🧰 MCP-инструменты использованы:\n" + "\n".join(tool_trace_lines)
+                self.conversation_history.append({"role": "command", "content": trace_text})
+                self._save_message("command", trace_text)
+
             usage = response.get("usage", {})
             self.last_usage = usage
-            pt = usage.get("prompt_tokens", 0)
-            ct = usage.get("completion_tokens", 0)
-            tt = usage.get("total_tokens", 0)
+            pt = usage.get("prompt_tokens", 0) + usage_pt
+            ct = usage.get("completion_tokens", 0) + usage_ct
+            tt = usage.get("total_tokens", 0) + usage_tt
 
             if self.context_strategy == "branching":
                 branch = self.branches[self.current_branch_id]

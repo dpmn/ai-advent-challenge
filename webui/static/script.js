@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSessions();
   loadModels();
   loadSettings();
+  loadMcp();
 
   document.getElementById("new-session-btn").onclick = createSession;
   document.getElementById("send-btn").onclick = sendMessage;
@@ -27,6 +28,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("model-select").onchange = updateSettings;
   document.getElementById("max-tokens-input").onchange = updateSettings;
   document.getElementById("context-limit-input").onchange = updateSettings;
+
+  // MCP wiring
+  document.getElementById("mcp-enabled-checkbox").onchange = toggleMcp;
+  document.getElementById("mcp-add-btn").onclick = addMcpServer;
 });
 
 // ──── Sessions ─────────────────────────────────────────────────
@@ -74,6 +79,7 @@ async function switchSession(id) {
   if (!res.ok) return;
   currentSessionId = id;
   loadSessions();
+  loadMcp();
   scrollToBottom();
 }
 
@@ -248,4 +254,118 @@ function scrollToBottom() {
     const c = document.getElementById("messages-container");
     c.scrollTop = c.scrollHeight;
   }, 50);
+}
+
+// ──── MCP ──────────────────────────────────────────────────────
+
+async function loadMcp() {
+  try {
+    const res = await fetch("/api/mcp");
+    const data = await res.json();
+    renderMcp(data);
+  } catch (e) {
+    console.error("MCP load failed:", e);
+  }
+}
+
+function renderMcp(data) {
+  const checkbox = document.getElementById("mcp-enabled-checkbox");
+  const label = document.getElementById("mcp-enabled-label");
+  checkbox.checked = !!data.enabled;
+  label.textContent = data.enabled ? "on" : "off";
+
+  const list = document.getElementById("mcp-servers-list");
+  list.innerHTML = "";
+  if (!data.servers || data.servers.length === 0) {
+    list.innerHTML = '<div class="mcp-empty">No servers configured</div>';
+  } else {
+    for (const s of data.servers) {
+      const item = document.createElement("div");
+      item.className = "mcp-server-item";
+      const dot = `<span class="mcp-dot${s.connected ? " connected" : ""}"></span>`;
+      const tools = s.connected ? ` (${s.tools_count} tools)` : "";
+      item.innerHTML = `
+        <div class="mcp-server-info">
+          <div class="mcp-server-name">${dot}${escHtml(s.name)}${tools}</div>
+          <div class="mcp-server-url">${escHtml(s.url)}</div>
+        </div>
+        <div class="mcp-server-actions">
+          <button data-act="${s.connected ? "disconnect" : "connect"}" data-name="${escHtml(s.name)}">
+            ${s.connected ? "✕" : "▶"}
+          </button>
+          <button class="danger" data-act="remove" data-name="${escHtml(s.name)}">🗑</button>
+        </div>
+      `;
+      list.appendChild(item);
+    }
+    list.querySelectorAll("button").forEach((btn) => {
+      btn.onclick = () => mcpServerAction(btn.dataset.act, btn.dataset.name);
+    });
+  }
+
+  const info = document.getElementById("mcp-tools-info");
+  if (data.tools && data.tools.length > 0) {
+    info.textContent = `${data.tools.length} active tool(s): ${data.tools
+      .map((t) => t.name)
+      .join(", ")}`;
+  } else {
+    info.textContent = data.enabled
+      ? "MCP enabled, but no tools active. Connect a server."
+      : "";
+  }
+}
+
+async function toggleMcp(e) {
+  const enabled = e.target.checked;
+  document.getElementById("mcp-enabled-label").textContent = enabled ? "on" : "off";
+  const res = await fetch("/api/mcp/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  const data = await res.json();
+  console.log("MCP toggle:", data.message);
+  await loadMcp();
+}
+
+async function addMcpServer() {
+  const name = document.getElementById("mcp-add-name").value.trim();
+  const url = document.getElementById("mcp-add-url").value.trim();
+  if (!name || !url) {
+    alert("Укажите name и url");
+    return;
+  }
+  const res = await fetch("/api/mcp/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, url, transport: "http" }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    alert("Error: " + (err.error || res.statusText));
+    return;
+  }
+  document.getElementById("mcp-add-name").value = "";
+  document.getElementById("mcp-add-url").value = "";
+  await loadMcp();
+}
+
+async function mcpServerAction(action, name) {
+  if (action === "remove") {
+    if (!confirm(`Удалить сервер '${name}'?`)) return;
+    await fetch(`/api/mcp/${encodeURIComponent(name)}`, { method: "DELETE" });
+  } else if (action === "connect") {
+    const res = await fetch(`/api/mcp/${encodeURIComponent(name)}/connect`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert("Connect failed: " + (err.error || res.statusText));
+    }
+  } else if (action === "disconnect") {
+    await fetch(`/api/mcp/${encodeURIComponent(name)}/disconnect`, {
+      method: "POST",
+    });
+  }
+  await loadMcp();
 }

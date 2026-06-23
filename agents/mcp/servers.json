@@ -1,0 +1,11 @@
+{
+  "servers": [
+    {
+      "name": "grep-app",
+      "transport": "http",
+      "url": "https://mcp.grep.app/",
+      "headers": {},
+      "enabled": true
+    }
+  ]
+}
