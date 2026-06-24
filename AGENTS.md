@@ -28,8 +28,13 @@
 │     ├─ profiles/          # Профили (долговременная память)
 │     └─ invariants/        # Файлы инвариантов
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http)
-│  └─ nasa_mcp/
-│     └─ server.py      # MCP-сервер NASA API (apod, mars_photos, neo_feed)
+│  ├─ nasa_mcp/
+│  │  └─ server.py      # MCP-сервер NASA API (apod, mars_photos, neo_feed)
+│  └─ space_monitor_mcp/
+│     ├─ server.py      # MCP-сервер Space Monitor (monitor_start/stop/status/summary)
+│     ├─ collector.py   # BackgroundCollector — фоновый сбор данных NASA в SQLite
+│     ├─ test_server.py # Интеграционный тест
+│     └─ data/          # SQLite БД (monitor.db) собранных данных
 ├─ webui/              # Flask + SPA (vanilla JS), Darcula-тема
 ├─ docs/               # Документация, конспекты лекций, прогресс
 ├─ week-NN/            # Задания по дням

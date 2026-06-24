@@ -26,6 +26,9 @@ metadata:
 - `agents/mcp/__init__.py` — пакет для MCP-конфигов
 - `agents/mcp/servers.json` — конфигурация MCP-серверов (name, url, transport, enabled)
 - `mcp_servers/nasa_mcp/server.py` — MCP-сервер NASA API (FastMCP, streamable-http): 3 инструмента — apod, mars_photos, neo_feed
+- `mcp_servers/space_monitor_mcp/server.py` — MCP-сервер Space Monitor (4 инструмента: monitor_start, monitor_stop, monitor_status, monitor_summary)
+- `mcp_servers/space_monitor_mcp/collector.py` — BackgroundCollector — фоновый сбор NASA APOD/NEO в SQLite (threading, циклический обход дат)
+- `mcp_servers/space_monitor_mcp/test_server.py` — интеграционный тест через JSON-RPC
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
