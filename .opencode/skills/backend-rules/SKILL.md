@@ -20,9 +20,9 @@ metadata:
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
 - `agents/jarvis_compression.py` — Mixin: `CompressionMixin` — сжатие истории, get_raw/compressed_messages
 - `agents/jarvis_commands.py` — Mixin: `CommandMixin` — `_handle_command` со всеми /командами
-- `agents/state_machine.py` — FSM (~400 строк): `AgentState` (enum), `StageAgent`, `PipelineAgent`
-- `agents/invariants.py` — система инвариантов (~300 строк): `Invariant` (ABC), `ForbiddenLibrariesInvariant`, `RequiredTechStackInvariant`, `AgentValidator`, `InvariantManager`
-- `agents/mcp_manager.py` — MCP-клиент (~400 строк): `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
+- `agents/state_machine.py` — FSM: `AgentState` (enum), `StageAgent`, `PipelineAgent`
+- `agents/invariants.py` — система инвариантов: `Invariant` (ABC), `ForbiddenLibrariesInvariant`, `RequiredTechStackInvariant`, `AgentValidator`, `InvariantManager`
+- `agents/mcp_manager.py` — MCP-клиент: `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
 - `agents/mcp/__init__.py` — пакет для MCP-конфигов
 - `agents/mcp/servers.json` — конфигурация MCP-серверов (name, url, transport, enabled)
 - `mcp_servers/nasa_mcp/server.py` — MCP-сервер NASA API (FastMCP, streamable-http): 3 инструмента — apod, mars_photos, neo_feed
@@ -143,7 +143,8 @@ response = agent._call_api(messages)
 
 ### Команды `/mcp` (в `_handle_command()`)
 - `/mcp` — статус (вкл/выкл, список серверов, инструменты)
-- `/mcp on` / `/mcp off` — вкл/выкл MCP
+- `/mcp on` — включить MCP, пытается подключить все enabled серверы из `servers.json`
+- `/mcp off` — выключить MCP, отключает все серверы через `disconnect_all()`
 - `/mcp connect <name>` — подключить сервер
 - `/mcp disconnect <name>` — отключить сервер
 - `/mcp add <name> <url> [transport]` — добавить сервер

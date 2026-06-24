@@ -35,7 +35,7 @@
 │     ├─ collector.py   # BackgroundCollector — фоновый сбор данных NASA в SQLite
 │     ├─ test_server.py # Интеграционный тест
 │     └─ data/          # SQLite БД (monitor.db) собранных данных
-├─ webui/              # Flask + SPA (vanilla JS), Darcula-тема
+├─ webui/              # Flask + SPA (vanilla JS), Claude-inspired theme + light/dark toggle
 ├─ docs/               # Документация, конспекты лекций, прогресс
 ├─ week-NN/            # Задания по дням
 └─ .opencode/
