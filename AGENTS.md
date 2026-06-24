@@ -10,13 +10,27 @@
 
 ```text
 /
-├─ agents/          # Бэкенд: JarvisAgent, StateMachine, инварианты
-├─ webui/           # Flask + SPA (vanilla JS), Darcula-тема
-├─ docs/            # Документация, конспекты лекций, прогресс
-├─ week-NN/         # Задания по дням
+├─ agents/
+│  ├─ jarvis.py          # Основной агент (JarvisAgent)
+│  ├─ state_machine.py   # FSM (StageAgent, PipelineAgent)
+│  ├─ invariants.py      # Система инвариантов
+│  ├─ mcp_manager.py     # MCP-клиент (JSON-RPC 2.0)
+│  ├─ mcp/
+│  │  ├─ __init__.py     # Пакет MCP
+│  │  └─ servers.json    # Конфигурация MCP-серверов
+│  └─ memory/
+│     ├─ jarvis_history.db  # SQLite
+│     ├─ profiles/          # Профили (долговременная память)
+│     └─ invariants/        # Файлы инвариантов
+├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http)
+│  └─ nasa_mcp/
+│     └─ server.py      # MCP-сервер NASA API (apod, mars_photos, neo_feed)
+├─ webui/              # Flask + SPA (vanilla JS), Darcula-тема
+├─ docs/               # Документация, конспекты лекций, прогресс
+├─ week-NN/            # Задания по дням
 └─ .opencode/
-   ├─ agents/       # Субагенты opencode
-   └─ skills/       # Модули знаний opencode
+   ├─ agents/          # Субагенты opencode
+   └─ skills/          # Модули знаний opencode
 ```
 
 ## Рабочий процесс выполнения задания

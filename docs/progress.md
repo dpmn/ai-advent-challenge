@@ -16,3 +16,4 @@
 | 3      | 14   | Инварианты и ограничения состояния | done | [invariants.py](../agents/invariants.py) / [jarvis.py](../agents/jarvis.py) / [app.py](../webui/app.py) | https://disk.yandex.ru/i/v5QPx5UfIGiyag |
 | 3      | 15   | Контролируемые переходы состояний | done | [state_machine.py](../agents/state_machine.py) / [jarvis.py](../agents/jarvis.py) |https://disk.yandex.ru/i/0mZxvi3K1kLCSQ |
 | 4      | 16   | MCP integration / подключение MCP-серверов | done | [mcp_manager.py](../agents/mcp_manager.py) / [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/PINt_Vn5SYgNdw |
+| 4      | 17   | Первый инструмент MCP — NASA API | done | [server.py](../mcp_servers/nasa_mcp/server.py) / [servers.json](../agents/mcp/servers.json) | https://disk.yandex.ru/i/ZpRSqTXYBvLFog|

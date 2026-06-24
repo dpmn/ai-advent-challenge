@@ -18,6 +18,7 @@ metadata:
 - `agents/mcp_manager.py` — MCP-клиент (~400 строк): `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
 - `agents/mcp/__init__.py` — пакет для MCP-конфигов
 - `agents/mcp/servers.json` — конфигурация MCP-серверов (name, url, transport, enabled)
+- `mcp_servers/nasa_mcp/server.py` — MCP-сервер NASA API (FastMCP, streamable-http): 3 инструмента — apod, mars_photos, neo_feed
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
