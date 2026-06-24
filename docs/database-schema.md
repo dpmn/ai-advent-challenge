@@ -226,6 +226,28 @@ ORDER BY created_at ASC;
 
 ---
 
+## Space Monitor Database (`mcp_servers/space_monitor_mcp/data/monitor.db`)
+
+Вспомогательная SQLite БД, создаваемая `BackgroundCollector` из `mcp_servers/space_monitor_mcp/collector.py`.
+
+### collections
+
+Хранит собранные данные NASA (APOD, NEO).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID записи |
+| `ts` | TEXT NOT NULL | Время сбора (UTC ISO-8601) |
+| `source` | TEXT NOT NULL | Источник: `apod` или `neo` |
+| `data` | TEXT NOT NULL | Полный JSON-ответ от NASA API |
+| `summary` | TEXT | Краткое текстовое описание (например, "APOD 2026-06-20: Title") |
+
+Используется инструментами MCP-сервера:
+- `monitor_status` — общее количество записей, время последней записи
+- `monitor_summary` — группировка по `source`, количество, диапазон дат, последние 5 записей
+
+---
+
 ## Практические рекомендации
 
 **Для разработки/отладки:**

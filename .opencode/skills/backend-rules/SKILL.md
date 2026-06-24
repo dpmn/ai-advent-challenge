@@ -1,7 +1,9 @@
 ---
 name: backend-rules
 description: |
-  Архитектура agents/jarvis.py, state_machine.py, invariants.py.
+  Архитектура agents/: jarvis.py (ядро) + 5 mixin-файлов
+  (jarvis_memory, jarvis_session, jarvis_context, jarvis_compression,
+  jarvis_commands), state_machine.py, invariants.py.
   Используй когда нужно понять структуру бэкенда, добавить
   новый метод, интеграцию или исправить баг в агенте
 license: MIT
@@ -12,13 +14,21 @@ metadata:
 
 ## Структура файлов
 
-- `agents/jarvis.py` — основной агент (~1800 строк), один класс `JarvisAgent`
-- `agents/state_machine.py` — FSM (~400 строк): `AgentState` (enum), `StageAgent`, `PipelineAgent`
-- `agents/invariants.py` — система инвариантов (~300 строк): `Invariant` (ABC), `ForbiddenLibrariesInvariant`, `RequiredTechStackInvariant`, `AgentValidator`, `InvariantManager`
-- `agents/mcp_manager.py` — MCP-клиент (~400 строк): `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`
+- `agents/jarvis_memory.py` — Mixin: `TaskContext`, `Profile` (трёхуровневая память)
+- `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
+- `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
+- `agents/jarvis_compression.py` — Mixin: `CompressionMixin` — сжатие истории, get_raw/compressed_messages
+- `agents/jarvis_commands.py` — Mixin: `CommandMixin` — `_handle_command` со всеми /командами
+- `agents/state_machine.py` — FSM: `AgentState` (enum), `StageAgent`, `PipelineAgent`
+- `agents/invariants.py` — система инвариантов: `Invariant` (ABC), `ForbiddenLibrariesInvariant`, `RequiredTechStackInvariant`, `AgentValidator`, `InvariantManager`
+- `agents/mcp_manager.py` — MCP-клиент: `McpConnection`, `McpServerManager`. JSON-RPC 2.0 через `urllib`, handshake, tools/list, tools/call, пагинация, SSE-ответы
 - `agents/mcp/__init__.py` — пакет для MCP-конфигов
 - `agents/mcp/servers.json` — конфигурация MCP-серверов (name, url, transport, enabled)
 - `mcp_servers/nasa_mcp/server.py` — MCP-сервер NASA API (FastMCP, streamable-http): 3 инструмента — apod, mars_photos, neo_feed
+- `mcp_servers/space_monitor_mcp/server.py` — MCP-сервер Space Monitor (4 инструмента: monitor_start, monitor_stop, monitor_status, monitor_summary)
+- `mcp_servers/space_monitor_mcp/collector.py` — BackgroundCollector — фоновый сбор NASA APOD/NEO в SQLite (threading, циклический обход дат)
+- `mcp_servers/space_monitor_mcp/test_server.py` — интеграционный тест через JSON-RPC
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
@@ -79,10 +89,14 @@ agent.delete_session(session_id)
 ```
 
 ### Добавление нового метода в JarvisAgent
-1. Если метод связан с сессией — добавь в `JarvisAgent`.
-2. Если нужна новая команда — добавь ветку `elif` в `_handle_command()`.
-3. Если нужна новая колонка в БД — добавь `ALTER TABLE ADD COLUMN` в `_init_db()` (в try/except).
-4. Если новый параметр настройки — добавь чтение/запись в `/api/settings` в `webui/app.py`.
+1. Если метод связан с БД/сессией/сообщениями — добавь в `jarvis_session.py` (mixin).
+2. Если метод связан со стратегией контекста, ветвлением или инвариантами — добавь в `jarvis_context.py`.
+3. Если метод связан со сжатием истории — добавь в `jarvis_compression.py`.
+4. Если нужна новая команда — добавь ветку `elif` в `_handle_command()` в `jarvis_commands.py`.
+5. Если нужна новая колонка в БД — добавь `ALTER TABLE ADD COLUMN` в `_init_db()` (в try/except).
+6. Если новый параметр настройки — добавь чтение/запись в `/api/settings` в `webui/app.py`.
+
+**MRO:** `JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandMixin)`. Все cross-mixin вызовы работают через `self.*`.
 
 ### API-вызов
 ```python
@@ -129,7 +143,8 @@ response = agent._call_api(messages)
 
 ### Команды `/mcp` (в `_handle_command()`)
 - `/mcp` — статус (вкл/выкл, список серверов, инструменты)
-- `/mcp on` / `/mcp off` — вкл/выкл MCP
+- `/mcp on` — включить MCP, пытается подключить все enabled серверы из `servers.json`
+- `/mcp off` — выключить MCP, отключает все серверы через `disconnect_all()`
 - `/mcp connect <name>` — подключить сервер
 - `/mcp disconnect <name>` — отключить сервер
 - `/mcp add <name> <url> [transport]` — добавить сервер

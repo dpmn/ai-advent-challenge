@@ -8,14 +8,26 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSettings();
   loadMcp();
 
+  // Restore theme
+  const saved = localStorage.getItem("jarvis-theme");
+  if (saved === "light") setTheme(true);
+
   document.getElementById("new-session-btn").onclick = createSession;
   document.getElementById("send-btn").onclick = sendMessage;
+  document.getElementById("sidebar-toggle").onclick = toggleSidebar;
+  document.getElementById("theme-toggle").onclick = toggleTheme;
 
   document.getElementById("message-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
+  });
+
+  // Auto-resize textarea like Claude
+  document.getElementById("message-input").addEventListener("input", (e) => {
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
   });
 
   // Settings live updates
@@ -33,6 +45,24 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("mcp-enabled-checkbox").onchange = toggleMcp;
   document.getElementById("mcp-add-btn").onclick = addMcpServer;
 });
+
+// ──── Sidebar ──────────────────────────────────────────────────
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("hidden");
+}
+
+// ──── Theme ────────────────────────────────────────────────────
+
+function setTheme(isLight) {
+  document.body.classList.toggle("light", isLight);
+  document.getElementById("theme-toggle").textContent = isLight ? "☀" : "☾";
+  localStorage.setItem("jarvis-theme", isLight ? "light" : "dark");
+}
+
+function toggleTheme() {
+  setTheme(!document.body.classList.contains("light"));
+}
 
 // ──── Sessions ─────────────────────────────────────────────────
 
@@ -108,6 +138,10 @@ async function deleteSession(id) {
 
 // ──── Messages ─────────────────────────────────────────────────
 
+function getMsgContainer() {
+  return document.querySelector("#messages-container .inner");
+}
+
 async function loadMessages() {
   if (!currentSessionId) return;
   const res = await fetch(`/api/sessions/${currentSessionId}/messages`);
@@ -117,15 +151,19 @@ async function loadMessages() {
 }
 
 function renderMessages(messages) {
-  const container = document.getElementById("messages-container");
-  container.innerHTML = "";
+  const inner = getMsgContainer();
+  inner.innerHTML = "";
   if (messages.length === 0) {
-    container.innerHTML =
-      '<div class="empty-chat">Start a conversation</div>';
+    inner.innerHTML = `
+      <div class="empty-chat">
+        <div class="emoji">💬</div>
+        <div>Start a conversation</div>
+        <div class="hint">Type a message below to begin</div>
+      </div>`;
     return;
   }
   for (const m of messages) {
-    container.appendChild(createBubble(m.role, m.content));
+    inner.appendChild(createBubble(m.role, m.content));
   }
   scrollToBottom();
 }
@@ -145,15 +183,16 @@ async function sendMessage() {
   if (!text) return;
 
   input.value = "";
+  input.style.height = "auto";
   const btn = document.getElementById("send-btn");
   btn.disabled = true;
   btn.textContent = "···";
 
   // Optimistically add user bubble
-  const container = document.getElementById("messages-container");
-  const emptyChat = container.querySelector(".empty-chat");
+  const inner = getMsgContainer();
+  const emptyChat = inner.querySelector(".empty-chat");
   if (emptyChat) emptyChat.remove();
-  container.appendChild(createBubble("user", text));
+  inner.appendChild(createBubble("user", text));
   scrollToBottom();
 
   try {
@@ -169,8 +208,9 @@ async function sendMessage() {
     renderMessages(data.messages);
     loadSettings(); // Refresh SM/AI settings
     loadSessions(); // Refresh session list
+    loadMcp(); // Refresh MCP status (may have changed via slash commands)
   } catch (err) {
-    container.appendChild(
+    inner.appendChild(
       createBubble("system", "Error: " + err.message)
     );
     scrollToBottom();

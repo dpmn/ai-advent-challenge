@@ -28,6 +28,7 @@
           MCP
           <label class="mcp-toggle">
             <input type="checkbox" id="mcp-enabled-checkbox">
+            <span class="toggle-track"></span>
             <span id="mcp-enabled-label">off</span>
           </label>
         </h3>
@@ -62,11 +63,18 @@
 
     <!-- Chat area -->
     <main id="chat-area">
-      <div id="messages-container"></div>
+      <div id="chat-topbar">
+        <button id="sidebar-toggle">☰</button>
+        <span id="chat-topbar-title">Jarvis</span>
+        <button id="theme-toggle" title="Toggle theme">☾</button>
+      </div>
+      <div id="messages-container"><div class="inner"></div></div>
 
       <div id="input-area">
-        <textarea id="message-input" rows="2" placeholder="Type a message... (Shift+Enter for new line)"></textarea>
-        <button id="send-btn">Send →</button>
+        <div id="input-inner">
+          <textarea id="message-input" rows="1" placeholder="Type a message..."></textarea>
+          <button id="send-btn">Send →</button>
+        </div>
       </div>
     </main>
   </div>
