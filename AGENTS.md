@@ -11,13 +11,18 @@
 ```text
 /
 ├─ agents/
-│  ├─ jarvis.py          # Основной агент (JarvisAgent)
-│  ├─ state_machine.py   # FSM (StageAgent, PipelineAgent)
-│  ├─ invariants.py      # Система инвариантов
-│  ├─ mcp_manager.py     # MCP-клиент (JSON-RPC 2.0)
+│  ├─ jarvis.py             # Ядро агента: __init__, _call_api, chat, get_stats
+│  ├─ jarvis_memory.py      # Mixin: TaskContext, Profile (трёхуровневая память)
+│  ├─ jarvis_session.py     # Mixin: SessionMixin — SQLite, session CRUD, сообщения
+│  ├─ jarvis_context.py     # Mixin: ContextStrategyMixin — стратегии, branching, инварианты
+│  ├─ jarvis_compression.py # Mixin: CompressionMixin — сжатие истории
+│  ├─ jarvis_commands.py    # Mixin: CommandMixin — /help, /mcp, /sm и др.
+│  ├─ state_machine.py      # FSM (StageAgent, PipelineAgent)
+│  ├─ invariants.py         # Система инвариантов
+│  ├─ mcp_manager.py        # MCP-клиент (JSON-RPC 2.0)
 │  ├─ mcp/
-│  │  ├─ __init__.py     # Пакет MCP
-│  │  └─ servers.json    # Конфигурация MCP-серверов
+│  │  ├─ __init__.py        # Пакет MCP
+│  │  └─ servers.json       # Конфигурация MCP-серверов
 │  └─ memory/
 │     ├─ jarvis_history.db  # SQLite
 │     ├─ profiles/          # Профили (долговременная память)
