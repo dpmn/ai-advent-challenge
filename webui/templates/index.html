@@ -62,11 +62,17 @@
 
     <!-- Chat area -->
     <main id="chat-area">
-      <div id="messages-container"></div>
+      <div id="chat-topbar">
+        <button id="sidebar-toggle">☰</button>
+        <span id="chat-topbar-title">Jarvis</span>
+      </div>
+      <div id="messages-container"><div class="inner"></div></div>
 
       <div id="input-area">
-        <textarea id="message-input" rows="2" placeholder="Type a message... (Shift+Enter for new line)"></textarea>
-        <button id="send-btn">Send →</button>
+        <div id="input-inner">
+          <textarea id="message-input" rows="1" placeholder="Type a message..."></textarea>
+          <button id="send-btn">Send →</button>
+        </div>
       </div>
     </main>
   </div>
