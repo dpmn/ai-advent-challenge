@@ -8,9 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSettings();
   loadMcp();
 
+  // Restore theme
+  const saved = localStorage.getItem("jarvis-theme");
+  if (saved === "light") setTheme(true);
+
   document.getElementById("new-session-btn").onclick = createSession;
   document.getElementById("send-btn").onclick = sendMessage;
   document.getElementById("sidebar-toggle").onclick = toggleSidebar;
+  document.getElementById("theme-toggle").onclick = toggleTheme;
 
   document.getElementById("message-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -45,6 +50,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("hidden");
+}
+
+// ──── Theme ────────────────────────────────────────────────────
+
+function setTheme(isLight) {
+  document.body.classList.toggle("light", isLight);
+  document.getElementById("theme-toggle").textContent = isLight ? "☀" : "☾";
+  localStorage.setItem("jarvis-theme", isLight ? "light" : "dark");
+}
+
+function toggleTheme() {
+  setTheme(!document.body.classList.contains("light"));
 }
 
 // ──── Sessions ─────────────────────────────────────────────────
