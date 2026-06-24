@@ -390,7 +390,8 @@ class CommandMixin:
             if sub == "off":
                 self.mcp_enabled = False
                 self._save_mcp_state()
-                return "✅ MCP выключен. Инструменты не передаются модели."
+                self.mcp_manager.disconnect_all()
+                return "✅ MCP выключен. Серверы отключены."
 
             if sub == "connect" and len(parts) >= 2:
                 name = parts[1]

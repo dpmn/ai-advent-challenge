@@ -19,7 +19,7 @@
       "transport": "http",
       "url": "http://127.0.0.1:8766/mcp",
       "headers": {},
-      "enabled": false
+      "enabled": true
     }
   ]
 }
