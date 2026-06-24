@@ -169,6 +169,7 @@ async function sendMessage() {
     renderMessages(data.messages);
     loadSettings(); // Refresh SM/AI settings
     loadSessions(); // Refresh session list
+    loadMcp(); // Refresh MCP status (may have changed via slash commands)
   } catch (err) {
     container.appendChild(
       createBubble("system", "Error: " + err.message)
