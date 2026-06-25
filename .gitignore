@@ -220,3 +220,4 @@ __marimo__/
 # DB
 /agents/memory
 *.db
+/mcp_servers/composer_mcp/output

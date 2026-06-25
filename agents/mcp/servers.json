@@ -20,6 +20,13 @@
       "url": "http://127.0.0.1:8766/mcp",
       "headers": {},
       "enabled": true
+    },
+    {
+      "name": "composer",
+      "transport": "http",
+      "url": "http://127.0.0.1:8767/mcp",
+      "headers": {},
+      "enabled": true
     }
   ]
 }
