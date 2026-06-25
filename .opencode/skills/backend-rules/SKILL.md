@@ -29,6 +29,8 @@ metadata:
 - `mcp_servers/space_monitor_mcp/server.py` — MCP-сервер Space Monitor (4 инструмента: monitor_start, monitor_stop, monitor_status, monitor_summary)
 - `mcp_servers/space_monitor_mcp/collector.py` — BackgroundCollector — фоновый сбор NASA APOD/NEO в SQLite (threading, циклический обход дат)
 - `mcp_servers/space_monitor_mcp/test_server.py` — интеграционный тест через JSON-RPC
+- `mcp_servers/composer_mcp/server.py` — MCP-сервер Composer: композиция инструментов NASA (compose, apod_today, apod_range), использует NASA MCP как прокси
+- `mcp_servers/composer_mcp/test_server.py` — интеграционный тест Composer через JSON-RPC
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
