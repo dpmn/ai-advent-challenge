@@ -10,37 +10,14 @@
 
 ```text
 /
-├─ agents/
-│  ├─ jarvis.py             # Ядро агента: __init__, _call_api, chat, get_stats
-│  ├─ jarvis_memory.py      # Mixin: TaskContext, Profile (трёхуровневая память)
-│  ├─ jarvis_session.py     # Mixin: SessionMixin — SQLite, session CRUD, сообщения
-│  ├─ jarvis_context.py     # Mixin: ContextStrategyMixin — стратегии, branching, инварианты
-│  ├─ jarvis_compression.py # Mixin: CompressionMixin — сжатие истории
-│  ├─ jarvis_commands.py    # Mixin: CommandMixin — /help, /mcp, /sm и др.
-│  ├─ state_machine.py      # FSM (StageAgent, PipelineAgent)
-│  ├─ invariants.py         # Система инвариантов
-│  ├─ mcp_manager.py        # MCP-клиент (JSON-RPC 2.0)
-│  ├─ mcp/
-│  │  ├─ __init__.py        # Пакет MCP
-│  │  └─ servers.json       # Конфигурация MCP-серверов
-│  └─ memory/
-│     ├─ jarvis_history.db  # SQLite
-│     ├─ profiles/          # Профили (долговременная память)
-│     └─ invariants/        # Файлы инвариантов
+├─ agents/              # Ядро агента и его модули
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http)
-│  ├─ nasa_mcp/
-│  │  └─ server.py      # MCP-сервер NASA API (apod, mars_photos, neo_feed)
-│  └─ space_monitor_mcp/
-│     ├─ server.py      # MCP-сервер Space Monitor (monitor_start/stop/status/summary)
-│     ├─ collector.py   # BackgroundCollector — фоновый сбор данных NASA в SQLite
-│     ├─ test_server.py # Интеграционный тест
-│     └─ data/          # SQLite БД (monitor.db) собранных данных
-├─ webui/              # Flask + SPA (vanilla JS), Claude-inspired theme + light/dark toggle
-├─ docs/               # Документация, конспекты лекций, прогресс
-├─ week-NN/            # Задания по дням
+├─ webui/               # Flask + SPA (vanilla JS), Claude-inspired theme + light/dark toggle
+├─ docs/                # Документация, конспекты лекций, прогресс
+├─ week-NN/             # Задания по дням
 └─ .opencode/
-   ├─ agents/          # Субагенты opencode
-   └─ skills/          # Модули знаний opencode
+   ├─ agents/           # Субагенты opencode
+   └─ skills/           # Модули знаний opencode
 ```
 
 ## Рабочий процесс выполнения задания
