@@ -19,3 +19,4 @@
 | 4      | 17   | Первый инструмент MCP — NASA API | done | [server.py](../mcp_servers/nasa_mcp/server.py) / [servers.json](../agents/mcp/servers.json) | https://disk.yandex.ru/i/ZpRSqTXYBvLFog|
 | 4      | 18   | Планировщик и фоновые задачи — Space Monitor | done | [server.py](../mcp_servers/space_monitor_mcp/server.py) / [collector.py](../mcp_servers/space_monitor_mcp/collector.py) | https://disk.yandex.ru/i/omgB8o1mgql7DQ|
 | 4      | 19   | Композиция MCP-инструментов — Composer | done | [server.py](../mcp_servers/composer_mcp/server.py) / [test_server.py](../mcp_servers/composer_mcp/test_server.py) | https://disk.yandex.ru/i/pLkSV9BK21_ASQ|
+| 4      | 20   | Оркестрация MCP (Agent Orchestration)  | done | [server.py](../mcp_servers/analyzer_mcp/server.py) / [test_orchestration.py](../week-04/day-20/test_orchestration.py) | https://disk.yandex.ru/i/xSsueAI9p2GJPA |
