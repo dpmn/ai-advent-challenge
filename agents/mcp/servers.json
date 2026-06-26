@@ -27,6 +27,13 @@
       "url": "http://127.0.0.1:8767/mcp",
       "headers": {},
       "enabled": true
+    },
+    {
+      "name": "analyzer",
+      "transport": "http",
+      "url": "http://127.0.0.1:8768/mcp",
+      "headers": {},
+      "enabled": true
     }
   ]
 }
