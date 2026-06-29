@@ -221,4 +221,3 @@ __marimo__/
 /agents/memory
 *.db
 /mcp_servers/composer_mcp/output
-/ragger/data
