@@ -52,6 +52,7 @@
   - Qwen/Qwen3-30B-A3B - базовая модель (дёшево), для простых задач
   - Qwen/Qwen3-Coder-Next - для задач средней сложности
   - MiniMaxAI/MiniMax-M2.5 - для тяжёлых задач
+  - openai/text-embedding-3-small - для эмбеддингов
 
 
 ## Стиль кода

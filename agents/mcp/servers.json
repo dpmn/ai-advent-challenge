@@ -34,6 +34,13 @@
       "url": "http://127.0.0.1:8768/mcp",
       "headers": {},
       "enabled": true
+    },
+    {
+      "name": "ragger",
+      "transport": "http",
+      "url": "http://127.0.0.1:8769/mcp",
+      "headers": {},
+      "enabled": true
     }
   ]
 }

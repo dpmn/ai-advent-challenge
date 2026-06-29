@@ -31,6 +31,14 @@ metadata:
 - `mcp_servers/space_monitor_mcp/test_server.py` — интеграционный тест через JSON-RPC
 - `mcp_servers/composer_mcp/server.py` — MCP-сервер Composer: композиция инструментов NASA (compose, apod_today, apod_range), использует NASA MCP как прокси
 - `mcp_servers/composer_mcp/test_server.py` — интеграционный тест Composer через JSON-RPC
+- `mcp_servers/ragger/server.py` — MCP-сервер Ragger: семантический поиск по проиндексированным документам проекта. Инструменты: `search_context` (поиск релевантных чанков), `list_sources` (список источников).
+- `ragger/pipeline.py` — пайплайн индексации документов: chunking → эмбеддинги (Cloud.ru) → FAISS. Сравнение fixed-size и structural стратегий.
+- `ragger/document_loader.py` — загрузка .md/.py из проекта
+- `ragger/chunking.py` — две стратегии чанкинга (fixed-size 1000 tok / structural по заголовкам)
+- `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
+- `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
+- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков
+- `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
