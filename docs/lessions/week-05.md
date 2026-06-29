@@ -38,6 +38,77 @@
 4. **Ретривал (извлечение):** При получении запроса система ищет наиболее подходящие чанки в базе данных и подмешивает их в промпт модели.
 5. **Реранкинг:** Для повышения точности используется этап переранжирования, когда отдельная модель (cross-encoder) еще раз оценивает топ найденных результатов, чтобы выбрать наиболее релевантные.
 
+### Пример реализации паттерна на Python
+
+```python
+import requests
+import numpy as np
+
+# Настройки
+OLLAMA_URL = "http://localhost:11434/api/embeddings"
+OLLAMA_GEN_URL = "http://localhost:11434/api/generate"
+MODEL_NAME = "llama3" # или другая модель, загруженная в Ollama [4]
+
+# 1. Данные (наша база знаний) [4]
+knowledge_base = [
+    "Политика Code Review: требуется минимум два апрува до мерджа. Максимальное время ревью 24 часа.",
+    "SpaceX была основана Илоном Маском в 2002 году с целью снижения затрат на полеты в космос.",
+    "Собаки не умеют играть в баскетбол, это негативный пример для тестов."
+]
+
+# Функция для получения эмбеддинга (вектора) через Ollama [2, 4]
+def get_embedding(text):
+    payload = {
+        "model": "mxbai-embed-large", # пример специализированной модели [2]
+        "prompt": text
+    }
+    response = requests.post(OLLAMA_URL, json=payload)
+    return response.json()['embedding']
+
+# Функция для расчета косинусного сходства [2, 6]
+def cosine_similarity(v1, v2):
+    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+# 2. Процесс индексации (превращаем базу знаний в векторы) [7, 8]
+vector_store = []
+for text in knowledge_base:
+    vector_store.append({
+        "text": text,
+        "vector": get_embedding(text)
+    })
+
+# 3. Retrieval (Извлечение): Поиск подходящего чанка по запросу [3, 9]
+query = "Какая у нас политика код-ревью?"
+query_vector = get_embedding(query)
+
+# Сравниваем запрос с каждым элементом в базе [6, 10]
+best_chunk = None
+max_sim = -1
+
+for item in vector_store:
+    sim = cosine_similarity(query_vector, item['vector'])
+    if sim > max_sim:
+        max_sim = sim
+        best_chunk = item['text']
+
+print(f"Найден релевантный контекст (схожесть {max_sim:.2f}): {best_chunk}")
+
+# 4. Generation (Генерация): Подмешиваем чанк в промпт [1, 11]
+full_prompt = f"""Используй только этот текст для ответа: {best_chunk}
+Вопрос: {query}"""
+
+payload_gen = {
+    "model": MODEL_NAME,
+    "prompt": full_prompt,
+    "stream": False
+}
+
+response = requests.post(OLLAMA_GEN_URL, json=payload_gen)
+print("\nОтвет ассистента:")
+print(response.json()['response'])
+```
+
+
 ## Размерность вектора
 
 **Размер вектора** (или его размерность) — это количество чисел («параметров»), в которые модель преобразует фрагмент текста для описания его смысла.
