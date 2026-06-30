@@ -1,5 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "ragger": {
+      "type": "local",
+      "command": ["python3", "mcp_servers/ragger/server.py"],
+      "enabled": true
+    }
+  },
   "instructions": [
     "AGENTS.md"
   ]

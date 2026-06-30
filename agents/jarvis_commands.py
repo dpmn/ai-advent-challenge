@@ -48,7 +48,8 @@ class CommandMixin:
                 "  /mcp disconnect <name> — отключить сервер\n"
                 "  /mcp add <name> <url> [transport] — добавить сервер\n"
                 "  /mcp remove <name> — удалить сервер\n"
-                "  /mcp tools    — список инструментов"
+                "  /mcp tools    — список инструментов\n"
+                "  /rag [on|off] — вкл/выкл RAG-режим (авто-поиск чанков)"
             )
 
         if cmd == "/stats":
@@ -155,6 +156,7 @@ class CommandMixin:
             lines.append(f"  Модель: {self.model}")
             lines.append(f"  Стратегия: {self.context_strategy or 'выкл'}")
             lines.append(f"  Сжатие: {'вкл' if self.compression_enabled else 'выкл'}")
+            lines.append(f"  RAG: {'вкл' if self.rag_enabled else 'выкл'}")
             if self.context_strategy == "sliding_window":
                 lines.append("  Окно: последние 5 сообщений")
             elif self.context_strategy == "sticky_facts":
@@ -440,5 +442,21 @@ class CommandMixin:
             return ("❌ Используйте: /mcp, /mcp on|off, /mcp connect <name>, "
                     "/mcp disconnect <name>, /mcp add <name> <url> [transport], "
                     "/mcp remove <name>, /mcp tools")
+
+        # ── RAG ──────────────────────────────────────────────────
+        if cmd == "/rag":
+            if not arg:
+                status = "вкл" if self.rag_enabled else "выкл"
+                return f"📖 RAG-режим: {status}"
+            arg_lower = arg.strip().lower()
+            if arg_lower in ("on", "вкл", "1"):
+                self.rag_enabled = True
+                self._save_rag_state()
+                return "✅ RAG-режим включён. Контекст будет дополняться поиском по базе знаний."
+            if arg_lower in ("off", "выкл", "0"):
+                self.rag_enabled = False
+                self._save_rag_state()
+                return "✅ RAG-режим выключен."
+            return "❌ Используйте: /rag [on|off]"
 
         return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."

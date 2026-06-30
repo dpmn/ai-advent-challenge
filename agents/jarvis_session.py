@@ -113,6 +113,13 @@ class SessionMixin:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {mcp_col[0]} {mcp_col[1]}")
                 except sqlite3.OperationalError:
                     pass
+            for rag_col in [
+                ("rag_enabled", "INTEGER DEFAULT 0"),
+            ]:
+                try:
+                    conn.execute(f"ALTER TABLE sessions ADD COLUMN {rag_col[0]} {rag_col[1]}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
 
     def _get_last_session(self) -> Optional[dict]:
@@ -121,7 +128,7 @@ class SessionMixin:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config, mcp_enabled, mcp_config "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -134,7 +141,7 @@ class SessionMixin:
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
-                    "mcp_enabled": row[18], "mcp_config": row[19],
+                    "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
                 }
             return None
 
@@ -144,7 +151,7 @@ class SessionMixin:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config, mcp_enabled, mcp_config "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -158,7 +165,7 @@ class SessionMixin:
                     "sm_enabled": row[11], "sm_validation_enabled": row[12],
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
-                    "mcp_enabled": row[18], "mcp_config": row[19],
+                    "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
                 }
             return None
 
@@ -229,6 +236,7 @@ class SessionMixin:
             "sm_current_state": "PLANNING", "sm_artifacts": "{}", "sm_stage_configs": "{}",
             "invariants_enabled": 1, "invariants_config": "{}",
             "mcp_enabled": 0, "mcp_config": "{}",
+            "rag_enabled": 0,
         }
         self.current_session = session
         self.conversation_history = []
@@ -246,6 +254,7 @@ class SessionMixin:
         self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
         self._load_invariants()
         self.mcp_enabled = False
+        self.rag_enabled = False
         self.pipeline = None
         if sm_enabled:
             sm_validation = True
@@ -300,6 +309,7 @@ class SessionMixin:
         self.invariants_enabled = bool(session.get("invariants_enabled", True))
         self._load_invariants()
         self.mcp_enabled = bool(session.get("mcp_enabled", False))
+        self.rag_enabled = bool(session.get("rag_enabled", False))
         sm_enabled = session.get("sm_enabled", False)
         if sm_enabled:
             sm_validation = session.get("sm_validation_enabled", True)
@@ -440,3 +450,13 @@ class SessionMixin:
             )
             conn.commit()
         self.current_session["mcp_enabled"] = int(self.mcp_enabled)
+
+    def _save_rag_state(self):
+        """Сохраняет флаг RAG-режима в БД."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET rag_enabled = ? WHERE id = ?",
+                (int(self.rag_enabled), self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["rag_enabled"] = int(self.rag_enabled)

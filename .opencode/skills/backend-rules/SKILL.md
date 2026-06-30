@@ -14,7 +14,7 @@ metadata:
 
 ## Структура файлов
 
-- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Также RAG-инжекция: при `rag_enabled=True` в `chat()` выполняется `ragger.search.search(user_input)` и результат вставляется как system-сообщение перед user message
 - `agents/jarvis_memory.py` — Mixin: `TaskContext`, `Profile` (трёхуровневая память)
 - `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
@@ -31,6 +31,14 @@ metadata:
 - `mcp_servers/space_monitor_mcp/test_server.py` — интеграционный тест через JSON-RPC
 - `mcp_servers/composer_mcp/server.py` — MCP-сервер Composer: композиция инструментов NASA (compose, apod_today, apod_range), использует NASA MCP как прокси
 - `mcp_servers/composer_mcp/test_server.py` — интеграционный тест Composer через JSON-RPC
+- `mcp_servers/ragger/server.py` — MCP-сервер Ragger: семантический поиск по проиндексированным документам проекта. Инструменты: `search_context` (поиск релевантных чанков), `list_sources` (список источников).
+- `ragger/pipeline.py` — пайплайн индексации документов: chunking → эмбеддинги (Cloud.ru) → FAISS. Сравнение fixed-size и structural стратегий.
+- `ragger/document_loader.py` — загрузка .md/.py из проекта
+- `ragger/chunking.py` — две стратегии чанкинга (fixed-size 1000 tok / structural по заголовкам)
+- `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
+- `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
+- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков
+- `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
@@ -57,6 +65,7 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | invariants_config | TEXT JSON | `{"enabled_ids": [...]}` |
 | mcp_enabled | INTEGER 0/1 | Флаг MCP включён/выключен |
 | mcp_config | TEXT JSON | Конфигурация MCP-серверов |
+| rag_enabled | INTEGER 0/1 | Флаг RAG-режима: при включении перед каждым запросом LLM инжектятся релевантные чанки из FAISS |
 
 ### messages
 `session_id → sessions.id`, `role` (user/assistant/system/command), `content`, `timestamp`
@@ -83,6 +92,15 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 
 Все три уровня инжектятся в system prompt перед каждым API-вызовом.
 
+### RAG-режим
+- Флаг `rag_enabled` хранится в сессии (колонка `sessions.rag_enabled`)
+- Команды: `/rag on`, `/rag off`, `/rag` (статус)
+- В `chat()` при `rag_enabled=True`:
+  1. Выполняется `ragger.search.search(user_input, top_k=5, strategy='structural')`
+  2. Результат форматируется как system-сообщение с текстом чанков
+  3. System-сообщение вставляется после основного system prompt, но перед memory-блоками
+- RAG и MCP независимы и могут работать одновременно
+
 ### Создание новой сессии
 ```python
 agent.create_session(name="optional")  # возвращает dict сессии
@@ -97,6 +115,7 @@ agent.delete_session(session_id)
 4. Если нужна новая команда — добавь ветку `elif` в `_handle_command()` в `jarvis_commands.py`.
 5. Если нужна новая колонка в БД — добавь `ALTER TABLE ADD COLUMN` в `_init_db()` (в try/except).
 6. Если новый параметр настройки — добавь чтение/запись в `/api/settings` в `webui/app.py`.
+7. Если новый режим влияет на `chat()` (например RAG) — модифицируй `chat()` в `jarvis.py`. Флаг режима храни в сессии (БД `_save_*_state` + чтение в `_load_session`).
 
 **MRO:** `JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandMixin)`. Все cross-mixin вызовы работают через `self.*`.
 
@@ -142,6 +161,11 @@ response = agent._call_api(messages)
 3. Ответ с `tool_calls` → извлекается `arguments`, вызывается `tools/call` через `McpConnection`
 4. Результат вызова инструмента сохраняется как `command`-сообщение с префиксом `🔧`
 5. Повторный вызов API с результатами инструмента для получения финального ответа
+
+### Команда `/rag` (в `_handle_command()`)
+- `/rag` — статус (вкл/выкл)
+- `/rag on` — включить RAG: при каждом запросе подгружаются релевантные чанки из FAISS
+- `/rag off` — выключить RAG: модель отвечает из своего общего знания
 
 ### Команды `/mcp` (в `_handle_command()`)
 - `/mcp` — статус (вкл/выкл, список серверов, инструменты)
