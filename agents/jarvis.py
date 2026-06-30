@@ -154,6 +154,9 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.mcp_enabled = bool(self.current_session.get("mcp_enabled", False))
         self.mcp_max_iterations = 10
 
+        # RAG
+        self.rag_enabled = bool(self.current_session.get("rag_enabled", False))
+
         self.total_tokens_used = 0
         self.total_requests = 0
         self.last_usage = None
@@ -267,6 +270,30 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             else:
                 messages = self.get_raw_messages()
 
+        # RAG: поиск релевантных чанков и инжекция в контекст
+        insert_idx = 1
+        if self.rag_enabled:
+            try:
+                from ragger.search import search as rag_search
+                rag_chunks = rag_search(user_input, top_k=5, strategy="structural")
+                if rag_chunks:
+                    rag_lines = [
+                        "Используй следующие документы из базы знаний для ответа "
+                        "на вопрос пользователя:"
+                    ]
+                    for i, r in enumerate(rag_chunks, 1):
+                        rag_lines.append(
+                            f"[{i}] Источник: {r['source']} / {r.get('section', '')}\n"
+                            f"    {r['text']}"
+                        )
+                    messages.insert(
+                        insert_idx,
+                        {"role": "system", "content": "\n\n---\n\n".join(rag_lines)}
+                    )
+                    insert_idx += 1
+            except Exception as e:
+                print(f"[JARVIS][RAG] Error: {e}")
+
         # Инжектируем трёхуровневую модель памяти
         memory_blocks = []
         profile_block = self.profile.to_full_prompt_block()
@@ -281,7 +308,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                 memory_blocks.append(inv_block)
         if memory_blocks:
             memory_text = "\n\n".join(memory_blocks)
-            messages.insert(1, {"role": "system", "content": memory_text})
+            messages.insert(insert_idx, {"role": "system", "content": memory_text})
             self._save_memory_state()
 
         # MCP: build tools list
