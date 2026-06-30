@@ -116,15 +116,33 @@ if rag_enabled:
 
 Мини-набор из 10 вопросов для сравнительного тестирования RAG. Для каждого указано ожидание (что должен содержать ответ с RAG) и источники, в которых эта информация есть.
 
-| # | Вопрос | Ожидание (RAG-ответ) | Источники |
-|---|--------|----------------------|-----------|
-| 1 | **Какие этапы включает State Machine в Jarvis?** | PLANNING → EXECUTION → VALIDATION → DONE (4 этапа) | `week-03/day-13/README.md`, `agents/state_machine.py` (docstring) |
-| 2 | **Какие MCP-серверы настроены в проекте?** | nasa-api, space-monitor, composer, analyzer, ragger, grep-app | `agents/mcp/servers.json`, `agents/mcp_manager.py` |
-| 3 | **Что такое инварианты в JarvisAgent?** | Ограничения на ответ LLM (например, запрет упоминать внешние библиотеки), проверяются `AgentValidator` с автоматическим retry при нарушении | `week-03/day-14/README.md`, `agents/invariants.py` |
-| 4 | **Сколько таблиц в БД Jarvis и какие?** | 5 таблиц: `sessions`, `messages`, `compressed_summaries`, `branches`, `stage_messages` | `agents/jarvis_session.py` (docstring + CREATE TABLE) |
-| 5 | **Какой транспорт используется для MCP-серверов?** | Streamable HTTP (JSON-RPC 2.0) | `agents/mcp_manager.py`, `docs/lessions/week-04.md` |
-| 6 | **Какие стратегии контекста поддерживает Jarvis?** | Три: `sliding_window` (последние 5), `sticky_facts` (ключевые факты), `branching` (ветки диалога от checkpoint) | `agents/jarvis_context.py`, `week-02/day-10/README.md` |
-| 7 | **Какие модели LLM доступны через Cloud.ru API?** | Qwen/Qwen3-30B-A3B (базовая), Qwen/Qwen3-Coder-Next (средняя), MiniMaxAI/MiniMax-M2.5 (тяжёлая) | `AGENTS.md`, `agents/jarvis.py` |
-| 8 | **Какие инструменты есть в NASA MCP сервере?** | `apod` (фото дня), `mars_photos` (снимки марсоходов), `neo_feed` (данные об астероидах) | `mcp_servers/nasa_mcp/server.py`, `week-04/day-17/README.md` |
-| 9 | **Что такое sticky_facts в Jarvis?** | Стратегия контекста: LLM извлекает ключевые факты из диалога и хранит их как JSON; факты инжектятся в system prompt перед каждым запросом | `agents/jarvis_context.py`, `week-02/day-10/README.md` |
-| 10 | **Какие этапы включает пайплайн индексации ragger?** | 5 шагов: загрузка документов → fixed-size чанкинг → structural чанкинг → генерация эмбеддингов (Cloud.ru) → построение FAISS-индексов | `week-05/day-21/README.md`, `ragger/pipeline.py` |
+| # | Вопрос | Ожидание (RAG-ответ) | Фактический ответ (RAG on) | Статус | Источники |
+|---|--------|----------------------|----------------------------|--------|-----------|
+| 1 | **Какие этапы включает State Machine в Jarvis?** | PLANNING → EXECUTION → VALIDATION → DONE (4 этапа) | ✅ PLANNING, EXECUTION, VALIDATION, DONE — названы и описаны верно | **OK** | `week-03/day-13/README.md`, `agents/state_machine.py` |
+| 2 | **Какие MCP-серверы настроены в проекте?** | composer, analyzer, ragger, nasa-api, space-monitor, grep-app | ⚠️ Названы только composer и analyzer. Остальные не найдены | **частично** | `agents/mcp/servers.json`, `agents/mcp_manager.py` |
+| 3 | **Что такое инварианты в JarvisAgent?** | Ограничения на ответ LLM, проверяются `AgentValidator` с retry | ✅ Инварианты описаны верно: жёсткие ограничения, примеры no-external-libs, no-numpy-pandas | **OK** | `week-03/day-14/README.md`, `agents/invariants.py` |
+| 4 | **Сколько таблиц в БД Jarvis и какие?** | 5 таблиц: sessions, messages, compressed_summaries, branches, stage_messages | ✅ 5 таблиц — все названы верно | **OK** | `agents/jarvis_session.py` |
+| 5 | **Какой транспорт используется для MCP-серверов?** | Streamable HTTP (JSON-RPC 2.0) | ⚠️ HTTP JSON-RPC 2.0 — верно, но термин "Streamable HTTP" не употреблён | **частично** | `agents/mcp_manager.py`, `docs/lessions/week-04.md` |
+| 6 | **Какие стратегии контекста поддерживает Jarvis?** | sliding_window, sticky_facts, branching | ✅ Все три стратегии названы верно с описанием | **OK** | `agents/jarvis_context.py`, `week-02/day-10/README.md` |
+| 7 | **Какие модели LLM доступны через Cloud.ru API?** | Qwen/Qwen3-30B-A3B, Qwen/Qwen3-Coder-Next, MiniMaxAI/MiniMax-M2.5 | ❌ YandexGPT, MPT-30B, Llama-3-8B, Llama-3-70B — устаревшие модели из week-01/day-05 | **неверно** | `AGENTS.md`, `agents/jarvis.py` |
+| 8 | **Какие инструменты есть в NASA MCP сервере?** | apod, mars_photos, neo_feed | ✅ apod, marsphotos, neofeed — все три названы с параметрами | **OK** | `mcp_servers/nasa_mcp/server.py`, `week-04/day-17/README.md` |
+| 9 | **Что такое sticky_facts в Jarvis?** | LLM извлекает ключевые факты, хранит как JSON, инжект в system prompt | ✅ sticky_facts описан верно: извлечение через LLM, словарь ключ-значение, добавление к последним сообщениям | **OK** | `agents/jarvis_context.py`, `week-02/day-10/README.md` |
+| 10 | **Какие этапы включает пайплайн индексации ragger?** | 5 шагов: загрузка → 2 стратегии чанкинга → эмбеддинги → FAISS | ✅ 5 этапов названы верно (загрузка, чанкинг, эмбеддинги, сохранение, сравнение) | **OK** | `week-05/day-21/README.md`, `ragger/pipeline.py` |
+
+**Итог:** 7/10 вопросов — OK, 2/10 — частично, 1/10 — неверно. Лучше всего RAG справляется с уникальными терминами (sticky_facts, apod/marsphotos/neofeed, State Machine). Хуже всего — с вопросами, где синонимичные чанки из других тем перетягивают релевантность (модели Cloud.ru → OpenRouter). MCP-серверы не найдены полностью, т.к. `servers.json` не попал в индексацию (.json не входит в список сканируемых расширений).
+
+### Выводы по качеству RAG
+
+**Что работает хорошо:**
+- Уникальные термины проекта (sticky_facts, apod, neo_feed, State Machine) — embeddings стабильно находят нужные чанки
+- Вопросы про количество/структуру (таблицы БД, этапы) — чёткие ответы, т.к. информация локализована в одном файле
+- Инструменты с конкретными именами (apod/marsphotos/neofeed) — поиск точный
+
+**Что работает плохо:**
+- Вопрос про модели Cloud.ru (`#7`) — во всех 3 вариантах формулировки RAG находил чанк week-01/day-05 про OpenRouter, а не AGENTS.md. Причина: эмбеддинг `"модели LLM доступны через Cloud.ru API"` оказался ближе к тексту про OpenRouter (много общих слов: модели, API, доступны), чем к скучному перечислению в AGENTS.md.
+- Вопрос про MCP-серверы (`#2`) — `servers.json` не проиндексирован (не .md/.py), полный список нигде в одном .md-файле не собран
+- "Streamable HTTP" (`#5`) — в чанках есть "JSON-RPC 2.0 поверх Streamable HTTP", но модель упомянула только HTTP JSON-RPC 2.0, опустив Streamable
+
+**Дополнительный тест:** вопрос *«Сколько последних сообщений остаётся при использовании стратегии sliding_window?»* — ✅ верный ответ (5 сообщений), чанк найден в `agents/jarvis_context.py`.
+
+**Вывод:** RAG качественно улучшает ответы (7/10), но качество ретрива критично зависит от формулировки запроса и состава индекса. Для продакшена стоит добавить гибридный поиск (semantic + keyword) и документировать слабые места базы знаний.

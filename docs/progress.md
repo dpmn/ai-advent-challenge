@@ -21,4 +21,4 @@
 | 4      | 19   | Композиция MCP-инструментов — Composer | done | [server.py](../mcp_servers/composer_mcp/server.py) / [test_server.py](../mcp_servers/composer_mcp/test_server.py) | https://disk.yandex.ru/i/pLkSV9BK21_ASQ|
 | 4      | 20   | Оркестрация MCP (Agent Orchestration)  | done | [server.py](../mcp_servers/analyzer_mcp/server.py) / [test_orchestration.py](../week-04/day-20/test_orchestration.py) | https://disk.yandex.ru/i/xSsueAI9p2GJPA |
 | 5      | 21   | Индексация документов                  | done | [pipeline.py](../ragger/pipeline.py)    |https://disk.yandex.ru/i/NUeLH_RoDIc_4g |
-| 5      | 22   | Первый RAG-запрос — RAG-режим в JarvisAgent | done | [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) | |
+| 5      | 22   | Первый RAG-запрос — RAG-режим в JarvisAgent | done | [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) |https://disk.yandex.ru/i/e0quLTO58SJEGA |
