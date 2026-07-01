@@ -1,5 +1,8 @@
+"""Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом."""
+
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import faiss
@@ -40,6 +43,9 @@ def _load_index(strategy: str):
     return index, metadata
 
 
+load_index = _load_index
+
+
 def search(
     query: str,
     top_k: int = 5,
@@ -78,3 +84,110 @@ def search(
         })
 
     return results
+
+
+@dataclass
+class RagPipeline:
+    """Пайплайн RAG-поиска: FAISS search → threshold filter → LLM rerank → top-K slice.
+
+    Режимы:
+      "threshold" — только фильтр по similarity score
+      "rerank"    — только LLM-реранкинг (без threshold)
+      "hybrid"    — threshold-фильтр, затем реранкинг оставшихся
+    """
+
+    api_key: str
+    top_k_before: int = 10
+    top_k_after: int = 5
+    threshold: float = 0.5
+    mode: str = "hybrid"
+    rerank_model: str = "Qwen/Qwen3-30B-A3B"
+    base_url: str = "https://foundation-models.api.cloud.ru/v1"
+    strategy: str = "structural"
+
+    def run(self, query: str) -> list[dict]:
+        """Полный пайплайн: search → filter → rerank → slice."""
+        chunks = self._search(query)
+
+        stats = {
+            "before_filter": len(chunks),
+            "after_filter": 0,
+            "after_rerank": 0,
+            "final": 0,
+            "threshold_cut": 0,
+            "rerank_cut": 0,
+        }
+
+        if self.mode == "threshold":
+            from ragger.reranker import threshold_filter
+            before = len(chunks)
+            chunks = threshold_filter(chunks, self.threshold)
+            stats["threshold_cut"] = before - len(chunks)
+
+        elif self.mode == "rerank":
+            if chunks:
+                from ragger.reranker import llm_rerank
+                chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+
+        elif self.mode == "hybrid":
+            from ragger.reranker import threshold_filter, llm_rerank
+            before = len(chunks)
+            chunks = threshold_filter(chunks, self.threshold)
+            stats["threshold_cut"] = before - len(chunks)
+            if chunks:
+                chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+
+        stats["after_filter"] = len(chunks)
+
+        if len(chunks) > self.top_k_after:
+            stats["rerank_cut"] = len(chunks) - self.top_k_after
+            chunks = chunks[:self.top_k_after]
+
+        stats["after_rerank"] = len(chunks)
+        stats["final"] = len(chunks)
+
+        self._last_stats = stats
+        self._last_query = query
+        self._last_chunks = chunks
+        return chunks
+
+    def _search(self, query: str) -> list[dict]:
+        """Базовый FAISS-поиск."""
+        return search(query, top_k=self.top_k_before, strategy=self.strategy)
+
+    def compare_modes(self, query: str) -> list[dict]:
+        """Прогоняет запрос во всех 3 режимах и возвращает статистику."""
+        rows = []
+        saved_mode = self.mode
+
+        for mode in ("threshold", "rerank", "hybrid"):
+            self.mode = mode
+            self.run(query)
+            stats = self._last_stats
+            avg_score = 0.0
+            min_score = 0.0
+            max_score = 0.0
+            sources = set()
+            chunks = getattr(self, "_last_chunks", [])
+            if chunks:
+                scores = [c["score"] for c in chunks]
+                avg_score = sum(scores) / len(scores)
+                min_score = min(scores)
+                max_score = max(scores)
+                sources = {c["source"] for c in chunks}
+            rows.append({
+                "mode": mode,
+                "before_filter": stats["before_filter"],
+                "after_filter": stats["after_filter"],
+                "threshold_cut": stats["threshold_cut"],
+                "rerank_cut": stats["rerank_cut"],
+                "final": stats["final"],
+                "avg_score": round(avg_score, 4),
+                "min_score": round(min_score, 4),
+                "max_score": round(max_score, 4),
+                "sources": ", ".join(sorted(sources)),
+            })
+
+        self.mode = saved_mode
+        self._last_compare = rows
+        return rows

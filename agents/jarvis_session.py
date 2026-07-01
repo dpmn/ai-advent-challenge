@@ -115,6 +115,10 @@ class SessionMixin:
                     pass
             for rag_col in [
                 ("rag_enabled", "INTEGER DEFAULT 0"),
+                ("rag_top_k_before", "INTEGER DEFAULT 10"),
+                ("rag_top_k_after", "INTEGER DEFAULT 5"),
+                ("rag_threshold", "REAL DEFAULT 0.5"),
+                ("rag_mode", "TEXT DEFAULT 'hybrid'"),
             ]:
                 try:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {rag_col[0]} {rag_col[1]}")
@@ -128,7 +132,8 @@ class SessionMixin:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled, "
+                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -142,6 +147,8 @@ class SessionMixin:
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
                     "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
+                    "rag_top_k_before": row[21], "rag_top_k_after": row[22],
+                    "rag_threshold": row[23], "rag_mode": row[24],
                 }
             return None
 
@@ -151,7 +158,8 @@ class SessionMixin:
                 "SELECT id, name, created_at, prompt_tokens, completion_tokens, total_tokens, "
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
-                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled "
+                "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled, "
+                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -166,6 +174,8 @@ class SessionMixin:
                     "sm_current_state": row[13], "sm_artifacts": row[14], "sm_stage_configs": row[15],
                     "invariants_enabled": row[16], "invariants_config": row[17],
                     "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
+                    "rag_top_k_before": row[21], "rag_top_k_after": row[22],
+                    "rag_threshold": row[23], "rag_mode": row[24],
                 }
             return None
 
@@ -237,6 +247,10 @@ class SessionMixin:
             "invariants_enabled": 1, "invariants_config": "{}",
             "mcp_enabled": 0, "mcp_config": "{}",
             "rag_enabled": 0,
+            "rag_top_k_before": 10,
+            "rag_top_k_after": 5,
+            "rag_threshold": 0.5,
+            "rag_mode": "hybrid",
         }
         self.current_session = session
         self.conversation_history = []
@@ -255,6 +269,10 @@ class SessionMixin:
         self._load_invariants()
         self.mcp_enabled = False
         self.rag_enabled = False
+        self.rag_top_k_before = 10
+        self.rag_top_k_after = 5
+        self.rag_threshold = 0.5
+        self.rag_mode = "hybrid"
         self.pipeline = None
         if sm_enabled:
             sm_validation = True
@@ -310,6 +328,10 @@ class SessionMixin:
         self._load_invariants()
         self.mcp_enabled = bool(session.get("mcp_enabled", False))
         self.rag_enabled = bool(session.get("rag_enabled", False))
+        self.rag_top_k_before = session.get("rag_top_k_before", 10) or 10
+        self.rag_top_k_after = session.get("rag_top_k_after", 5) or 5
+        self.rag_threshold = float(session.get("rag_threshold", 0.5) or 0.5)
+        self.rag_mode = session.get("rag_mode", "hybrid") or "hybrid"
         sm_enabled = session.get("sm_enabled", False)
         if sm_enabled:
             sm_validation = session.get("sm_validation_enabled", True)
@@ -460,3 +482,19 @@ class SessionMixin:
             )
             conn.commit()
         self.current_session["rag_enabled"] = int(self.rag_enabled)
+
+    def _save_rag_config(self):
+        """Сохраняет параметры RAG-пайплайна в БД."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET rag_top_k_before = ?, rag_top_k_after = ?, "
+                "rag_threshold = ?, rag_mode = ? WHERE id = ?",
+                (self.rag_top_k_before, self.rag_top_k_after,
+                 self.rag_threshold, self.rag_mode,
+                 self.current_session["id"])
+            )
+            conn.commit()
+        self.current_session["rag_top_k_before"] = self.rag_top_k_before
+        self.current_session["rag_top_k_after"] = self.rag_top_k_after
+        self.current_session["rag_threshold"] = self.rag_threshold
+        self.current_session["rag_mode"] = self.rag_mode
