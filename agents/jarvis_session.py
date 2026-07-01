@@ -117,7 +117,7 @@ class SessionMixin:
                 ("rag_enabled", "INTEGER DEFAULT 0"),
                 ("rag_top_k_before", "INTEGER DEFAULT 10"),
                 ("rag_top_k_after", "INTEGER DEFAULT 5"),
-                ("rag_threshold", "REAL DEFAULT 0.5"),
+                ("rag_threshold", "REAL DEFAULT 0.2"),
                 ("rag_mode", "TEXT DEFAULT 'hybrid'"),
             ]:
                 try:
@@ -249,7 +249,7 @@ class SessionMixin:
             "rag_enabled": 0,
             "rag_top_k_before": 10,
             "rag_top_k_after": 5,
-            "rag_threshold": 0.5,
+            "rag_threshold": 0.2,
             "rag_mode": "hybrid",
         }
         self.current_session = session
@@ -271,7 +271,7 @@ class SessionMixin:
         self.rag_enabled = False
         self.rag_top_k_before = 10
         self.rag_top_k_after = 5
-        self.rag_threshold = 0.5
+        self.rag_threshold = 0.2
         self.rag_mode = "hybrid"
         self.pipeline = None
         if sm_enabled:
@@ -330,7 +330,7 @@ class SessionMixin:
         self.rag_enabled = bool(session.get("rag_enabled", False))
         self.rag_top_k_before = session.get("rag_top_k_before", 10) or 10
         self.rag_top_k_after = session.get("rag_top_k_after", 5) or 5
-        self.rag_threshold = float(session.get("rag_threshold", 0.5) or 0.5)
+        self.rag_threshold = float(session.get("rag_threshold", 0.2) or 0.2)
         self.rag_mode = session.get("rag_mode", "hybrid") or "hybrid"
         sm_enabled = session.get("sm_enabled", False)
         if sm_enabled:

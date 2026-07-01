@@ -99,9 +99,9 @@ class RagPipeline:
     api_key: str
     top_k_before: int = 10
     top_k_after: int = 5
-    threshold: float = 0.5
+    threshold: float = 0.2
     mode: str = "hybrid"
-    rerank_model: str = "Qwen/Qwen3-30B-A3B"
+    rerank_model: str = "Qwen/Qwen3-Coder-Next"
     base_url: str = "https://foundation-models.api.cloud.ru/v1"
     strategy: str = "structural"
 

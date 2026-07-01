@@ -262,16 +262,46 @@
   {
     "faiss_id": 26,
     "chunk_id": "struct_00026",
-    "source": "AGENTS.md",
-    "title": "AGENTS.md",
-    "section": "AGENTS.md",
-    "text": "AI Advent Challenge — главный конфиг сессии\n\nО проекте\n\nЭто рабочий журнал курса-челленджа AI Advent Challenge #8, цель которого научиться быстро использовать инструменты ИИ.\nЗдесь находится код заданий, конспекты лекций и прогресс прохождения.\n\n\nСтруктура проекта\n\n\n\nРабочий процесс выполнения задания\n\n- При получении нового задания я буду создавать файл week-xx -> day-xx -> README.md, в котором пропишу суть задания.\n- Я попрошу тебя выполнить задание дня X.\n- Сначала вызови @task-initializer — он подготовит контекст.\n- Если доработка касается агента — загрузи @backend-rules (skill), затем правь agents/.\n- Если доработка касается интерфейса — загрузи @webui-rules (skill), затем правь webui/.\n- Сделай минимальную проверку: запусти python ./webui/app.py, протестируй через браузер (http://127.0.0.1:5000) или curl.\n- Запиши в README дня: какие файлы и что менял (кратко).\n- Вызови @scenario-writer.\n- Я прогоню сценарий и пришлю результаты.\n- Когда пришлю — вызови @results-analyzer. Раздел \"Задание\" не редактируй!\n- Вызови @docs-sync.\n\n\nСтек и окружение\n\n- Операционная система: Windows 11, opencode работает на WSL.\n- Команды в opencode выполняются в WSL (bash), поэтому используй python3, ls, rm (Unix-style).\n  Windows-пути с обратными слешами (.\\webui\\app.py) НЕ работают — только прямой слеш: ./webui/app.py.\n  Пути с пробелами экранируй кавычками: \"C:/Users/...\".\n- Технологии: Python 3.12, Flask\n- API для кода заданий: Cloud.ru, сервис Foundation Models (оплата в рублях, OpenAI-совместимый доступ).\n  - Спецификация API: https://cloud.ru/docs/foundation-models/ug/topics/api-refspecs\n  - baseurl: https://foundation-models.api.cloud.ru/v1\n  - Auth: заголовок Authorization: Bearer <CLOUDRUSECRETKEY>\n  - Ключ: в .env как CLOUDRUSECRETKEY (НЕ коммитить, см. .gitignore).\n- ID моделей, которые можно использовать в запросах\n  - Qwen/Qwen3-30B-A3B - базовая модель (дёшево), для простых задач\n  - Qwen/Qwen3-Coder-Next - для задач средней сложности\n  - MiniMaxAI/MiniMax-M2.5 - для тяжёлых задач\n\n\nСтиль кода\n\n- Все публичные классы, методы и функции документируй docstring (однострочным или многострочным). Исключение — тривиальные геттеры/сеттеры в одну строку.\n- Пример:\n  \n- Внутренние/приватные методы () — docstring по необходимости, если логика неочевидна.\n\n\nGit / безопасность\n\n- Ничего не пушить в интернет без явного разрешения.\n- Удалённый репозиторий создаёт пользователь сам.\n- .env, .key и секреты — никогда не коммитить.\n\n\nКак общаться со мной (соблюдать всегда)\n\n- Честно и прямо. Без филлеров и воды.\n- Никогда не врать и не выдумывать факты. Конкретные данные перепроверять (доки, версии, имена моделей).\n- Если в чём-то не уверен — сказать прямо «не уверен», а не угадывать.\n- Не поддакивать. Если я ошибаюсь или делаю неразумно — поправить честно.\n- Caveman-режим активен → отвечай терсно, но вся техническая суть сохраняется.",
+    "source": "week-05\\day-22\\README.md",
+    "title": "week-05/day-22",
+    "section": "week-05/day-22",
+    "text": "Неделя 5 — День 22. Первый RAG-запрос\n\nЗадание\n\nРеализуйте функцию:\n- вопрос → поиск релевантных чанков → объединение с вопросом → запрос к LLM\n\nСравните:\n- ответ модели без RAG\n- ответ модели с RAG\n\nУсиление:\n- составьте мини-набор из 10 контрольных вопросов по вашей базе\n- для каждого вопроса зафиксируйте:\n  - ожидание (что должно быть в ответе)\n  - какие источники должны быть использованы (если применимо)\n\nРезультат:\n- Агент с двумя режимами (с RAG / без RAG) + 10 контрольных вопросов и сравнение качества\n\nРешение\n\nКонцепция\n\nВ JarvisAgent добавлен RAG-режим — флаг ragenabled, который хранится в сессии (БД). Когда режим включён, перед каждым запросом к LLM агент автоматически:\n1. Ищет релевантные чанки через ragger.search.search() по вопросу пользователя\n2. Инжектирует их как system-сообщение перед user message\n3. Модель получает актуальный контекст из базы знаний проекта\n\nРежимы RAG и MCP независимы и могут работать одновременно:\n- RAG — автоматическая подгрузка контекста, модель не управляет ретривом\n- MCP — модель сама решает, вызывать ли searchcontext как tool\n\nИзменённые файлы\n\n| Файл | Что сделано |\n|---|---|\n| agents/jarvis.py | В init добавлен self.ragenabled (читается из сессии). В chat() — блок RAG-инжекции: поиск чанков → system message с текстом чанков → вставка перед user message |\n| agents/jarvissession.py | Миграция БД: колонка ragenabled INTEGER DEFAULT 0. Метод saveragstate(). Чтение/запись во всех session CRUD |\n| agents/jarviscommands.py | Команда /rag [on\\|off] — переключение режима. Добавлена в /help и в /context |\n\nКак пользоваться\n\n\n\nВключи RAG и задай вопрос по документам проекта — ответ будет основан на реальных чанках из базы знаний.\n\nАрхитектура RAG-инжекции\n\n\n\nПорядок system-сообщений в итоговом промпте:\n1. [0] — системный промпт агента\n2. [1] — RAG-контекст (если включён)\n3. [2] — Memory-блоки (Profile + TaskContext + Invariants)\n4. Последующие — история диалога\n5. Последнее — user message\n\nСценарий проверки\n\n1. Запусти сервер. Выполни python ./webui/app.py. Дождись сообщения Running on http://127.0.0.1:5000.\n\n2. Открой WebUI. Перейди в браузере на http://127.0.0.1:5000. Интерфейс должен загрузиться — поле ввода чата и история (если есть).\n\n3. Проверь начальный статус RAG. Отправь в чат: /rag. Ожидаемый результат: агент отвечает чем-то вроде «RAG выключен (off)» или «RAG: выкл».\n\n4. Включи RAG. Отправь: /rag on. Ожидаемый результат: агент подтверждает включение, например «RAG включён».\n\n5. Подтверди статус через /context. Отправь: /context. Ожидаемый результат: в ответе присутствует строка «RAG: вкл» (или «RAG: on») рядом с остальными статусами (MCP, режим).\n\n6. Задай вопрос с RAG. Отправь (или скопируй точный текст): Какие стратегии чанкинга используются в проекте? Ожидаемый результат:\n   - Ответ содержит конкретные названия стратегий: «structural» и «fixed» (или «структурный» и «фиксированный»).\n   - Упоминаются параметры (размер чанка, overlap), классы (например, StructuralChunker, FixedSizeChunker) или файлы (ragger/chunking/).\n   - Ответ привязан к коду проекта, а не общие рассуждения о RAG.\n\n7. Выключи RAG. Отправь: /rag off. Ожидаемый результат: подтверждение «RAG выключен».\n\n8. Задай тот же вопрос без RAG. Отправь: Какие стратегии чанкинга используются в проекте? Ожидаемый результат:\n   - Ответ стал общим/абстрактным: перечисляются универсальные подходы (например, «рекурсивный character split», «token-based», «semantic chunking»).\n   - Нет отсылок к конкретным файлам проекта, нет упоминаний StructuralChunker, FixedSizeChunker или параметров chunksize=1000, overlap=200.\n   - Ответ выглядит так, будто модель отвечает из своего общего знания, не имея доступа к документации проекта.\n\n9. Сравни ответы визуально. Покажи на видео (или в тексте) оба ответа рядом:\n   - С RAG — конкретный, со ссылками на код и параметры проекта.\n   - Без RAG — общий, энциклопедичный, без привязки к проекту.\n   - Комментарий: RAG превращает generic-ответ LLM в ответ, основанный на реальной базе знаний.\n\n10. Прогони контрольные вопросы (Усиление). Включи RAG (/rag on) и по очереди задай 10 вопросов из таблицы ниже. Для каждого:\n    - Убедись, что ответ ссылается на реальные детали проекта (имена классов, файлы, параметры).\n    - Зафиксируй на видео 2–3 показательных примера.\n    - Затем выключи RAG (/rag off), задай тот же вопрос — покажи контраст.\n\n    Рекомендуемые вопросы для видео:\n    - «Сколько таблиц в БД Jarvis и какие?» — с RAG назовёт 5 таблиц с именами; без RAG — общие слова про SQLite.\n    - «Какие этапы включает State Machine в Jarvis?» — с RAG: PLANNING → EXECUTION → VALIDATION → DONE; без RAG — абстрактные этапы.\n    - «Какие модели LLM доступны через Cloud.ru API?» — с RAG: конкретные Qwen/MiniMax; без RAG — общий список популярных моделей.\n\n\nКонтрольные вопросы (Усиление)\n\nМини-набор из 10 вопросов для сравнительного тестирования RAG. Для каждого указано ожидание (что должен содержать ответ с RAG) и источники, в которых эта информация есть.\n\n| # | Вопрос | Ожидание (RAG-ответ) | Фактический ответ (RAG on) | Статус | Источники |\n|---|--------|----------------------|----------------------------|--------|-----------|\n| 1 | Какие этапы включает State Machine в Jarvis? | PLANNING → EXECUTION → VALIDATION → DONE (4 этапа) | ✅ PLANNING, EXECUTION, VALIDATION, DONE — названы и описаны верно | OK | week-03/day-13/README.md, agents/statemachine.py |\n| 2 | Какие MCP-серверы настроены в проекте? | composer, analyzer, ragger, nasa-api, space-monitor, grep-app | ⚠️ Названы только composer и analyzer. Остальные не найдены | частично | agents/mcp/servers.json, agents/mcpmanager.py |\n| 3 | Что такое инварианты в JarvisAgent? | Ограничения на ответ LLM, проверяются AgentValidator с retry | ✅ Инварианты описаны верно: жёсткие ограничения, примеры no-external-libs, no-numpy-pandas | OK | week-03/day-14/README.md, agents/invariants.py |\n| 4 | Сколько таблиц в БД Jarvis и какие? | 5 таблиц: sessions, messages, compressedsummaries, branches, stagemessages | ✅ 5 таблиц — все названы верно | OK | agents/jarvissession.py |\n| 5 | Какой транспорт используется для MCP-серверов? | Streamable HTTP (JSON-RPC 2.0) | ⚠️ HTTP JSON-RPC 2.0 — верно, но термин \"Streamable HTTP\" не употреблён | частично | agents/mcpmanager.py, docs/lessions/week-04.md |\n| 6 | Какие стратегии контекста поддерживает Jarvis? | slidingwindow, stickyfacts, branching | ✅ Все три стратегии названы верно с описанием | OK | agents/jarviscontext.py, week-02/day-10/README.md |\n| 7 | Какие модели LLM доступны через Cloud.ru API? | Qwen/Qwen3-30B-A3B, Qwen/Qwen3-Coder-Next, MiniMaxAI/MiniMax-M2.5 | ❌ YandexGPT, MPT-30B, Llama-3-8B, Llama-3-70B — устаревшие модели из week-01/day-05 | неверно | AGENTS.md, agents/jarvis.py |\n| 8 | Какие инструменты есть в NASA MCP сервере? | apod, marsphotos, neofeed | ✅ apod, marsphotos, neofeed — все три названы с параметрами | OK | mcpservers/nasamcp/server.py, week-04/day-17/README.md |\n| 9 | Что такое stickyfacts в Jarvis? | LLM извлекает ключевые факты, хранит как JSON, инжект в system prompt | ✅ stickyfacts описан верно: извлечение через LLM, словарь ключ-значение, добавление к последним сообщениям | OK | agents/jarviscontext.py, week-02/day-10/README.md |\n| 10 | Какие этапы включает пайплайн индексации ragger? | 5 шагов: загрузка → 2 стратегии чанкинга → эмбеддинги → FAISS | ✅ 5 этапов названы верно (загрузка, чанкинг, эмбеддинги, сохранение, сравнение) | OK | week-05/day-21/README.md, ragger/pipeline.py |\n\nИтог: 7/10 вопросов — OK, 2/10 — частично, 1/10 — неверно. Лучше всего RAG справляется с уникальными терминами (stickyfacts, apod/marsphotos/neofeed, State Machine). Хуже всего — с вопросами, где синонимичные чанки из других тем перетягивают релевантность (модели Cloud.ru → OpenRouter). MCP-серверы не найдены полностью, т.к. servers.json не попал в индексацию (.json не входит в список сканируемых расширений).\n\nВыводы по качеству RAG\n\nЧто работает хорошо:\n- Уникальные термины проекта (stickyfacts, apod, neofeed, State Machine) — embeddings стабильн",
     "strategy": "structural",
-    "token_count": 715
+    "token_count": 2000
   },
   {
     "faiss_id": 27,
     "chunk_id": "struct_00027",
+    "source": "week-05\\day-22\\README.md",
+    "title": "week-05/day-22",
+    "section": "week-05/day-22",
+    "text": "о находят нужные чанки\n- Вопросы про количество/структуру (таблицы БД, этапы) — чёткие ответы, т.к. информация локализована в одном файле\n- Инструменты с конкретными именами (apod/marsphotos/neofeed) — поиск точный\n\nЧто работает плохо:\n- Вопрос про модели Cloud.ru (#7) — во всех 3 вариантах формулировки RAG находил чанк week-01/day-05 про OpenRouter, а не AGENTS.md. Причина: эмбеддинг \"модели LLM доступны через Cloud.ru API\" оказался ближе к тексту про OpenRouter (много общих слов: модели, API, доступны), чем к скучному перечислению в AGENTS.md.\n- Вопрос про MCP-серверы (#2) — servers.json не проиндексирован (не .md/.py), полный список нигде в одном .md-файле не собран\n- \"Streamable HTTP\" (#5) — в чанках есть \"JSON-RPC 2.0 поверх Streamable HTTP\", но модель упомянула только HTTP JSON-RPC 2.0, опустив Streamable\n\nДополнительный тест: вопрос «Сколько последних сообщений остаётся при использовании стратегии slidingwindow?» — ✅ верный ответ (5 сообщений), чанк найден в agents/jarviscontext.py.\n\nВывод: RAG качественно улучшает ответы (7/10), но качество ретрива критично зависит от формулировки запроса и состава индекса. Для продакшена стоит добавить гибридный поиск (semantic + keyword) и документировать слабые места базы знаний.",
+    "strategy": "structural",
+    "token_count": 310
+  },
+  {
+    "faiss_id": 28,
+    "chunk_id": "struct_00028",
+    "source": "week-05\\day-23\\README.md",
+    "title": "week-05/day-23",
+    "section": "week-05/day-23",
+    "text": "Неделя 5 — День 23. Реранкинг и фильтрация\n\nЗадание\n\nДобавьте второй этап после поиска:\n- reranker или фильтр релевантности (порог similarity / отдельная модель / heuristic)\n\nНастройте:\n- порог отсечения нерелевантных результатов\n- топ-K до и после фильтрации\n\nСравните:\n- качество без фильтра/rewriting\n- качество с фильтром\n\nРезультат:\n- Улучшенный RAG: фильтрация/реранкинг + query rewrite + сравнение режимов\n\nВыполнено\n\nНовые файлы:\n- ragger/reranker.py — функции thresholdfilter() (отсечение по similarity score) и llmrerank() (батч-реранкинг через LLM, один запрос на все чанки с JSON-массивом оценок)\n\nИзменённые файлы:\n- ragger/search.py — рефакторинг: добавлен класс RagPipeline с методами run() (search → filter → rerank → slice) и comparemodes() (A/B-тест 3 режимов). Функция search() сохранена для обратной совместимости. loadindex → публичный алиас loadindex\n- agents/jarvissession.py — миграция БД: новые колонки ragtopkbefore, ragtopkafter, ragthreshold, ragmode. Метод saveragconfig(). Загрузка/сохранение полей во всех CRUD-методах\n- agents/jarvis.py — новые поля ragtopkbefore/after/threshold/mode в init. В chat() — вызов RagPipeline.run() вместо inline-поиска. В getstats() — блок конфигурации RAG\n- agents/jarviscommands.py — /rag расширена: config <key> <val>, compare <query>. Добавлены handleragconfig() и handleragcompare()\n- mcpservers/ragger/server.py — loadindex → loadindex\n\nКоманды:\n\n\nРежимы:\n- threshold — FAISS search → отсев по similarity score\n- rerank — FAISS search → LLM-реранкинг всех чанков\n- hybrid — FAISS search → threshold → LLM-реранкинг оставшихся",
+    "strategy": "structural",
+    "token_count": 398
+  },
+  {
+    "faiss_id": 29,
+    "chunk_id": "struct_00029",
+    "source": "AGENTS.md",
+    "title": "AGENTS.md",
+    "section": "AGENTS.md",
+    "text": "AI Advent Challenge — главный конфиг сессии\n\nО проекте\n\nЭто рабочий журнал курса-челленджа AI Advent Challenge #8, цель которого научиться быстро использовать инструменты ИИ.\nЗдесь находится код заданий, конспекты лекций и прогресс прохождения.\n\n\nСтруктура проекта\n\n\n\nРабочий процесс выполнения задания\n\n- При получении нового задания я буду создавать файл week-xx -> day-xx -> README.md, в котором пропишу суть задания.\n- Я попрошу тебя выполнить задание дня X.\n- Сначала вызови @task-initializer — он подготовит контекст.\n- Если доработка касается агента — загрузи @backend-rules (skill), затем правь agents/.\n- Если доработка касается интерфейса — загрузи @webui-rules (skill), затем правь webui/.\n- Сделай минимальную проверку: запусти python ./webui/app.py, протестируй через браузер (http://127.0.0.1:5000) или curl.\n- Запиши в README дня: какие файлы и что менял (кратко).\n- Вызови @scenario-writer.\n- Я прогоню сценарий и пришлю результаты.\n- Когда пришлю — вызови @results-analyzer. Раздел \"Задание\" не редактируй!\n- Вызови @docs-sync коротким промптом (например: «Синхронизируй документацию после дня N»). Не сужай задачу вручную — docs-sync сам пробежит все 6 шагов, включая актуализацию skills и database-schema.\n\n\nСтек и окружение\n\n- Операционная система: Windows 11, opencode работает на WSL.\n- Команды в opencode выполняются в WSL (bash), поэтому используй python3, ls, rm (Unix-style).\n  Windows-пути с обратными слешами (.\\webui\\app.py) НЕ работают — только прямой слеш: ./webui/app.py.\n  Пути с пробелами экранируй кавычками: \"C:/Users/...\".\n- Технологии: Python 3.12, Flask\n- API для кода заданий: Cloud.ru, сервис Foundation Models (оплата в рублях, OpenAI-совместимый доступ).\n  - Спецификация API: https://cloud.ru/docs/foundation-models/ug/topics/api-refspecs\n  - baseurl: https://foundation-models.api.cloud.ru/v1\n  - Auth: заголовок Authorization: Bearer <CLOUDRUSECRETKEY>\n  - Ключ: в .env как CLOUDRUSECRETKEY (НЕ коммитить, см. .gitignore).\n- ID моделей, которые можно использовать в запросах\n  - Qwen/Qwen3-30B-A3B - базовая модель (дёшево), для простых задач\n  - Qwen/Qwen3-Coder-Next - для задач средней сложности\n  - MiniMaxAI/MiniMax-M2.5 - для тяжёлых задач\n  - openai/text-embedding-3-small - для эмбеддингов\n\n\nСтиль кода\n\n- Все публичные классы, методы и функции документируй docstring (однострочным или многострочным). Исключение — тривиальные геттеры/сеттеры в одну строку.\n- Пример:\n  \n- Внутренние/приватные методы () — docstring по необходимости, если логика неочевидна.\n\n\nGit / безопасность\n\n- Ничего не пушить в интернет без явного разрешения.\n- Удалённый репозиторий создаёт пользователь сам.\n- .env, .key и секреты — никогда не коммитить.\n\n\nКак общаться со мной (соблюдать всегда)\n\n- Честно и прямо. Без филлеров и воды.\n- Никогда не врать и не выдумывать факты. Конкретные данные перепроверять (доки, версии, имена моделей).\n- Если в чём-то не уверен — сказать прямо «не уверен», а не угадывать.\n- Не поддакивать. Если я ошибаюсь или делаю неразумно — поправить честно.\n- Caveman-режим активен → отвечай терсно, но вся техническая суть сохраняется.",
+    "strategy": "structural",
+    "token_count": 773
+  },
+  {
+    "faiss_id": 30,
+    "chunk_id": "struct_00030",
     "source": "agents\\invariants.py",
     "title": "invariants",
     "section": "invariants",
@@ -280,8 +310,8 @@
     "token_count": 98
   },
   {
-    "faiss_id": 28,
-    "chunk_id": "struct_00028",
+    "faiss_id": 31,
+    "chunk_id": "struct_00031",
     "source": "agents\\jarvis.py",
     "title": "jarvis",
     "section": "jarvis",
@@ -290,18 +320,18 @@
     "token_count": 190
   },
   {
-    "faiss_id": 29,
-    "chunk_id": "struct_00029",
+    "faiss_id": 32,
+    "chunk_id": "struct_00032",
     "source": "agents\\jarvis_commands.py",
     "title": "jarvis_commands",
     "section": "jarvis_commands",
-    "text": "Mixin-класс для обработки команд (/help, /stats, /session и т.д.).",
+    "text": "Mixin-класс для обработки команд (/help, /stats, /session и т.д.).\nОбрабатывает /rag config <key> <val>.\nПрогоняет запрос во всех режимах RAG и выводит сравнение.",
     "strategy": "structural",
-    "token_count": 16
+    "token_count": 40
   },
   {
-    "faiss_id": 30,
-    "chunk_id": "struct_00030",
+    "faiss_id": 33,
+    "chunk_id": "struct_00033",
     "source": "agents\\jarvis_compression.py",
     "title": "jarvis_compression",
     "section": "jarvis_compression",
@@ -310,8 +340,8 @@
     "token_count": 9
   },
   {
-    "faiss_id": 31,
-    "chunk_id": "struct_00031",
+    "faiss_id": 34,
+    "chunk_id": "struct_00034",
     "source": "agents\\jarvis_context.py",
     "title": "jarvis_context",
     "section": "jarvis_context",
@@ -320,8 +350,8 @@
     "token_count": 22
   },
   {
-    "faiss_id": 32,
-    "chunk_id": "struct_00032",
+    "faiss_id": 35,
+    "chunk_id": "struct_00035",
     "source": "agents\\jarvis_memory.py",
     "title": "jarvis_memory",
     "section": "jarvis_memory",
@@ -330,18 +360,18 @@
     "token_count": 30
   },
   {
-    "faiss_id": 33,
-    "chunk_id": "struct_00033",
+    "faiss_id": 36,
+    "chunk_id": "struct_00036",
     "source": "agents\\jarvis_session.py",
     "title": "jarvis_session",
     "section": "jarvis_session",
-    "text": "Mixin-класс для управления сессиями диалога и БД.\nCREATE TABLE IF NOT EXISTS sessions (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    name TEXT NOT NULL,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    prompt_tokens INTEGER DEFAULT 0,\n                    completion_tokens INTEGER DEFAULT 0,\n                    total_tokens INTEGER DEFAULT 0\n                )\nCREATE TABLE IF NOT EXISTS messages (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    role TEXT NOT NULL,\n                    content TEXT NOT NULL,\n                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS compressed_summaries (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    content TEXT NOT NULL,\n                    source_count INTEGER DEFAULT 0,\n                    tokens_before INTEGER DEFAULT 0,\n                    tokens_after INTEGER DEFAULT 0,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS branches (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    name TEXT NOT NULL,\n                    parent_branch_id INTEGER DEFAULT 0,\n                    checkpoint_message_index INTEGER DEFAULT 0,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS stage_messages (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    stage TEXT NOT NULL,\n                    role TEXT NOT NULL,\n                    content TEXT NOT NULL,\n                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nDELETE FROM messages WHERE id NOT IN (\n                    SELECT id FROM messages\n                    WHERE session_id = ?\n                    ORDER BY timestamp DESC\n                    LIMIT ?\n                ) AND session_id = ?",
+    "text": "Mixin-класс для управления сессиями диалога и БД.\nCREATE TABLE IF NOT EXISTS sessions (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    name TEXT NOT NULL,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    prompt_tokens INTEGER DEFAULT 0,\n                    completion_tokens INTEGER DEFAULT 0,\n                    total_tokens INTEGER DEFAULT 0\n                )\nCREATE TABLE IF NOT EXISTS messages (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    role TEXT NOT NULL,\n                    content TEXT NOT NULL,\n                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS compressed_summaries (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    content TEXT NOT NULL,\n                    source_count INTEGER DEFAULT 0,\n                    tokens_before INTEGER DEFAULT 0,\n                    tokens_after INTEGER DEFAULT 0,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS branches (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    name TEXT NOT NULL,\n                    parent_branch_id INTEGER DEFAULT 0,\n                    checkpoint_message_index INTEGER DEFAULT 0,\n                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nCREATE TABLE IF NOT EXISTS stage_messages (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    session_id INTEGER NOT NULL,\n                    stage TEXT NOT NULL,\n                    role TEXT NOT NULL,\n                    content TEXT NOT NULL,\n                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n                    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE\n                )\nDELETE FROM messages WHERE id NOT IN (\n                    SELECT id FROM messages\n                    WHERE session_id = ?\n                    ORDER BY timestamp DESC\n                    LIMIT ?\n                ) AND session_id = ?\nСохраняет флаг RAG-режима в БД.\nСохраняет параметры RAG-пайплайна в БД.",
     "strategy": "structural",
-    "token_count": 648
+    "token_count": 666
   },
   {
-    "faiss_id": 34,
-    "chunk_id": "struct_00034",
+    "faiss_id": 37,
+    "chunk_id": "struct_00037",
     "source": "agents\\mcp_manager.py",
     "title": "mcp_manager",
     "section": "mcp_manager",
@@ -350,8 +380,8 @@
     "token_count": 477
   },
   {
-    "faiss_id": 35,
-    "chunk_id": "struct_00035",
+    "faiss_id": 38,
+    "chunk_id": "struct_00038",
     "source": "agents\\state_machine.py",
     "title": "state_machine",
     "section": "state_machine",

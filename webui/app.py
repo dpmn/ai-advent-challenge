@@ -11,9 +11,9 @@ from agents.jarvis import JarvisAgent
 app = Flask(__name__)
 
 DEFAULT_MODELS = [
-    "Qwen/Qwen3-30B-A3B",
     "Qwen/Qwen3-Coder-Next",
     "MiniMaxAI/MiniMax-M2.5",
+    "Qwen/Qwen3.5-397B-A17B",
 ]
 AVAILABLE_MODELS = json.loads(os.getenv("AVAILABLE_MODELS", json.dumps(DEFAULT_MODELS)))
 
@@ -247,4 +247,4 @@ def mcp_disconnect(name):
 
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
-    app.run(debug=debug, threaded=False)
+    app.run(debug=debug, threaded=True)

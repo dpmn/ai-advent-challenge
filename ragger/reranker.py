@@ -14,7 +14,7 @@ def llm_rerank(
     query: str,
     chunks: list[dict],
     api_key: str,
-    model: str = "Qwen/Qwen3-30B-A3B",
+    model: str = "Qwen/Qwen3-Coder-Next",
     base_url: str = "https://foundation-models.api.cloud.ru/v1",
 ) -> list[dict]:
     """Реранкинг чанков через LLM: оценивает релевантность каждого чанка к запросу.

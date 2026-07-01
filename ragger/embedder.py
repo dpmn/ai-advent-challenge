@@ -12,7 +12,7 @@ BASE_URL = 'https://foundation-models.api.cloud.ru/v1'
 def get_embeddings(
     texts: list[str],
     api_key: str | None = None,
-    model: str = 'openai/text-embedding-3-small',
+    model: str = 'Qwen/Qwen3-Embedding-0.6B',
     batch_size: int = 20,
 ) -> np.ndarray:
     """Вызывает Cloud.ru /v1/embeddings, возвращает матрицу (N, dim)."""
