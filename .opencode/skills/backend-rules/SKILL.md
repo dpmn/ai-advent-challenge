@@ -14,7 +14,7 @@ metadata:
 
 ## Структура файлов
 
-- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` и выполняется `pipeline.run(user_input)` (search → filter → rerank → slice), результат вставляется как system-сообщение
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` (search → filter → rerank → slice), затем `generate_answer()` из `ragger/answer.py` формирует структурированный `RagAnswer` с цитатами и источниками; при `confidence=none` — инструкция "не знаю"
 - `agents/jarvis_memory.py` — Mixin: `TaskContext`, `Profile` (трёхуровневая память)
 - `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
@@ -38,6 +38,7 @@ metadata:
 - `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
 - `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
 - `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков. Класс `RagPipeline`: пайплайн search → threshold filter → LLM rerank → slice. Методы `run()` и `compare_modes()` (A/B-тест 3 режимов)
+- `ragger/answer.py` — генерация структурированного ответа RAG: `RagAnswer` dataclass (answer, sources, confidence), `generate_answer()` — форматирует чанки с doc-ID разметкой, вызывает LLM на JSON-ответ, робастный парсинг (4 попытки), fallback при пустых чанках (confidence="none")
 - `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
 - `ragger/reranker.py` — функции фильтрации и реранкинга: `threshold_filter()` (отсев по similarity score) и `llm_rerank()` (батч-реранкинг через LLM с JSON-массивом оценок)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
@@ -104,8 +105,9 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 - В `chat()` при `rag_enabled=True`:
    1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode)`
    2. Выполняется `pipeline.run(user_input)` — search → filter → rerank → slice
-   3. Результат форматируется как system-сообщение с текстом чанков
-   4. System-сообщение вставляется после основного system prompt, но перед memory-блоками
+   3. `generate_answer()` из `ragger/answer.py` вызывает LLM с doc-размеченными чанками, возвращает `RagAnswer` (answer, sources, confidence, quotes)
+   4. При `confidence="none"` — инструкция ответить "не знаю"; иначе — форматируется system-сообщение с ответом, источниками и цитатами
+   5. System-сообщение вставляется после основного system prompt, но перед memory-блоками
 - RAG и MCP независимы и могут работать одновременно
 - Три режима:
   - `threshold` — FAISS search → отсев по similarity score (`threshold_filter`)
