@@ -22,3 +22,5 @@
 | 4      | 20   | Оркестрация MCP (Agent Orchestration)  | done | [server.py](../mcp_servers/analyzer_mcp/server.py) / [test_orchestration.py](../week-04/day-20/test_orchestration.py) | https://disk.yandex.ru/i/xSsueAI9p2GJPA |
 | 5      | 21   | Индексация документов                  | done | [pipeline.py](../ragger/pipeline.py)    |https://disk.yandex.ru/i/NUeLH_RoDIc_4g |
 | 5      | 22   | Первый RAG-запрос — RAG-режим в JarvisAgent | done | [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) |https://disk.yandex.ru/i/e0quLTO58SJEGA |
+| 5      | 23   | Реранкинг и фильтрация | done | [reranker.py](../ragger/reranker.py), [search.py](../ragger/search.py), [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) | https://disk.yandex.ru/i/Ym6tsKfV3XaFpA |
+| 5      | 24   | TBD | todo | TBD | TBD |
