@@ -14,7 +14,7 @@ metadata:
 
 ## Структура файлов
 
-- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Также RAG-инжекция: при `rag_enabled=True` в `chat()` выполняется `ragger.search.search(user_input)` и результат вставляется как system-сообщение перед user message
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` и выполняется `pipeline.run(user_input)` (search → filter → rerank → slice), результат вставляется как system-сообщение
 - `agents/jarvis_memory.py` — Mixin: `TaskContext`, `Profile` (трёхуровневая память)
 - `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
@@ -37,8 +37,9 @@ metadata:
 - `ragger/chunking.py` — две стратегии чанкинга (fixed-size 1000 tok / structural по заголовкам)
 - `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
 - `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
-- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков
+- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков. Класс `RagPipeline`: пайплайн search → threshold filter → LLM rerank → slice. Методы `run()` и `compare_modes()` (A/B-тест 3 режимов)
 - `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
+- `ragger/reranker.py` — функции фильтрации и реранкинга: `threshold_filter()` (отсев по similarity score) и `llm_rerank()` (батч-реранкинг через LLM с JSON-массивом оценок)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
@@ -66,6 +67,10 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | mcp_enabled | INTEGER 0/1 | Флаг MCP включён/выключен |
 | mcp_config | TEXT JSON | Конфигурация MCP-серверов |
 | rag_enabled | INTEGER 0/1 | Флаг RAG-режима: при включении перед каждым запросом LLM инжектятся релевантные чанки из FAISS |
+| rag_top_k_before | INTEGER | Количество чанков до фильтрации |
+| rag_top_k_after | INTEGER | Количество чанков после фильтрации |
+| rag_threshold | REAL | Порог similarity score для threshold-фильтрации |
+| rag_mode | TEXT | Режим: `threshold`, `rerank`, `hybrid` |
 
 ### messages
 `session_id → sessions.id`, `role` (user/assistant/system/command), `content`, `timestamp`
@@ -94,12 +99,18 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 
 ### RAG-режим
 - Флаг `rag_enabled` хранится в сессии (колонка `sessions.rag_enabled`)
-- Команды: `/rag on`, `/rag off`, `/rag` (статус)
+- Параметры RAG: `rag_top_k_before` (до фильтрации), `rag_top_k_after` (после), `rag_threshold` (порог), `rag_mode` (режим)
+- Команды: `/rag [on|off|config|compare]`, `/rag` (статус)
 - В `chat()` при `rag_enabled=True`:
-  1. Выполняется `ragger.search.search(user_input, top_k=5, strategy='structural')`
-  2. Результат форматируется как system-сообщение с текстом чанков
-  3. System-сообщение вставляется после основного system prompt, но перед memory-блоками
+   1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode)`
+   2. Выполняется `pipeline.run(user_input)` — search → filter → rerank → slice
+   3. Результат форматируется как system-сообщение с текстом чанков
+   4. System-сообщение вставляется после основного system prompt, но перед memory-блоками
 - RAG и MCP независимы и могут работать одновременно
+- Три режима:
+  - `threshold` — FAISS search → отсев по similarity score (`threshold_filter`)
+  - `rerank` — FAISS search → LLM-реранкинг всех чанков (`llm_rerank`)
+  - `hybrid` — FAISS search → threshold → LLM-реранкинг оставшихся
 
 ### Создание новой сессии
 ```python
@@ -163,9 +174,11 @@ response = agent._call_api(messages)
 5. Повторный вызов API с результатами инструмента для получения финального ответа
 
 ### Команда `/rag` (в `_handle_command()`)
-- `/rag` — статус (вкл/выкл)
+- `/rag` — статус (вкл/выкл, параметры)
 - `/rag on` — включить RAG: при каждом запросе подгружаются релевантные чанки из FAISS
 - `/rag off` — выключить RAG: модель отвечает из своего общего знания
+- `/rag config <key> <val>` — настройка параметров: `threshold` (0.0–1.0), `top_k_before`, `top_k_after`, `mode` (threshold/rerank/hybrid)
+- `/rag compare <query>` — A/B-тест 3 режимов: прогоняет запрос через threshold/rerank/hybrid и показывает сравнительную статистику
 
 ### Команды `/mcp` (в `_handle_command()`)
 - `/mcp` — статус (вкл/выкл, список серверов, инструменты)

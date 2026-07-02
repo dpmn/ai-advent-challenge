@@ -43,7 +43,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             self,
             api_key: Optional[str] = None,
             base_url: str = "https://foundation-models.api.cloud.ru/v1",
-            model: str = "Qwen/Qwen3-30B-A3B",
+            model: str = "Qwen/Qwen3-Coder-Next",
             temperature: float = 0.6,
             max_tokens: int = 2500,
             system_prompt: str = "Ты — полезный AI-ассистент.",
@@ -156,6 +156,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
         # RAG
         self.rag_enabled = bool(self.current_session.get("rag_enabled", False))
+        self.rag_top_k_before = self.current_session.get("rag_top_k_before", 10) or 10
+        self.rag_top_k_after = self.current_session.get("rag_top_k_after", 5) or 5
+        self.rag_threshold = float(self.current_session.get("rag_threshold", 0.2) or 0.2)
+        self.rag_mode = self.current_session.get("rag_mode", "hybrid") or "hybrid"
 
         self.total_tokens_used = 0
         self.total_requests = 0
@@ -196,7 +200,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         )
 
         try:
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
                 choice = result.get("choices", [{}])[0]
                 message = choice.get("message", {})
@@ -270,12 +274,19 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             else:
                 messages = self.get_raw_messages()
 
-        # RAG: поиск релевантных чанков и инжекция в контекст
+        # RAG: пайплайн поиска, фильтрации и реранкинга
         insert_idx = 1
         if self.rag_enabled:
             try:
-                from ragger.search import search as rag_search
-                rag_chunks = rag_search(user_input, top_k=5, strategy="structural")
+                from ragger.search import RagPipeline
+                pipeline = RagPipeline(
+                    api_key=self.api_key,
+                    top_k_before=self.rag_top_k_before,
+                    top_k_after=self.rag_top_k_after,
+                    threshold=self.rag_threshold,
+                    mode=self.rag_mode,
+                )
+                rag_chunks = pipeline.run(user_input)
                 if rag_chunks:
                     rag_lines = [
                         "Используй следующие документы из базы знаний для ответа "
@@ -531,5 +542,15 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     f"msgs {len([m for m in branch['messages'] if m['role'] != 'system'])}, "
                     f"tokens {branch['total_tokens']}{marker}"
                 )
+
+        if self.rag_enabled:
+            lines.extend([
+                "",
+                f"  📖 RAG: вкл",
+                f"     Режим: {self.rag_mode}",
+                f"     top_k_before: {self.rag_top_k_before}",
+                f"     top_k_after: {self.rag_top_k_after}",
+                f"     threshold: {self.rag_threshold}",
+            ])
 
         return "\n".join(lines)

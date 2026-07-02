@@ -19,7 +19,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 from mcp.server.fastmcp import FastMCP
-from ragger.search import search, _load_index
+from ragger.search import search, load_index
 
 mcp = FastMCP("ragger")
 
@@ -76,7 +76,7 @@ def list_sources() -> str:
 
     for strategy in ("structural", "fixed"):
         try:
-            _, metadata = _load_index(strategy)
+            _, metadata = load_index(strategy)
         except FileNotFoundError:
             lines.append(f"[{strategy}] Индекс не найден. Запусти ragger/pipeline.py.")
             continue

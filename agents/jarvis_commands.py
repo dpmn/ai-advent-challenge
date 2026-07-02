@@ -49,7 +49,10 @@ class CommandMixin:
                 "  /mcp add <name> <url> [transport] — добавить сервер\n"
                 "  /mcp remove <name> — удалить сервер\n"
                 "  /mcp tools    — список инструментов\n"
-                "  /rag [on|off] — вкл/выкл RAG-режим (авто-поиск чанков)"
+                "  /rag [on|off] — вкл/выкл RAG-режим (новые документы не подгружаются,\n"
+                "                но старые ссылки из истории остаются)\n"
+                "  /rag config <key> <val> — настройка: threshold, top_k_before, top_k_after, mode\n"
+                "  /rag compare <query> — сравнить режимы threshold/rerank/hybrid"
             )
 
         if cmd == "/stats":
@@ -447,16 +450,112 @@ class CommandMixin:
         if cmd == "/rag":
             if not arg:
                 status = "вкл" if self.rag_enabled else "выкл"
-                return f"📖 RAG-режим: {status}"
-            arg_lower = arg.strip().lower()
-            if arg_lower in ("on", "вкл", "1"):
+                mode = self.rag_mode if self.rag_enabled else "—"
+                return (
+                    f"📖 RAG-режим: {status}\n"
+                    f"  Режим:       {mode}\n"
+                    f"  top_k_before: {self.rag_top_k_before}\n"
+                    f"  top_k_after:  {self.rag_top_k_after}\n"
+                    f"  threshold:    {self.rag_threshold}\n"
+                    f"Команды: /rag on|off, /rag config <key> <val>, /rag compare <query>"
+                )
+
+            parts = arg.strip().split(maxsplit=2)
+            sub = parts[0].lower()
+
+            if sub in ("on", "вкл", "1"):
                 self.rag_enabled = True
                 self._save_rag_state()
                 return "✅ RAG-режим включён. Контекст будет дополняться поиском по базе знаний."
-            if arg_lower in ("off", "выкл", "0"):
+
+            if sub in ("off", "выкл", "0"):
                 self.rag_enabled = False
                 self._save_rag_state()
-                return "✅ RAG-режим выключен."
-            return "❌ Используйте: /rag [on|off]"
+                return ("✅ RAG-режим выключен. Новые документы не подгружаются, "
+                        "но уже использованные в истории диалога могут влиять на ответы.")
+
+            if sub == "config" and len(parts) >= 3:
+                key = parts[1].lower()
+                val = parts[2]
+                return self._handle_rag_config(key, val)
+
+            if sub == "compare" and len(parts) >= 2:
+                query = arg[8:].strip()
+                return self._handle_rag_compare(query)
+
+            if sub == "compare":
+                return "❌ Укажите запрос: /rag compare <query>"
+
+            return "❌ Используйте: /rag [on|off], /rag config <key> <val>, /rag compare <query>"
 
         return f"❌ Неизвестная команда: {cmd}. Используйте /help для списка команд."
+
+    # ── RAG helpers ────────────────────────────────────────────
+
+    def _handle_rag_config(self, key: str, val: str) -> str:
+        """Обрабатывает /rag config <key> <val>."""
+        valid_keys = {
+            "threshold": (float, lambda v: 0.0 <= v <= 1.0, "число от 0 до 1"),
+            "top_k_before": (int, lambda v: 1 <= v <= 100, "целое от 1 до 100"),
+            "top_k_after": (int, lambda v: 1 <= v <= 50, "целое от 1 до 50"),
+            "mode": (str, lambda v: v.lower() in ("threshold", "rerank", "hybrid"),
+                     "threshold / rerank / hybrid"),
+        }
+
+        if key not in valid_keys:
+            allowed = ", ".join(valid_keys)
+            return f"❌ Неизвестный ключ. Допустимые: {allowed}"
+
+        cast, validator, hint = valid_keys[key]
+
+        if cast == str:
+            parsed = val.lower()
+        else:
+            try:
+                parsed = cast(val)
+            except (ValueError, TypeError):
+                return f"❌ Ожидается {hint}"
+
+        if not validator(parsed):
+            return f"❌ Для {key} ожидается {hint}"
+
+        setattr(self, f"rag_{key}", parsed)
+        self._save_rag_config()
+        return f"✅ RAG {key} = {parsed}"
+
+    def _handle_rag_compare(self, query: str) -> str:
+        """Прогоняет запрос во всех режимах RAG и выводит сравнение."""
+        if not self.rag_enabled:
+            return "❌ Включите RAG: /rag on"
+
+        try:
+            from ragger.search import RagPipeline
+            pipeline = RagPipeline(
+                api_key=self.api_key,
+                top_k_before=self.rag_top_k_before,
+                top_k_after=self.rag_top_k_after,
+                threshold=self.rag_threshold,
+                mode="hybrid",
+            )
+            rows = pipeline.compare_modes(query)
+        except FileNotFoundError as e:
+            return f"❌ Индекс не найден. Запустите `python ragger/pipeline.py`.\n{e}"
+        except Exception as e:
+            return f"❌ Ошибка сравнения: {e}"
+
+        header = (
+            f"📊 Сравнение режимов RAG для запроса: \"{query}\"\n"
+            f"{'─' * 80}\n"
+            f"{'Режим':<12} {'До фильтра':<12} {'После фильтра':<14} "
+            f"{'Отс. threshold':<14} {'Отс. rerank':<12} {'Финально':<10} "
+            f"{'Ср. score':<10} {'Источники':<20}\n"
+            f"{'─' * 80}"
+        )
+        body_lines = []
+        for r in rows:
+            body_lines.append(
+                f"{r['mode']:<12} {r['before_filter']:<12} {r['after_filter']:<14} "
+                f"{r['threshold_cut']:<14} {r['rerank_cut']:<12} {r['final']:<10} "
+                f"{r['avg_score']:<10.4f} {r['sources']:<20}"
+            )
+        return header + "\n" + "\n".join(body_lines)

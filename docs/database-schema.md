@@ -40,6 +40,10 @@
 | `mcp_enabled` | INTEGER DEFAULT 0 | Флаг включённого MCP (0/1) |
 | `mcp_config` | TEXT DEFAULT '{}' | JSON-объект с конфигурацией MCP-серверов |
 | `rag_enabled` | INTEGER DEFAULT 0 | Флаг RAG-режима (0/1): при включении перед каждым запросом LLM инжектятся релевантные чанки из FAISS |
+| `rag_top_k_before` | INTEGER DEFAULT 10 | Количество чанков до фильтрации (FAISS search) |
+| `rag_top_k_after` | INTEGER DEFAULT 5 | Количество чанков после фильтрации/реранкинга |
+| `rag_threshold` | REAL DEFAULT 0.2 | Порог similarity score для threshold-фильтрации |
+| `rag_mode` | TEXT DEFAULT 'hybrid' | Режим обработки: `threshold`, `rerank`, `hybrid` |
 
 **Важные поля для архитектуры:**
 - Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`, `stage_messages.session_id`
