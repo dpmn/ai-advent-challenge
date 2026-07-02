@@ -12,7 +12,7 @@
 /
 ├─ agents/              # Ядро агента и его модули
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http)
-├─ ragger/              # Пайплайн индексации, поиска и реранкинга документов (chunking, эмбеддинги, FAISS, reranker)
+├─ ragger/              # Пайплайн индексации, поиска, реранкинга и генерации ответа с цитатами (chunking, эмбеддинги, FAISS, reranker, answer)
 ├─ webui/               # Flask + SPA (vanilla JS), Claude-inspired theme + light/dark toggle
 ├─ docs/                # Документация, конспекты лекций, прогресс
 ├─ week-NN/             # Задания по дням

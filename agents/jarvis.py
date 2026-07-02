@@ -274,7 +274,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             else:
                 messages = self.get_raw_messages()
 
-        # RAG: пайплайн поиска, фильтрации и реранкинга
+        # RAG: пайплайн поиска → генерация ответа с цитатами и источниками
         insert_idx = 1
         if self.rag_enabled:
             try:
@@ -287,23 +287,54 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     mode=self.rag_mode,
                 )
                 rag_chunks = pipeline.run(user_input)
-                if rag_chunks:
-                    rag_lines = [
-                        "Используй следующие документы из базы знаний для ответа "
-                        "на вопрос пользователя:"
-                    ]
-                    for i, r in enumerate(rag_chunks, 1):
-                        rag_lines.append(
-                            f"[{i}] Источник: {r['source']} / {r.get('section', '')}\n"
-                            f"    {r['text']}"
-                        )
-                    messages.insert(
-                        insert_idx,
-                        {"role": "system", "content": "\n\n---\n\n".join(rag_lines)}
+
+                from ragger.answer import generate_answer
+                rag_answer = generate_answer(
+                    query=user_input,
+                    chunks=rag_chunks,
+                    api_key=self.api_key,
+                    model=self.model,
+                    base_url=self.base_url,
+                )
+
+                if rag_answer.confidence == "none":
+                    rag_block = (
+                        "Результат поиска по базе знаний: информации недостаточно.\n"
+                        "Ответь пользователю, что ты не знаешь ответа, "
+                        "и попроси уточнить запрос."
                     )
-                    insert_idx += 1
+                else:
+                    citations_lines = []
+                    for s in rag_answer.sources:
+                        quote = s.get("quote", "").strip()
+                        if quote:
+                            citations_lines.append(
+                                f"- \"{quote}\" — {s['source']} [{s['chunk_id']}]"
+                            )
+                    citations_str = "\n".join(citations_lines) if citations_lines else "—"
+
+                    rag_block = (
+                        "Ниже приведён результат поиска по базе знаний. "
+                        "ИСПОЛЬЗУЙ ЕГО для ответа пользователю.\n\n"
+                        f"📝 Ответ:\n{rag_answer.answer}\n\n"
+                        f"📚 Источники:\n" + "\n".join(
+                            f"  - {s['source']} [{s['chunk_id']}] (раздел: {s.get('section', '—')})"
+                            for s in rag_answer.sources
+                        ) + "\n\n"
+                        f"💬 Цитаты:\n{citations_str}\n\n"
+                        "ВАЖНО: Сохрани в ответе все источники и цитаты. "
+                        "Если ответ начинается с 'Я не знаю' — передай это пользователю."
+                    )
+
+                messages.insert(
+                    insert_idx,
+                    {"role": "system", "content": rag_block}
+                )
+                insert_idx += 1
             except Exception as e:
                 print(f"[JARVIS][RAG] Error: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Инжектируем трёхуровневую модель памяти
         memory_blocks = []

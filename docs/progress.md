@@ -23,4 +23,5 @@
 | 5      | 21   | Индексация документов                  | done | [pipeline.py](../ragger/pipeline.py)    |https://disk.yandex.ru/i/NUeLH_RoDIc_4g |
 | 5      | 22   | Первый RAG-запрос — RAG-режим в JarvisAgent | done | [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) |https://disk.yandex.ru/i/e0quLTO58SJEGA |
 | 5      | 23   | Реранкинг и фильтрация | done | [reranker.py](../ragger/reranker.py), [search.py](../ragger/search.py), [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) | https://disk.yandex.ru/i/Ym6tsKfV3XaFpA |
-| 5      | 24   | TBD | todo | TBD | TBD |
+| 5      | 24   | Цитаты, источники и анти-галлюцинации | done | [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/RuEkglvk-Qa--A |
+| 6      | 25   | TBD | todo | TBD | TBD |
