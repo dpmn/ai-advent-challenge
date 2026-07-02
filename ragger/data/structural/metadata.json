@@ -285,13 +285,23 @@
     "source": "week-05\\day-23\\README.md",
     "title": "week-05/day-23",
     "section": "week-05/day-23",
-    "text": "Неделя 5 — День 23. Реранкинг и фильтрация\n\nЗадание\n\nДобавьте второй этап после поиска:\n- reranker или фильтр релевантности (порог similarity / отдельная модель / heuristic)\n\nНастройте:\n- порог отсечения нерелевантных результатов\n- топ-K до и после фильтрации\n\nСравните:\n- качество без фильтра/rewriting\n- качество с фильтром\n\nРезультат:\n- Улучшенный RAG: фильтрация/реранкинг + query rewrite + сравнение режимов\n\nВыполнено\n\nНовые файлы:\n- ragger/reranker.py — функции thresholdfilter() (отсечение по similarity score) и llmrerank() (батч-реранкинг через LLM, один запрос на все чанки с JSON-массивом оценок)\n\nИзменённые файлы:\n- ragger/search.py — рефакторинг: добавлен класс RagPipeline с методами run() (search → filter → rerank → slice) и comparemodes() (A/B-тест 3 режимов). Функция search() сохранена для обратной совместимости. loadindex → публичный алиас loadindex\n- agents/jarvissession.py — миграция БД: новые колонки ragtopkbefore, ragtopkafter, ragthreshold, ragmode. Метод saveragconfig(). Загрузка/сохранение полей во всех CRUD-методах\n- agents/jarvis.py — новые поля ragtopkbefore/after/threshold/mode в init. В chat() — вызов RagPipeline.run() вместо inline-поиска. В getstats() — блок конфигурации RAG\n- agents/jarviscommands.py — /rag расширена: config <key> <val>, compare <query>. Добавлены handleragconfig() и handleragcompare()\n- mcpservers/ragger/server.py — loadindex → loadindex\n\nКоманды:\n\n\nРежимы:\n- threshold — FAISS search → отсев по similarity score\n- rerank — FAISS search → LLM-реранкинг всех чанков\n- hybrid — FAISS search → threshold → LLM-реранкинг оставшихся",
+    "text": "Неделя 5 — День 23. Реранкинг и фильтрация\n\nЗадание\n\nДобавьте второй этап после поиска:\n- reranker или фильтр релевантности (порог similarity / отдельная модель / heuristic)\n\nНастройте:\n- порог отсечения нерелевантных результатов\n- топ-K до и после фильтрации\n\nСравните:\n- качество без фильтра/rewriting\n- качество с фильтром\n\nРезультат:\n- Улучшенный RAG: фильтрация/реранкинг + query rewrite + сравнение режимов\n\nВыполнено\n\nНовые файлы:\n- ragger/reranker.py — функции thresholdfilter() (отсечение по similarity score) и llmrerank() (батч-реранкинг через LLM, один запрос на все чанки с JSON-массивом оценок)\n\nИзменённые файлы:\n- ragger/search.py — рефакторинг: добавлен класс RagPipeline с методами run() (search → filter → rerank → slice) и comparemodes() (A/B-тест 3 режимов). Функция search() сохранена для обратной совместимости. loadindex → публичный алиас loadindex\n- agents/jarvissession.py — миграция БД: новые колонки ragtopkbefore, ragtopkafter, ragthreshold, ragmode. Метод saveragconfig(). Загрузка/сохранение полей во всех CRUD-методах\n- agents/jarvis.py — новые поля ragtopkbefore/after/threshold/mode в init. В chat() — вызов RagPipeline.run() вместо inline-поиска. В getstats() — блок конфигурации RAG\n- agents/jarviscommands.py — /rag расширена: config <key> <val>, compare <query>. Добавлены handleragconfig() и handleragcompare()\n- mcpservers/ragger/server.py — loadindex → loadindex\n\nКоманды:\n\n\nРежимы:\n- threshold — FAISS search → отсев по similarity score\n- rerank — FAISS search → LLM-реранкинг всех чанков\n- hybrid — FAISS search → threshold → LLM-реранкинг оставшихся\n\nСценарий проверки\n\nКлючевой вопрос для сравнения: \n\n\nВопрос выбран потому, что:\n- в индексе есть все 9 файлов agents/.py — jarvis, commands, session, memory, context, compression, statemachine, invariants, mcpmanager\n- FAISS найдёт много чанков с разными score (от 0.2 до 0.4)\n- разные threshold и режимы дают разную полноту/глубину ответа — хорошо видно на видео\n\n1. Открой WebUI — http://127.0.0.1:5000\n   - Убедись, что интерфейс загрузился.\n\n2. Проверь статус и включи RAG\n   - /rag → статус (off, параметры по умолчанию)\n   - /rag on → подтверждение\n   - /rag → enabled: true\n\n3. Режим threshold, жёсткий порог (0.35)\n   - /rag config mode threshold\n   - /rag config threshold 0.35\n   - /rag config topkbefore 10\n   - /rag config topkafter 3\n   - Задай вопрос: Как устроен агент Jarvis: из каких модулей состоит и как они взаимодействуют?\n   - Ожидаем: ответ неполный — при threshold=0.35 большинство чанков отсекается (FAISS scores 0.2-0.4), в topkafter=3 попадает 1-2 модуля. Агент видит мало контекста.\n\n4. Режим threshold, мягкий порог (0.15)\n   - /rag config threshold 0.15\n   - Тот же вопрос\n   - Ожидаем: ответ полнее — через порог проходит больше чанков, упоминается 4-6 модулей. Видно, что снижение threshold расширяет контекст.\n\n5. Режим rerank (LLM переоценивает все чанки)\n   - /rag config mode rerank\n   - /rag config topkafter 3 (те же 3 чанка на выходе)\n   - Тот же вопрос\n   - Ожидаем: LLM сама выбирает 3 самых релевантных чанка из 10. Ответ может отличаться от threshold-режимов — LLM может выбрать чанк с низким FAISS-score (~0.2), но высоким семантическим соответствием. Качество ответа выше, но запрос к LLM дольше (~1-2 сек).\n\n6. Режим hybrid (threshold + rerank)\n   - /rag config mode hybrid\n   - /rag config threshold 0.15\n   - /rag config topkafter 5\n   - Тот же вопрос\n   - Ожидаем: лучший результат — threshold (0.15) убирает совсем нерелевантное, rerank дооценивает оставшиеся, topkafter=5 даёт максимум контекста. Ответ наиболее полный и точный, упомянуты почти все модули.\n\n7. Выключи RAG — контраст\n   - /rag off\n   - Тот же вопрос\n   - Ожидаем: ответ без документов — агент отвечает из своих знаний, менее детально или с оговорками. Наглядно видна разница с RAG-ответами.\n\nВыводы\n\nСравнение режимов\n- threshold 0.35 (жёсткий порог): Ответ перечислил 4 модуля (jarvis.py, mcpmanager.py, servers.json, webui/), взаимодействие описано обще — инициализация → запрос → команды → сохранение. Качество среднее: малая полнота, есть неточность (webui использует http.server вместо Flask). Порог 0.35 отсек бóльшую часть релевантных чанков (FAISS-scores 0.2–0.4).\n- threshold 0.15 (мягкий порог): Ответ качественнее — таблица из 5 модулей (jarvis, mcpmanager, servers.json, webui/app.py, webui/), детальное описание tool-calling loop, отмечены архитектурные принципы (stateful, no external libs, слоистый контекст). Снижение порога существенно расширило контекст.\n- rerank (LLM-переоценка, topkafter=3): Ответ отличный, несмотря на всего 3 выходных чанка. 8 модулей (jarvis, jarvissession, jarviscommands, jarviscontext, invariants, statemachine, mcpmanager, ragger/), полный lifecycle из 7 шагов, архитектурные принципы (синхронность, конфиг через JSON, изоляция MCP и RAG). LLM-реранкинг выбрал самые информативные чанки, отсеяв шум.\n- hybrid (threshold=0.15 + rerank, topkafter=5): Наилучший результат. 8 модулей с таблицей ключевых функций, полный lifecycle (7 шагов), раздел про инварианты и сохранение сессии, архитектурные принципы. Комбинация threshold + rerank дала максимальную полноту и точность.\n- RAG off (без документов): Ответ непригоден — LLM не знает реальную архитектуру проекта. Говорит про «вымышленного ИИ-ассистента из вселенной Marvel», предлагает гипотетическую архитектуру. Аналогично в другой сессии без RAG.\n\nЧто показало тестирование\n- Порог threshold напрямую влияет на полноту: 0.35 отсекает почти всё (FAISS-scores чанков 0.2–0.4), 0.15 пропускает достаточно для адекватного ответа. Значение по умолчанию (0.2) — разумный компромисс.\n- LLM-реранкинг эффективнее threshold-фильтрации: при одинаковом topkafter=3 rerank дал значительно более полный ответ (8 модулей против 4–5 у threshold). Реренкинг выбирает семантически лучшие чанки, а не просто с высоким FAISS-score.\n- Hybrid — лучший режим: threshold отсекает явный шум, rerank дооценивает оставшееся, topkafter=5 даёт максимум релевантного контекста. Логичная комбинация, которая себя оправдала.\n- Без RAG ответ бесполезен для вопросов о внутренней архитектуре проекта. Контраст разительный — от «Marvel Jarvis» до детального описания 8 модулей с таблицами и lifecycle.\n\nЗамечания\n- Неточность в threshold-режиме: агент утверждает, что webui использует http.server вместо Flask. Причина — чанк мог не содержать полной информации (обрезка). При threshold 0.35 в topkafter=3 мог попасть частичный чанк без указания Flask. С более низким порогом или rerank-режимом эта неточность исчезает.\n- Размер topkafter=3 узок для threshold: при жёстком пороге в 3 чанка помещается мало информации. Рекомендуется для threshold ставить topkafter=5 или больше.\n- Нет метрик времени: тестирование не замеряло latency каждого режима. Реренкинг добавляет 1–2 сек к ответу — это приемлемо, но для production стоит учитывать.\n- Нет теста на перекрёстных вопросах: проверка на одном вопросе показательна, но не гарантирует, что режимы работают так же стабильно на других типах запросов (фактологический, procedural, итп).\n\n\nЗаметки\n\nКак параметры влияют на результат\ntopkbefore (default: 10) — сколько чанков FAISS возвращает на первом этапе. Чем выше, тем больше сырого контекста попадает в фильтр/реранкер. Если слишком мал — хорошие чанки могут отсечься ещё до реранкинга.\nthreshold (default: 0.2) — порог similarity score от FAISS (cosine, 0..1). В режимах threshold и hybrid чанки с score < threshold отбрасываются. На нашем датасете FAISS выдаёт 0.23–0.35, поэтому:\n- 0.5 → отсечёт всё → LLM ответит без документов\n- 0.2 → пропускает почти всё\n- 0.3 → жёсткий фильтр, остаются только самые релевантные\ntopkafter (default: 5) — сколько чанков попадает в LLM после фильтрации/реранкинга. Действует как финальная обрезка во всех режимах. LLM-контекст ограничен, поэтому даже если после фильтра осталось 20 чанков — в промпт уйдёт только topkafter штук.",
     "strategy": "structural",
-    "token_count": 398
+    "token_count": 1960
   },
   {
     "faiss_id": 29,
     "chunk_id": "struct_00029",
+    "source": "week-05\\day-24\\README.md",
+    "title": "week-05/day-24",
+    "section": "week-05/day-24",
+    "text": "Неделя 5 — День 24. Цитаты, источники и анти-галлюцинации\n\nЗадание\n\nДоработайте RAG так, чтобы модель обязательно возвращала:\n- ответ\n- список источников (source + section/chunkid)\n- цитаты (фрагменты из найденных чанков)\n\nПроверьте на 10 вопросах:\n- есть ли источники в каждом ответе\n- есть ли цитаты в каждом ответе\n- совпадает ли смысл ответа с цитатами\n\nУсиление:\n- добавьте правило: если релевантность ниже порога — ассистент обязан сказать “не знаю” и попросить уточнение\n\nРезультат:\n- Ответы с обязательными источниками и цитатами + режим “не знаю” при слабом контексте\n\nРеализация\n\nНовый файл: ragger/answer.py\n- Модуль генерации структурированного ответа RAG с цитатами, источниками и анти-галлюцинациями\n- RagAnswer dataclass: query, answer, sources: list[dict], confidence: str\n- generateanswer() — форматирует чанки с doc ID-разметкой (<doc id=\"...\">), вызывает LLM с требованием вернуть JSON {answer, sources, confidence}\n- При пустых чанках → confidence=\"none\" (режим \"не знаю\")\n- При ошибке LLM → fallback c confidence=\"low\"\n- Робастный парсинг JSON: 4 попытки (прямой → ``json → {answer...} → любой {})\n\nМодифицирован: agents/jarvis.py (RAG-блок, ~стр. 277-306)\n- Вместо inline-промпта \"Используй следующие документы...\" теперь вызывается generateanswer()\n- Result injected as system message с готовым ответом, источниками и цитатами\n- Инструкция main LLM: сохранить источники и цитаты в финальном ответе\n- При confidence=\"none\" → инструкция сказать \"не знаю\"\n\nРезультаты тестирования (10 вопросов)\n\n| # | Вопрос | Ответ | Источники | Цитаты | Confidence |\n|---|--------|-------|-----------|--------|------------|\n| 1 | Что такое RAG? | ✅ 802 chars | ✅ 3 шт | ✅ | high |\n| 2 | Какие есть стратегии чанкинга? | ✅ 372 chars | ✅ 3 шт | ✅ | high |\n| 3 | Что такое FAISS? | ✅ 1113 chars | ✅ 6 шт | ✅ | high |\n| 4 | Как работает reranker? | ✅ 507 chars | ✅ 3 шт | ✅ | high |\n| 5 | Какой порог threshold по умолчанию? | ✅ 1367 chars | ✅ 7 шт | ✅ | high |\n| 6 | Что такое эмбеддинги? | ✅ 997 chars | ✅ 5 шт | ✅ | high |\n| 7 | Как работает State Machine в Jarvis? | ✅ 575 chars | ✅ 4 шт | ✅ | high |\n| 8 | Что делает /rag compare? | ✅ 712 chars | ✅ 3 шт | ✅ | high |\n| 9 | Как формируется chunkid? | ✅ \"Я не знаю\" | — | — | none ✅ |\n| 10 | Какие модели доступны для Cloud.ru? | ✅ 736 chars | ✅ 3 шт | ✅ | high |\n\nИтог: 10/10 — 9 ответов с источниками и цитатами, 1 корректный \"не знаю\" при недостатке контекста.\n\nСценарий проверки\n\n1. Отправь запрос: /rag → ожидается список подкоманд\n2. Отправь запрос: /rag on → RAG включён\n3. Вопрос из базы: Что такое RAG? → ответ с источниками (source + chunkid) и цитатами\n4. Вопрос из базы: Какие есть стратегии чанкинга? → ответ с источниками и цитатами\n5. Вопрос вне базы: Сколько лет Юрию Гагарину? → ответ \"Я не знаю\" без галлюцинаций\n6. Отправь запрос: /rag off → RAG выключен\n7. Тот же вопрос без RAG: Что такое RAG? → ответ без источников и цитат (из памяти модели)\n8. Отправь запрос: /rag on` → RAG включён обратно\n9. Финальный вопрос из базы: любой из списка → ответ с источниками и цитатами",
+    "strategy": "structural",
+    "token_count": 761
+  },
+  {
+    "faiss_id": 30,
+    "chunk_id": "struct_00030",
     "source": "AGENTS.md",
     "title": "AGENTS.md",
     "section": "AGENTS.md",
@@ -300,8 +310,8 @@
     "token_count": 773
   },
   {
-    "faiss_id": 30,
-    "chunk_id": "struct_00030",
+    "faiss_id": 31,
+    "chunk_id": "struct_00031",
     "source": "agents\\invariants.py",
     "title": "invariants",
     "section": "invariants",
@@ -310,8 +320,8 @@
     "token_count": 98
   },
   {
-    "faiss_id": 31,
-    "chunk_id": "struct_00031",
+    "faiss_id": 32,
+    "chunk_id": "struct_00032",
     "source": "agents\\jarvis.py",
     "title": "jarvis",
     "section": "jarvis",
@@ -320,8 +330,8 @@
     "token_count": 190
   },
   {
-    "faiss_id": 32,
-    "chunk_id": "struct_00032",
+    "faiss_id": 33,
+    "chunk_id": "struct_00033",
     "source": "agents\\jarvis_commands.py",
     "title": "jarvis_commands",
     "section": "jarvis_commands",
@@ -330,8 +340,8 @@
     "token_count": 40
   },
   {
-    "faiss_id": 33,
-    "chunk_id": "struct_00033",
+    "faiss_id": 34,
+    "chunk_id": "struct_00034",
     "source": "agents\\jarvis_compression.py",
     "title": "jarvis_compression",
     "section": "jarvis_compression",
@@ -340,8 +350,8 @@
     "token_count": 9
   },
   {
-    "faiss_id": 34,
-    "chunk_id": "struct_00034",
+    "faiss_id": 35,
+    "chunk_id": "struct_00035",
     "source": "agents\\jarvis_context.py",
     "title": "jarvis_context",
     "section": "jarvis_context",
@@ -350,8 +360,8 @@
     "token_count": 22
   },
   {
-    "faiss_id": 35,
-    "chunk_id": "struct_00035",
+    "faiss_id": 36,
+    "chunk_id": "struct_00036",
     "source": "agents\\jarvis_memory.py",
     "title": "jarvis_memory",
     "section": "jarvis_memory",
@@ -360,8 +370,8 @@
     "token_count": 30
   },
   {
-    "faiss_id": 36,
-    "chunk_id": "struct_00036",
+    "faiss_id": 37,
+    "chunk_id": "struct_00037",
     "source": "agents\\jarvis_session.py",
     "title": "jarvis_session",
     "section": "jarvis_session",
@@ -370,8 +380,8 @@
     "token_count": 666
   },
   {
-    "faiss_id": 37,
-    "chunk_id": "struct_00037",
+    "faiss_id": 38,
+    "chunk_id": "struct_00038",
     "source": "agents\\mcp_manager.py",
     "title": "mcp_manager",
     "section": "mcp_manager",
@@ -380,8 +390,8 @@
     "token_count": 477
   },
   {
-    "faiss_id": 38,
-    "chunk_id": "struct_00038",
+    "faiss_id": 39,
+    "chunk_id": "struct_00039",
     "source": "agents\\state_machine.py",
     "title": "state_machine",
     "section": "state_machine",
