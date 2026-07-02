@@ -49,7 +49,8 @@ class CommandMixin:
                 "  /mcp add <name> <url> [transport] — добавить сервер\n"
                 "  /mcp remove <name> — удалить сервер\n"
                 "  /mcp tools    — список инструментов\n"
-                "  /rag [on|off] — вкл/выкл RAG-режим\n"
+                "  /rag [on|off] — вкл/выкл RAG-режим (новые документы не подгружаются,\n"
+                "                но старые ссылки из истории остаются)\n"
                 "  /rag config <key> <val> — настройка: threshold, top_k_before, top_k_after, mode\n"
                 "  /rag compare <query> — сравнить режимы threshold/rerank/hybrid"
             )
@@ -470,7 +471,8 @@ class CommandMixin:
             if sub in ("off", "выкл", "0"):
                 self.rag_enabled = False
                 self._save_rag_state()
-                return "✅ RAG-режим выключен."
+                return ("✅ RAG-режим выключен. Новые документы не подгружаются, "
+                        "но уже использованные в истории диалога могут влиять на ответы.")
 
             if sub == "config" and len(parts) >= 3:
                 key = parts[1].lower()
