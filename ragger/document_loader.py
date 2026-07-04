@@ -1,3 +1,5 @@
+"""Загрузка документов проекта: .md из docs/lessions и week-*/, docstring-и из agents/*.py, полный код из ragger/*.py."""
+
 import os
 import re
 from dataclasses import dataclass
@@ -84,6 +86,19 @@ def load_documents(project_root: str | None = None) -> list[Document]:
                     docs.append(Document(
                         source=os.path.relpath(path, project_root),
                         title=fname.replace('.py', ''),
+                        text=text,
+                    ))
+
+    ragger_dir = os.path.join(project_root, 'ragger')
+    if os.path.isdir(ragger_dir):
+        for fname in sorted(os.listdir(ragger_dir)):
+            if fname.endswith('.py') and fname != '__init__.py':
+                path = os.path.join(ragger_dir, fname)
+                text = _extract_docstrings(Path(path).read_text(encoding='utf-8'))
+                if text.strip():
+                    docs.append(Document(
+                        source=os.path.relpath(path, project_root),
+                        title=f'ragger/{fname.replace(".py", "")}',
                         text=text,
                     ))
 

@@ -1,4 +1,4 @@
-"""Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом."""
+"""Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом. Режимы: threshold, rerank, hybrid."""
 
 import json
 import sys
@@ -51,12 +51,12 @@ def search(
     top_k: int = 5,
     strategy: str = "structural",
 ) -> list[dict]:
-    """Семантический поиск по проиндексированным документам проекта.
+    """Семантический поиск по FAISS-индексу. Запрос → эмбеддинг (Cloud.ru) → FAISS search → ранжированные чанки.
 
     Args:
-        query: поисковый запрос.
+        query: поисковый запрос (русский или английский).
         top_k: количество возвращаемых чанков.
-        strategy: "structural" (по разделам) или "fixed" (фиксированный размер).
+        strategy: "structural" (по разделам документа) или "fixed" (фиксированный размер).
 
     Returns:
         Список чанков с полями chunk_id, source, title, section, text, score, token_count.
@@ -101,7 +101,7 @@ class RagPipeline:
     top_k_after: int = 5
     threshold: float = 0.2
     mode: str = "hybrid"
-    rerank_model: str = "Qwen/Qwen3-Coder-Next"
+    rerank_model: str = "Qwen/Qwen3-30B-A3B"
     base_url: str = "https://foundation-models.api.cloud.ru/v1"
     strategy: str = "structural"
 
@@ -135,7 +135,10 @@ class RagPipeline:
             chunks = threshold_filter(chunks, self.threshold)
             stats["threshold_cut"] = before - len(chunks)
             if chunks:
-                chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+                try:
+                    chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+                except Exception as e:
+                    print(f"[RAGPIPELINE] llm_rerank failed, using threshold-filtered chunks: {e}")
 
         stats["after_filter"] = len(chunks)
 

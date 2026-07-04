@@ -1,3 +1,5 @@
+"""Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json."""
+
 import json
 import os
 
@@ -13,7 +15,7 @@ def build_index(
     output_dir: str,
     strategy: str,
 ):
-    """Нормализует векторы, строит FAISS IndexFlatIP, сохраняет индекс + метаданные."""
+    """Строит FAISS-индекс: L2-нормализация → IndexFlatIP (inner product) → сохранение index.faiss + metadata.json."""
     os.makedirs(output_dir, exist_ok=True)
 
     faiss.normalize_L2(embeddings)

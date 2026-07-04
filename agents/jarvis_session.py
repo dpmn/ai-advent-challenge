@@ -269,10 +269,10 @@ class SessionMixin:
         self._load_invariants()
         self.mcp_enabled = False
         self.rag_enabled = False
-        self.rag_top_k_before = 10
-        self.rag_top_k_after = 5
+        self.rag_top_k_before = 15
+        self.rag_top_k_after = 8
         self.rag_threshold = 0.2
-        self.rag_mode = "hybrid"
+        self.rag_mode = "threshold"
         self.pipeline = None
         if sm_enabled:
             sm_validation = True
