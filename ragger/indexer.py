@@ -1,3 +1,10 @@
+"""Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json.
+
+Как работает индекс в ragger: FAISS-индекс строится через нормализацию L2
+и IndexFlatIP (inner product). Все чанки векторизуются эмбеддером,
+нормализуются и добавляются в плоский индекс. Результат сохраняется
+в index.faiss + metadata.json для быстрого поиска во время RAG-запроса."""
+
 import json
 import os
 
@@ -13,7 +20,7 @@ def build_index(
     output_dir: str,
     strategy: str,
 ):
-    """Нормализует векторы, строит FAISS IndexFlatIP, сохраняет индекс + метаданные."""
+    """Строит FAISS-индекс: L2-нормализация → IndexFlatIP (inner product) → сохранение index.faiss + metadata.json."""
     os.makedirs(output_dir, exist_ok=True)
 
     faiss.normalize_L2(embeddings)

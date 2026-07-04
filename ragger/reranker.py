@@ -1,4 +1,4 @@
-"""Функции фильтрации и реранкинга для RAG-пайплайна."""
+"""Функции фильтрации (threshold_filter) и LLM-реранкинга (llm_rerank) для RAG-пайплайна."""
 
 import json
 import re
@@ -82,8 +82,10 @@ def _parse_scores(content: str, expected: int) -> list[float]:
             return [float(s) for s in scores]
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
-    numbers = re.findall(r"[\d.]+", content)
-    if numbers:
-        parsed = [float(n) for n in numbers[:expected]]
-        return parsed
-    return [1.0] * expected
+    numbers = re.findall(r"\d+(?:\.\d+)?", content)
+    valid = [float(n) for n in numbers if n and n != '.']
+    if valid:
+        if len(valid) >= expected:
+            return valid[:expected]
+        return valid + [0.5] * (expected - len(valid))
+    return [0.5] * expected

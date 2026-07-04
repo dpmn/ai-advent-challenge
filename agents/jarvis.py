@@ -156,10 +156,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
         # RAG
         self.rag_enabled = bool(self.current_session.get("rag_enabled", False))
-        self.rag_top_k_before = self.current_session.get("rag_top_k_before", 10) or 10
-        self.rag_top_k_after = self.current_session.get("rag_top_k_after", 5) or 5
+        self.rag_top_k_before = self.current_session.get("rag_top_k_before", 15) or 15
+        self.rag_top_k_after = self.current_session.get("rag_top_k_after", 8) or 8
         self.rag_threshold = float(self.current_session.get("rag_threshold", 0.2) or 0.2)
-        self.rag_mode = self.current_session.get("rag_mode", "hybrid") or "hybrid"
+        self.rag_mode = self.current_session.get("rag_mode", "threshold") or "threshold"
 
         self.total_tokens_used = 0
         self.total_requests = 0
@@ -275,7 +275,8 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                 messages = self.get_raw_messages()
 
         # RAG: пайплайн поиска → генерация ответа с цитатами и источниками
-        insert_idx = 1
+        rag_override = None  # если установлен — используется как финальный ответ, API не вызывается
+        rag_answer = None
         if self.rag_enabled:
             try:
                 from ragger.search import RagPipeline
@@ -297,13 +298,11 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     base_url=self.base_url,
                 )
 
-                if rag_answer.confidence == "none":
-                    rag_block = (
-                        "Результат поиска по базе знаний: информации недостаточно.\n"
-                        "Ответь пользователю, что ты не знаешь ответа, "
-                        "и попроси уточнить запрос."
+                if rag_answer.confidence != "none":
+                    sources_str = "\n".join(
+                        f"  - {s['source']} [{s['chunk_id']}] (раздел: {s.get('section', '—')})"
+                        for s in rag_answer.sources
                     )
-                else:
                     citations_lines = []
                     for s in rag_answer.sources:
                         quote = s.get("quote", "").strip()
@@ -312,29 +311,26 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                                 f"- \"{quote}\" — {s['source']} [{s['chunk_id']}]"
                             )
                     citations_str = "\n".join(citations_lines) if citations_lines else "—"
-
-                    rag_block = (
-                        "Ниже приведён результат поиска по базе знаний. "
-                        "ИСПОЛЬЗУЙ ЕГО для ответа пользователю.\n\n"
-                        f"📝 Ответ:\n{rag_answer.answer}\n\n"
-                        f"📚 Источники:\n" + "\n".join(
-                            f"  - {s['source']} [{s['chunk_id']}] (раздел: {s.get('section', '—')})"
-                            for s in rag_answer.sources
-                        ) + "\n\n"
-                        f"💬 Цитаты:\n{citations_str}\n\n"
-                        "ВАЖНО: Сохрани в ответе все источники и цитаты. "
-                        "Если ответ начинается с 'Я не знаю' — передай это пользователю."
+                    rag_override = (
+                        f"{rag_answer.answer}\n\n"
+                        f"📚 **Источники:**\n{sources_str}\n\n"
+                        f"💬 **Цитаты:**\n{citations_str}"
                     )
-
-                messages.insert(
-                    insert_idx,
-                    {"role": "system", "content": rag_block}
-                )
-                insert_idx += 1
+                # confidence == "none" — не переопределяем ответ, оставляем rag_override = None.
+                # Код упадёт на основную LLM, у которой есть история диалога и память.
+                # Это чинит мета-вопросы ("О чём говорили?") и позволяет отвечать на OOD-запросы
+                # из общего знания (Гагарин) без галлюцинаций RAG.
             except Exception as e:
                 print(f"[JARVIS][RAG] Error: {e}")
                 import traceback
                 traceback.print_exc()
+
+        if rag_override:
+            assistant_message = rag_override
+            self.conversation_history.append({"role": "assistant", "content": assistant_message})
+            self._save_message("assistant", assistant_message)
+            self._update_task_state(user_input, assistant_message)
+            return assistant_message
 
         # Инжектируем трёхуровневую модель памяти
         memory_blocks = []
@@ -344,13 +340,14 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         task_block = self.task_context.to_prompt_block()
         if task_block:
             memory_blocks.append(task_block)
+
         if self.invariants_enabled and self._validator:
             inv_block = self._validator.get_prompt_blocks()
             if inv_block:
                 memory_blocks.append(inv_block)
         if memory_blocks:
             memory_text = "\n\n".join(memory_blocks)
-            messages.insert(insert_idx, {"role": "system", "content": memory_text})
+            messages.insert(1, {"role": "system", "content": memory_text})
             self._save_memory_state()
 
         # MCP: build tools list
@@ -486,11 +483,44 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             if self.context_strategy == "sliding_window":
                 self._apply_sliding_window()
 
+            # Автоматическое обновление task state (память задачи)
+            if user_input and assistant_message and not user_input.startswith("/"):
+                self._update_task_state(user_input, assistant_message)
+
             return assistant_message
         else:
             if self.conversation_history and self.conversation_history[-1]["role"] == "user":
                 self.conversation_history.pop()
             return f"❌ Ошибка: {response.get('error', 'Неизвестная ошибка')}\n{response.get('details', '')}"
+
+    # ─────────────── Память задачи (авто-extraction) ─────────────
+
+    def _update_task_state(self, user_input: str, assistant_message: str):
+        """Извлекает и обновляет task state через дешёвую LLM после каждого ответа.
+
+        Если тема сменилась относительно текущего goal — не вызывает extract_and_update,
+        а только обновляет last_focus. goal и progress сохраняются.
+        """
+        try:
+            # Проверка смены темы: если тема не связана с goal — не трогаем goal/progress
+            if self.task_context.get("goal"):
+                if self.task_context.detect_topic_change(user_input, self.api_key):
+                    print(f"[JARVIS] Topic changed — preserving goal, updating last_focus")
+                    self.task_context.set("last_focus", user_input[:100])
+                    self._save_memory_state()
+                    return
+
+            self.task_context.extract_and_update(
+                user_input=user_input,
+                assistant_response=assistant_message,
+                api_key=self.api_key,
+                model="Qwen/Qwen3-30B-A3B",
+                base_url=self.base_url,
+            )
+            self._save_memory_state()
+            print(f"[JARVIS] Task state updated: {self.task_context.to_dict()}")
+        except Exception as e:
+            print(f"[JARVIS] Task state extraction error: {e}")
 
     # ─────────────── Статистика ───────────────────────────────────
 

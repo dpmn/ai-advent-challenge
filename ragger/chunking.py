@@ -1,3 +1,5 @@
+"""Стратегии чанкинга: fixed-size (фиксированный размер с перекрытием) и structural (по заголовкам Markdown)."""
+
 import re
 from dataclasses import dataclass
 
@@ -22,7 +24,7 @@ def chunk_fixed_size(
     chunk_size: int = 1000,
     overlap: int = 100,
 ) -> list[Chunk]:
-    """Фиксированный размер чанка + overlap."""
+    """Фиксированный размер чанка + overlap. Каждый чанк — fragment текста фиксированной длины (chunk_size токенов) с перекрытием (overlap), чтобы не потерять смысл на границах."""
     chunks: list[Chunk] = []
     idx = 0
     char_size = chunk_size * 4
@@ -57,7 +59,7 @@ def chunk_structural(
     docs: list,
     max_tokens: int = 2000,
 ) -> list[Chunk]:
-    """Чанкинг по заголовкам Markdown. Без заголовков — весь документ целиком."""
+    """Чанкинг по заголовкам Markdown (##, ###). Текст делится на секции по заголовкам. Если заголовков нет — весь документ целиком. Если секция превышает max_tokens — дополнительно режется на подчанки."""
     chunks: list[Chunk] = []
     idx = 0
 

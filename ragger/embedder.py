@@ -1,3 +1,11 @@
+"""Генерация эмбеддингов через Cloud.ru API.
+
+Модель по умолчанию: openai/text-embedding-3-small (1536-dim).
+Можно переключить на Qwen/Qwen3-Embedding-0.6B через параметр model.
+
+get_embeddings() принимает список текстов, возвращает numpy array векторов.
+Используется в pipeline.py для индексации и в search.py для поискового запроса."""
+
 import os
 
 import httpx
@@ -12,7 +20,7 @@ BASE_URL = 'https://foundation-models.api.cloud.ru/v1'
 def get_embeddings(
     texts: list[str],
     api_key: str | None = None,
-    model: str = 'Qwen/Qwen3-Embedding-0.6B',
+    model: str = 'openai/text-embedding-3-small',
     batch_size: int = 20,
 ) -> np.ndarray:
     """Вызывает Cloud.ru /v1/embeddings, возвращает матрицу (N, dim)."""

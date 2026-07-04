@@ -1,3 +1,4 @@
+import json
 from typing import Dict, Any
 from pathlib import Path
 
@@ -7,6 +8,14 @@ _PROFILES_DIR = Path(__file__).parent.resolve() / "memory" / "profiles"
 
 class TaskContext:
     """Рабочая память (Working Memory) — данные текущей задачи."""
+
+    TASK_STATE_KEYS = {
+        "goal": "цель диалога",
+        "constraints": "ограничения",
+        "terms": "уточнённые термины",
+        "last_focus": "последняя тема",
+        "progress": "что сделано / что осталось",
+    }
 
     def __init__(self):
         self._data: Dict[str, Any] = {}
@@ -23,10 +32,191 @@ class TaskContext:
     def to_prompt_block(self) -> str:
         if not self._data:
             return ""
-        lines = ["\U0001f4cb Текущая задача (TaskContext):"]
+        lines = ["📋 Текущая задача (TaskContext):"]
         for k, v in self._data.items():
-            lines.append(f"  \u2022 {k}: {v}")
+            if isinstance(v, list):
+                items = "\n".join(f"    - {i}" for i in v)
+                lines.append(f"  • {k}:\n{items}")
+            elif isinstance(v, dict):
+                items = "\n".join(f"    - {sk}: {sv}" for sk, sv in v.items())
+                lines.append(f"  • {k}:\n{items}")
+            else:
+                lines.append(f"  • {k}: {v}")
         return "\n".join(lines)
+
+    def detect_topic_change(
+        self,
+        user_input: str,
+        api_key: str,
+        model: str = "Qwen/Qwen3-30B-A3B",
+        base_url: str = "https://foundation-models.api.cloud.ru/v1",
+    ) -> bool:
+        """Проверяет, сменилась ли тема диалога относительно текущего goal.
+
+        Вызывает дешёвую LLM, которая сравнивает запрос с goal.
+        Возвращает True, если тема не связана с goal.
+        """
+        goal = self._data.get("goal", "")
+        if not goal:
+            return False
+
+        import urllib.request
+
+        prompt = (
+            "Текущая цель диалога: {goal}\n\n"
+            "Новый запрос пользователя: {query}\n\n"
+            "Связан ли новый запрос с текущей целью? "
+            "Отвечай строго одним словом: 'yes' или 'no'."
+        ).format(goal=goal, query=user_input)
+
+        payload = {
+            "model": model,
+            "max_tokens": 8,
+            "temperature": 0.0,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/chat/completions",
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip().lower()
+                return "no" in content  # True если тема не связана
+        except Exception as e:
+            print(f"[TASK_EXTRACT] Topic detection error: {e}")
+            return False  # fallback — не сбрасываем
+
+    def _trim_progress(self):
+        """Ограничивает progress последними 3 этапами (по точке с новой строки)."""
+        progress = self._data.get("progress", "")
+        if not progress:
+            return
+        import re
+        steps = re.split(r'(?<=[.])\s+', progress.strip())
+        steps = [s for s in steps if s]
+        if len(steps) > 3:
+            self._data["progress"] = " ... ".join(steps[-3:])
+
+    def extract_and_update(
+        self,
+        user_input: str,
+        assistant_response: str,
+        api_key: str,
+        model: str = "Qwen/Qwen3-30B-A3B",
+        base_url: str = "https://foundation-models.api.cloud.ru/v1",
+    ) -> dict:
+        """Вызывает LLM для извлечения task state из последнего обмена, обновляет _data.
+
+        Не проверяет смену темы — это делает caller (_update_task_state в jarvis.py).
+        При смене темы extract_and_update не вызывается, goal сохраняется.
+
+        Args:
+            user_input: Последнее сообщение пользователя.
+            assistant_response: Последний ответ ассистента.
+            api_key: API-ключ Cloud.ru.
+            model: ID модели для извлечения (дешёвая).
+            base_url: Базовый URL API.
+
+        Returns:
+            Обновлённый _data (dict).
+        """
+        current = json.dumps(self._data, ensure_ascii=False, indent=2) if self._data else "пусто"
+
+        prompt = (
+            "Ты — анализатор диалога. Проанализируй последний обмен и обнови состояние задачи.\n\n"
+            "Текущее состояние задачи:\n"
+            f"{current}\n\n"
+            "Последнее сообщение пользователя:\n"
+            f"{user_input}\n\n"
+            "Последний ответ ассистента:\n"
+            f"{assistant_response}\n\n"
+            "Верни JSON с обновлённым состоянием задачи. "
+            "Поля:\n"
+            '  "goal" — цель диалога (строка)\n'
+            '  "constraints" — список ограничений (массив строк)\n'
+            '  "terms" — словарь уточнённых терминов (объект)\n'
+            '  "last_focus" — о чём последний обмен (строка)\n'
+            '  "progress" — что сделано / что осталось (строка)\n\n'
+            "Правила:\n"
+            "- Если информации для поля нет — используй пустую строку или пустой список/объект.\n"
+            "- Сохраняй предыдущие данные, если новая информация их не отменяет.\n"
+            "- Ответ верни СТРОГО в виде JSON без markdown-обёртки."
+        )
+
+        import urllib.request
+
+        payload = {
+            "model": model,
+            "max_tokens": 512,
+            "temperature": 0.1,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/chat/completions",
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except Exception as e:
+            print(f"[TASK_EXTRACT] LLM error: {e}")
+            return self._data
+
+        extracted = self._try_parse_json(content)
+        if extracted and isinstance(extracted, dict):
+            for key in self.TASK_STATE_KEYS:
+                if key in extracted and extracted[key]:
+                    # Защита progress: не сокращаем (LLM иногда перезаписывает а не дополняет)
+                    if key == "progress":
+                        old = self._data.get("progress", "")
+                        new = extracted[key]
+                        if old and len(new) < len(old) * 0.7:
+                            continue
+                    self._data[key] = extracted[key]
+        self._trim_progress()
+        return self._data
+
+    @staticmethod
+    def _try_parse_json(content: str) -> dict | None:
+        """Пытается извлечь JSON из ответа LLM."""
+        content = content.strip()
+        # прямой парсинг
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            pass
+        # ```json блок
+        import re
+        m = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", content, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+        # первый { }
+        m = re.search(r"(\{[\s\S]*\})", content, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group(1))
+            except json.JSONDecodeError:
+                pass
+        return None
 
     def to_dict(self) -> dict:
         return dict(self._data)

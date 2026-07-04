@@ -14,8 +14,8 @@ metadata:
 
 ## Структура файлов
 
-- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` (search → filter → rerank → slice), затем `generate_answer()` из `ragger/answer.py` формирует структурированный `RagAnswer` с цитатами и источниками; при `confidence=none` — инструкция "не знаю"
-- `agents/jarvis_memory.py` — Mixin: `TaskContext`, `Profile` (трёхуровневая память)
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` (search → filter → rerank → slice), затем `generate_answer()` из `ragger/answer.py` формирует структурированный `RagAnswer` с цитатами и источниками; при `confidence=none` — не переопределяет ответ (rag_override = None) → выполнение падает на основную LLM с историей диалога и памятью, что чинит мета-вопросы и OOD-запросы без галлюцинаций RAG
+- `agents/jarvis_memory.py` — Mixin: `TaskContext` (с методами `extract_and_update()`, `_detect_topic_change()`, `_trim_progress()`, `TASK_STATE_KEYS`), `Profile` (трёхуровневая память)
 - `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
 - `agents/jarvis_compression.py` — Mixin: `CompressionMixin` — сжатие истории, get_raw/compressed_messages
@@ -38,7 +38,7 @@ metadata:
 - `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
 - `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
 - `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков. Класс `RagPipeline`: пайплайн search → threshold filter → LLM rerank → slice. Методы `run()` и `compare_modes()` (A/B-тест 3 режимов)
-- `ragger/answer.py` — генерация структурированного ответа RAG: `RagAnswer` dataclass (answer, sources, confidence), `generate_answer()` — форматирует чанки с doc-ID разметкой, вызывает LLM на JSON-ответ, робастный парсинг (4 попытки), fallback при пустых чанках (confidence="none")
+- `ragger/answer.py` — генерация структурированного ответа RAG: `RagAnswer` dataclass (answer, sources, confidence), `generate_answer()` — pre-verification (`_verify_relevance()`) через дешёвую LLM (Qwen3-30B-A3B) находит прямые ответы среди чанков, затем форматирует чанки с doc-ID разметкой, вызывает LLM на JSON-ответ, робастный парсинг (4 попытки), fallback при пустых чанках или нерелевантности (confidence="none")
 - `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
 - `ragger/reranker.py` — функции фильтрации и реранкинга: `threshold_filter()` (отсев по similarity score) и `llm_rerank()` (батч-реранкинг через LLM с JSON-массивом оценок)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
@@ -68,10 +68,10 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | mcp_enabled | INTEGER 0/1 | Флаг MCP включён/выключен |
 | mcp_config | TEXT JSON | Конфигурация MCP-серверов |
 | rag_enabled | INTEGER 0/1 | Флаг RAG-режима: при включении перед каждым запросом LLM инжектятся релевантные чанки из FAISS |
-| rag_top_k_before | INTEGER | Количество чанков до фильтрации |
-| rag_top_k_after | INTEGER | Количество чанков после фильтрации |
-| rag_threshold | REAL | Порог similarity score для threshold-фильтрации |
-| rag_mode | TEXT | Режим: `threshold`, `rerank`, `hybrid` |
+| rag_top_k_before | INTEGER | Количество чанков до фильтрации (default 15) |
+| rag_top_k_after | INTEGER | Количество чанков после фильтрации (default 8) |
+| rag_threshold | REAL | Порог similarity score для threshold-фильтрации (default 0.2) |
+| rag_mode | TEXT | Режим: `threshold`, `rerank`, `hybrid` (default `threshold`) |
 
 ### messages
 `session_id → sessions.id`, `role` (user/assistant/system/command), `content`, `timestamp`
@@ -100,14 +100,15 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 
 ### RAG-режим
 - Флаг `rag_enabled` хранится в сессии (колонка `sessions.rag_enabled`)
-- Параметры RAG: `rag_top_k_before` (до фильтрации), `rag_top_k_after` (после), `rag_threshold` (порог), `rag_mode` (режим)
+- Параметры RAG: `rag_top_k_before` (до фильтрации, default 15), `rag_top_k_after` (после, default 8), `rag_threshold` (порог, default 0.2), `rag_mode` (режим, default `threshold`)
 - Команды: `/rag [on|off|config|compare]`, `/rag` (статус)
 - В `chat()` при `rag_enabled=True`:
-   1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode)`
-   2. Выполняется `pipeline.run(user_input)` — search → filter → rerank → slice
-   3. `generate_answer()` из `ragger/answer.py` вызывает LLM с doc-размеченными чанками, возвращает `RagAnswer` (answer, sources, confidence, quotes)
-   4. При `confidence="none"` — инструкция ответить "не знаю"; иначе — форматируется system-сообщение с ответом, источниками и цитатами
-   5. System-сообщение вставляется после основного system prompt, но перед memory-блоками
+    1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode)`
+    2. Выполняется `pipeline.run(user_input)` — search → filter → rerank → slice
+    3. `_verify_relevance()` (pre-verification) через дешёвую LLM проверяет, есть ли прямые ответы среди чанков; если нет — confidence="none"
+    4. `generate_answer()` из `ragger/answer.py` вызывает LLM с doc-размеченными чанками, возвращает `RagAnswer` (answer, sources, confidence, quotes)
+    5. При `confidence != "none"` — форматируется rag_override (ответ + источники + цитаты) и используется как финальный (без повторного вызова main LLM)
+    6. При `confidence="none"` — rag_override = None, выполнение падает на основную LLM с историей диалога и памятью (чинит мета-вопросы, OOD-запросы, общие знания — без галлюцинаций RAG)
 - RAG и MCP независимы и могут работать одновременно
 - Три режима:
   - `threshold` — FAISS search → отсев по similarity score (`threshold_filter`)
