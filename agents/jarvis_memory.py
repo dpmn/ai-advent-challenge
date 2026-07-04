@@ -44,7 +44,7 @@ class TaskContext:
                 lines.append(f"  • {k}: {v}")
         return "\n".join(lines)
 
-    def _detect_topic_change(
+    def detect_topic_change(
         self,
         user_input: str,
         api_key: str,
@@ -115,8 +115,8 @@ class TaskContext:
     ) -> dict:
         """Вызывает LLM для извлечения task state из последнего обмена, обновляет _data.
 
-        Перед извлечением проверяет, не сменилась ли тема диалога.
-        Если тема сменилась — сбрасывает goal, last_focus, progress.
+        Не проверяет смену темы — это делает caller (_update_task_state в jarvis.py).
+        При смене темы extract_and_update не вызывается, goal сохраняется.
 
         Args:
             user_input: Последнее сообщение пользователя.
@@ -128,13 +128,6 @@ class TaskContext:
         Returns:
             Обновлённый _data (dict).
         """
-        # Сброс при смене темы
-        if self._detect_topic_change(user_input, api_key, model, base_url):
-            print(f"[TASK_EXTRACT] Topic changed — resetting goal/last_focus/progress")
-            self.remove("goal")
-            self.remove("last_focus")
-            self.remove("progress")
-
         current = json.dumps(self._data, ensure_ascii=False, indent=2) if self._data else "пусто"
 
         prompt = (
@@ -189,6 +182,12 @@ class TaskContext:
         if extracted and isinstance(extracted, dict):
             for key in self.TASK_STATE_KEYS:
                 if key in extracted and extracted[key]:
+                    # Защита progress: не сокращаем (LLM иногда перезаписывает а не дополняет)
+                    if key == "progress":
+                        old = self._data.get("progress", "")
+                        new = extracted[key]
+                        if old and len(new) < len(old) * 0.7:
+                            continue
                     self._data[key] = extracted[key]
         self._trim_progress()
         return self._data

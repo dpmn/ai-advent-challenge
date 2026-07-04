@@ -496,8 +496,20 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
     # ─────────────── Память задачи (авто-extraction) ─────────────
 
     def _update_task_state(self, user_input: str, assistant_message: str):
-        """Извлекает и обновляет task state через дешёвую LLM после каждого ответа."""
+        """Извлекает и обновляет task state через дешёвую LLM после каждого ответа.
+
+        Если тема сменилась относительно текущего goal — не вызывает extract_and_update,
+        а только обновляет last_focus. goal и progress сохраняются.
+        """
         try:
+            # Проверка смены темы: если тема не связана с goal — не трогаем goal/progress
+            if self.task_context.get("goal"):
+                if self.task_context.detect_topic_change(user_input, self.api_key):
+                    print(f"[JARVIS] Topic changed — preserving goal, updating last_focus")
+                    self.task_context.set("last_focus", user_input[:100])
+                    self._save_memory_state()
+                    return
+
             self.task_context.extract_and_update(
                 user_input=user_input,
                 assistant_response=assistant_message,
