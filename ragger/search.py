@@ -1,4 +1,12 @@
-"""Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом. Режимы: threshold, rerank, hybrid."""
+"""Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом.
+
+RagPipeline — основной класс для RAG-поиска. Поддерживает три режима:
+- threshold: только фильтрация по similarity score
+- rerank: только LLM-реранкинг
+- hybrid: фильтрация + реранкинг
+
+Этапы пайплайна: FAISS search → threshold filter → LLM rerank → top-K slice.
+Можно настроить top_k_before, top_k_after, threshold через параметры конструктора."""
 
 import json
 import sys

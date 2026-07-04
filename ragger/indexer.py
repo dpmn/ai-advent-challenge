@@ -1,4 +1,9 @@
-"""Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json."""
+"""Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json.
+
+Как работает индекс в ragger: FAISS-индекс строится через нормализацию L2
+и IndexFlatIP (inner product). Все чанки векторизуются эмбеддером,
+нормализуются и добавляются в плоский индекс. Результат сохраняется
+в index.faiss + metadata.json для быстрого поиска во время RAG-запроса."""
 
 import json
 import os

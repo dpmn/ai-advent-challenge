@@ -654,10 +654,10 @@
     "chunk_id": "fixed_00065",
     "source": "agents/jarvis_memory.py",
     "title": "jarvis_memory",
-    "section": "pos_0-559",
-    "text": "Рабочая память (Working Memory) — данные текущей задачи.\nВызывает LLM для извлечения task state из последнего обмена, обновляет _data.\n\n        Args:\n            user_input: Последнее сообщение пользователя.\n            assistant_response: Последний ответ ассистента.\n            api_key: API-ключ Cloud.ru.\n            model: ID модели для извлечения (дешёвая).\n            base_url: Базовый URL API.\n\n        Returns:\n            Обновлённый _data (dict).\nПытается извлечь JSON из ответа LLM.\nДолговременная память (Long-term Memory) — профиль пользователя.",
+    "section": "pos_0-950",
+    "text": "Рабочая память (Working Memory) — данные текущей задачи.\nПроверяет, сменилась ли тема диалога относительно текущего goal.\n\n        Вызывает дешёвую LLM, которая сравнивает запрос с goal.\n        Возвращает True, если тема не связана с goal.\nОграничивает progress последними 3 этапами (по точке с новой строки).\nВызывает LLM для извлечения task state из последнего обмена, обновляет _data.\n\n        Перед извлечением проверяет, не сменилась ли тема диалога.\n        Если тема сменилась — сбрасывает goal, last_focus, progress.\n\n        Args:\n            user_input: Последнее сообщение пользователя.\n            assistant_response: Последний ответ ассистента.\n            api_key: API-ключ Cloud.ru.\n            model: ID модели для извлечения (дешёвая).\n            base_url: Базовый URL API.\n\n        Returns:\n            Обновлённый _data (dict).\nПытается извлечь JSON из ответа LLM.\nДолговременная память (Long-term Memory) — профиль пользователя.",
     "strategy": "fixed",
-    "token_count": 139
+    "token_count": 237
   },
   {
     "faiss_id": 66,
@@ -694,10 +694,10 @@
     "chunk_id": "fixed_00069",
     "source": "ragger/answer.py",
     "title": "ragger/answer",
-    "section": "pos_0-1545",
-    "text": "Генерация ответа RAG с цитатами, источниками, анти-галлюцинациями и confidence.\n\nФорсирует LLM возвращать структурированный JSON с полями:\n  - answer: текст ответа\n  - sources: список {source, chunk_id, section, quote}\n  - confidence: high|medium|low|none\nСтруктурированный ответ RAG с обязательными источниками и цитатами.\n\n    Attributes:\n        query: Исходный запрос пользователя.\n        answer: Текст ответа (может содержать \"не знаю\" при confidence=none).\n        sources: Список словарей {source, chunk_id, section, quote}.\n        confidence: Уровень уверенности (high|medium|low|none).\nГенерирует структурированный ответ на основе RAG-чанков.\n\n    Если чанки пусты — возвращает RagAnswer с confidence=\"none\"\n    (режим \"не знаю\"). Иначе вызывает LLM со строгим JSON-форматом,\n    парсит ответ и возвращает RagAnswer.\n\n    Args:\n        query: Запрос пользователя.\n        chunks: Список чанков от RagPipeline (поля chunk_id, source, section, text, score).\n        api_key: API-ключ Cloud.ru.\n        model: ID модели.\n        base_url: Базовый URL API.\n\n    Returns:\n        RagAnswer с заполненными answer, sources, confidence.\nФорматирует чанки с doc ID-разметкой для промпта.\nПарсит JSON-ответ от LLM с fallback-стратегией.\n\n    Пытается извлечь JSON разными паттернами, при полной неудаче\n    возвращает ответ как plain text с confidence=\"low\".\nИзвлекает JSON-объект из ответа LLM.\n\n    Пробует: прямой парсинг → поиск { } с \"answer\" → поиск ```json блоков.\nПриводит источники к единому формату {source, chunk_id, section, quote}.",
+    "section": "pos_0-1902",
+    "text": "Генерация ответа RAG с цитатами, источниками, анти-галлюцинациями и confidence.\n\nФорсирует LLM возвращать структурированный JSON с полями:\n  - answer: текст ответа\n  - sources: список {source, chunk_id, section, quote}\n  - confidence: high|medium|low|none\nСтруктурированный ответ RAG с обязательными источниками и цитатами.\n\n    Attributes:\n        query: Исходный запрос пользователя.\n        answer: Текст ответа (может содержать \"не знаю\" при confidence=none).\n        sources: Список словарей {source, chunk_id, section, quote}.\n        confidence: Уровень уверенности (high|medium|low|none).\nГенерирует структурированный ответ на основе RAG-чанков.\n\n    Перед генерацией выполняет pre-verification — проверяет через\n    дешёвую LLM, есть ли среди чанков информация, отвечающая на\n    запрос. Если нет — confidence=\"none\" без вызова основной модели.\n\n    Args:\n        query: Запрос пользователя.\n        chunks: Список чанков от RagPipeline (поля chunk_id, source, section, text, score).\n        api_key: API-ключ Cloud.ru.\n        model: ID модели для генерации ответа.\n        base_url: Базовый URL API.\n        verify_model: ID дешёвой модели для pre-verification.\n\n    Returns:\n        RagAnswer с заполненными answer, sources, confidence.\nПроверяет, есть ли среди чанков информация по теме запроса.\n\n    Вызов дешёвой LLM (Qwen3-30B-A3B), ответ — \"yes\"/\"no\".\n    \"no\" — только если ни один чанк не связан с темой запроса.\n    Даже частичное совпадение = \"yes\" (основная LLM разберётся).\nФорматирует чанки с doc ID-разметкой для промпта.\nПарсит JSON-ответ от LLM с fallback-стратегией.\n\n    Пытается извлечь JSON разными паттернами, при полной неудаче\n    возвращает ответ как plain text с confidence=\"low\".\nИзвлекает JSON-объект из ответа LLM.\n\n    Пробует: прямой парсинг → поиск { } с \"answer\" → поиск ```json блоков.\nПриводит источники к единому формату {source, chunk_id, section, quote}.",
     "strategy": "fixed",
-    "token_count": 386
+    "token_count": 475
   },
   {
     "faiss_id": 70,
@@ -724,20 +724,20 @@
     "chunk_id": "fixed_00072",
     "source": "ragger/embedder.py",
     "title": "ragger/embedder",
-    "section": "pos_0-148",
-    "text": "Генерация эмбеддингов через Cloud.ru API. По умолчанию openai/text-embedding-3-small.\nВызывает Cloud.ru /v1/embeddings, возвращает матрицу (N, dim).",
+    "section": "pos_0-394",
+    "text": "Генерация эмбеддингов через Cloud.ru API.\n\nМодель по умолчанию: openai/text-embedding-3-small (1536-dim).\nМожно переключить на Qwen/Qwen3-Embedding-0.6B через параметр model.\n\nget_embeddings() принимает список текстов, возвращает numpy array векторов.\nИспользуется в pipeline.py для индексации и в search.py для поискового запроса.\nВызывает Cloud.ru /v1/embeddings, возвращает матрицу (N, dim).",
     "strategy": "fixed",
-    "token_count": 37
+    "token_count": 98
   },
   {
     "faiss_id": 73,
     "chunk_id": "fixed_00073",
     "source": "ragger/indexer.py",
     "title": "ragger/indexer",
-    "section": "pos_0-190",
-    "text": "Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json.\nСтроит FAISS-индекс: L2-нормализация → IndexFlatIP (inner product) → сохранение index.faiss + metadata.json.",
+    "section": "pos_0-472",
+    "text": "Построение FAISS-индекса: нормализация L2, IndexFlatIP, сохранение metadata.json.\n\nКак работает индекс в ragger: FAISS-индекс строится через нормализацию L2\nи IndexFlatIP (inner product). Все чанки векторизуются эмбеддером,\nнормализуются и добавляются в плоский индекс. Результат сохраняется\nв index.faiss + metadata.json для быстрого поиска во время RAG-запроса.\nСтроит FAISS-индекс: L2-нормализация → IndexFlatIP (inner product) → сохранение index.faiss + metadata.json.",
     "strategy": "fixed",
-    "token_count": 47
+    "token_count": 118
   },
   {
     "faiss_id": 74,
@@ -754,9 +754,9 @@
     "chunk_id": "fixed_00075",
     "source": "ragger/search.py",
     "title": "ragger/search",
-    "section": "pos_0-1012",
-    "text": "Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом. Режимы: threshold, rerank, hybrid.\nЗагружает FAISS + metadata. Кеширует в памяти после первого вызова.\nСемантический поиск по FAISS-индексу. Запрос → эмбеддинг (Cloud.ru) → FAISS search → ранжированные чанки.\n\n    Args:\n        query: поисковый запрос (русский или английский).\n        top_k: количество возвращаемых чанков.\n        strategy: \"structural\" (по разделам документа) или \"fixed\" (фиксированный размер).\n\n    Returns:\n        Список чанков с полями chunk_id, source, title, section, text, score, token_count.\nПайплайн RAG-поиска: FAISS search → threshold filter → LLM rerank → top-K slice.\n\n    Режимы:\n      \"threshold\" — только фильтр по similarity score\n      \"rerank\"    — только LLM-реранкинг (без threshold)\n      \"hybrid\"    — threshold-фильтр, затем реранкинг оставшихся\nПолный пайплайн: search → filter → rerank → slice.\nБазовый FAISS-поиск.\nПрогоняет запрос во всех 3 режимах и возвращает статистику.",
+    "section": "pos_0-1324",
+    "text": "Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом.\n\nRagPipeline — основной класс для RAG-поиска. Поддерживает три режима:\n- threshold: только фильтрация по similarity score\n- rerank: только LLM-реранкинг\n- hybrid: фильтрация + реранкинг\n\nЭтапы пайплайна: FAISS search → threshold filter → LLM rerank → top-K slice.\nМожно настроить top_k_before, top_k_after, threshold через параметры конструктора.\nЗагружает FAISS + metadata. Кеширует в памяти после первого вызова.\nСемантический поиск по FAISS-индексу. Запрос → эмбеддинг (Cloud.ru) → FAISS search → ранжированные чанки.\n\n    Args:\n        query: поисковый запрос (русский или английский).\n        top_k: количество возвращаемых чанков.\n        strategy: \"structural\" (по разделам документа) или \"fixed\" (фиксированный размер).\n\n    Returns:\n        Список чанков с полями chunk_id, source, title, section, text, score, token_count.\nПайплайн RAG-поиска: FAISS search → threshold filter → LLM rerank → top-K slice.\n\n    Режимы:\n      \"threshold\" — только фильтр по similarity score\n      \"rerank\"    — только LLM-реранкинг (без threshold)\n      \"hybrid\"    — threshold-фильтр, затем реранкинг оставшихся\nПолный пайплайн: search → filter → rerank → slice.\nБазовый FAISS-поиск.\nПрогоняет запрос во всех 3 режимах и возвращает статистику.",
     "strategy": "fixed",
-    "token_count": 253
+    "token_count": 331
   }
 ]

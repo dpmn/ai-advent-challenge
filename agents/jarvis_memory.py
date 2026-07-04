@@ -44,6 +44,67 @@ class TaskContext:
                 lines.append(f"  • {k}: {v}")
         return "\n".join(lines)
 
+    def _detect_topic_change(
+        self,
+        user_input: str,
+        api_key: str,
+        model: str = "Qwen/Qwen3-30B-A3B",
+        base_url: str = "https://foundation-models.api.cloud.ru/v1",
+    ) -> bool:
+        """Проверяет, сменилась ли тема диалога относительно текущего goal.
+
+        Вызывает дешёвую LLM, которая сравнивает запрос с goal.
+        Возвращает True, если тема не связана с goal.
+        """
+        goal = self._data.get("goal", "")
+        if not goal:
+            return False
+
+        import urllib.request
+
+        prompt = (
+            "Текущая цель диалога: {goal}\n\n"
+            "Новый запрос пользователя: {query}\n\n"
+            "Связан ли новый запрос с текущей целью? "
+            "Отвечай строго одним словом: 'yes' или 'no'."
+        ).format(goal=goal, query=user_input)
+
+        payload = {
+            "model": model,
+            "max_tokens": 8,
+            "temperature": 0.0,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/chat/completions",
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip().lower()
+                return "no" in content  # True если тема не связана
+        except Exception as e:
+            print(f"[TASK_EXTRACT] Topic detection error: {e}")
+            return False  # fallback — не сбрасываем
+
+    def _trim_progress(self):
+        """Ограничивает progress последними 3 этапами (по точке с новой строки)."""
+        progress = self._data.get("progress", "")
+        if not progress:
+            return
+        import re
+        steps = re.split(r'(?<=[.])\s+', progress.strip())
+        steps = [s for s in steps if s]
+        if len(steps) > 3:
+            self._data["progress"] = " ... ".join(steps[-3:])
+
     def extract_and_update(
         self,
         user_input: str,
@@ -53,6 +114,9 @@ class TaskContext:
         base_url: str = "https://foundation-models.api.cloud.ru/v1",
     ) -> dict:
         """Вызывает LLM для извлечения task state из последнего обмена, обновляет _data.
+
+        Перед извлечением проверяет, не сменилась ли тема диалога.
+        Если тема сменилась — сбрасывает goal, last_focus, progress.
 
         Args:
             user_input: Последнее сообщение пользователя.
@@ -64,6 +128,13 @@ class TaskContext:
         Returns:
             Обновлённый _data (dict).
         """
+        # Сброс при смене темы
+        if self._detect_topic_change(user_input, api_key, model, base_url):
+            print(f"[TASK_EXTRACT] Topic changed — resetting goal/last_focus/progress")
+            self.remove("goal")
+            self.remove("last_focus")
+            self.remove("progress")
+
         current = json.dumps(self._data, ensure_ascii=False, indent=2) if self._data else "пусто"
 
         prompt = (
@@ -119,6 +190,7 @@ class TaskContext:
             for key in self.TASK_STATE_KEYS:
                 if key in extracted and extracted[key]:
                     self._data[key] = extracted[key]
+        self._trim_progress()
         return self._data
 
     @staticmethod

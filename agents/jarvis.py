@@ -276,6 +276,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
         # RAG: пайплайн поиска → генерация ответа с цитатами и источниками
         rag_override = None  # если установлен — используется как финальный ответ, API не вызывается
+        rag_answer = None
         if self.rag_enabled:
             try:
                 from ragger.search import RagPipeline
@@ -315,13 +316,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                         f"📚 **Источники:**\n{sources_str}\n\n"
                         f"💬 **Цитаты:**\n{citations_str}"
                     )
-                else:
-                    rag_override = (
-                        "Я не знаю ответа на этот вопрос. "
-                        "Пожалуйста, уточните запрос — возможно, я смогу найти информацию "
-                        "по другим ключевым словам.\n\n"
-                        "Источники: не найдены"
-                    )
+                # confidence == "none" — не переопределяем ответ, оставляем rag_override = None.
+                # Код упадёт на основную LLM, у которой есть история диалога и память.
+                # Это чинит мета-вопросы ("О чём говорили?") и позволяет отвечать на OOD-запросы
+                # из общего знания (Гагарин) без галлюцинаций RAG.
             except Exception as e:
                 print(f"[JARVIS][RAG] Error: {e}")
                 import traceback

@@ -1,4 +1,10 @@
-"""Генерация эмбеддингов через Cloud.ru API. По умолчанию openai/text-embedding-3-small."""
+"""Генерация эмбеддингов через Cloud.ru API.
+
+Модель по умолчанию: openai/text-embedding-3-small (1536-dim).
+Можно переключить на Qwen/Qwen3-Embedding-0.6B через параметр model.
+
+get_embeddings() принимает список текстов, возвращает numpy array векторов.
+Используется в pipeline.py для индексации и в search.py для поискового запроса."""
 
 import os
 

@@ -34,19 +34,21 @@ def generate_answer(
     api_key: str,
     model: str = "Qwen/Qwen3-Coder-Next",
     base_url: str = "https://foundation-models.api.cloud.ru/v1",
+    verify_model: str = "Qwen/Qwen3-30B-A3B",
 ) -> RagAnswer:
     """Генерирует структурированный ответ на основе RAG-чанков.
 
-    Если чанки пусты — возвращает RagAnswer с confidence="none"
-    (режим "не знаю"). Иначе вызывает LLM со строгим JSON-форматом,
-    парсит ответ и возвращает RagAnswer.
+    Перед генерацией выполняет pre-verification — проверяет через
+    дешёвую LLM, есть ли среди чанков информация, отвечающая на
+    запрос. Если нет — confidence="none" без вызова основной модели.
 
     Args:
         query: Запрос пользователя.
         chunks: Список чанков от RagPipeline (поля chunk_id, source, section, text, score).
         api_key: API-ключ Cloud.ru.
-        model: ID модели.
+        model: ID модели для генерации ответа.
         base_url: Базовый URL API.
+        verify_model: ID дешёвой модели для pre-verification.
 
     Returns:
         RagAnswer с заполненными answer, sources, confidence.
@@ -63,6 +65,19 @@ def generate_answer(
             confidence="none",
         )
 
+    # Pre-verification: есть ли среди чанков прямой ответ?
+    relevance = _verify_relevance(query, chunks, api_key, verify_model, base_url)
+    if relevance == "no":
+        return RagAnswer(
+            query=query,
+            answer=(
+                "Я не знаю ответа на этот вопрос. "
+                "В найденных документах нет информации по данной теме."
+            ),
+            sources=[],
+            confidence="none",
+        )
+
     chunks_text = _format_chunks(chunks)
 
     prompt = (
@@ -72,8 +87,9 @@ def generate_answer(
         + chunks_text
         + "\n\n"
         "⚠️  ПРАВИЛА:\n"
-        "1. Если информации в документах недостаточно для ответа — "
-        "напиши 'Я не знаю' и попроси уточнить.\n"
+        "1. Если документы содержат информацию по теме вопроса — используй её "
+        "для ответа. Если НИ ОДИН документ совсем не про тему вопроса — "
+        "напиши 'Я не знаю'. Не используй косвенно связанные документы.\n"
         "2. Если знаешь — дай развёрнутый ответ и ОБЯЗАТЕЛЬНО укажи "
         "ИСТОЧНИКИ и ЦИТАТЫ для каждого факта.\n"
         "3. В поле sources перечисли использованные документы: "
@@ -128,6 +144,61 @@ def generate_answer(
         )
 
     return _parse_response(content, query)
+
+
+def _verify_relevance(
+    query: str,
+    chunks: list[dict],
+    api_key: str,
+    model: str = "Qwen/Qwen3-30B-A3B",
+    base_url: str = "https://foundation-models.api.cloud.ru/v1",
+) -> str:
+    """Проверяет, есть ли среди чанков информация по теме запроса.
+
+    Вызов дешёвой LLM (Qwen3-30B-A3B), ответ — "yes"/"no".
+    "no" — только если ни один чанк не связан с темой запроса.
+    Даже частичное совпадение = "yes" (основная LLM разберётся).
+    """
+    snippet_chunks = []
+    for c in chunks[:8]:
+        text = c.get("text", "")[:600]
+        src = c.get("source", "?")
+        snippet_chunks.append(f'<doc source="{src}">\n{text}\n</doc>')
+    snippets = "\n\n".join(snippet_chunks)
+
+    prompt = (
+        "Вопрос: {query}\n\n"
+        "Документы:\n{snippets}\n\n"
+        "Есть ли среди документов хотя бы один, который ХОТЯ БЫ КАСАЕТСЯ "
+        "темы вопроса? Если документы про другое — ответь 'no'. "
+        "Если хотя бы один про то же самое (даже не полностью) — ответь 'yes'.\n"
+        "Ответь строго одним словом: 'yes' или 'no'."
+    ).format(query=query, snippets=snippets)
+
+    payload = {
+        "model": model,
+        "max_tokens": 8,
+        "temperature": 0.0,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        f"{base_url}/chat/completions",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip().lower()
+            return "yes" if "yes" in content else "no"
+    except Exception as e:
+        print(f"[ANSWER] Verification error: {e}")
+        return "yes"
 
 
 def _format_chunks(chunks: list[dict]) -> str:
