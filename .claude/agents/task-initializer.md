@@ -1,16 +1,9 @@
 ---
+name: task-initializer
 description: >
   При получении нового задания дня читает progress.md, лекцию текущей недели,
   README предыдущего дня и выдаёт структурированный контекст main agent-у
-mode: subagent
-permission:
-  read: allow
-  glob: allow
-  grep: allow
-  edit: deny
-  bash: deny
-  ragger_search_context: allow
-  ragger_list_sources: allow
+tools: Read, Glob, Grep
 ---
 
 ## Что ты делаешь
@@ -30,9 +23,7 @@ permission:
 
 4. Прочитай README предыдущего дня (если он есть).
 
-5. Выполни `ragger_search_context` по теме текущего дня (из лекции или README), top_k=5, strategy="structural". Результаты включи в вывод.
-
-6. Верни структурированный вывод:
+5. Верни структурированный вывод:
 
    ```
    ## Контекст задания
@@ -41,8 +32,6 @@ permission:
    - Ключевые изменения в предыдущем дне: [файлы, фичи]
    - Тема лекции недели: [название]
    - Техники/паттерны из лекции: [список]
-   - Релевантные чанки (ragger_search_context по теме):
-     - [источник, score, фрагмент текста]
    ```
 
 Без воды. Только факты.

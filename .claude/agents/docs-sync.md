@@ -1,14 +1,9 @@
 ---
+name: docs-sync
 description: >
-  Синхронизирует AGENTS.md (дерево проекта), progress.md, database-schema.md
+  Синхронизирует CLAUDE.md (дерево проекта), progress.md, database-schema.md
   после завершения задания. Добавляет новые файлы в структуру
-mode: subagent
-permission:
-  read: allow
-  glob: allow
-  grep: allow
-  edit: allow
-  bash: allow
+tools: Read, Glob, Grep, Edit, Bash
 ---
 
 ## Что ты делаешь
@@ -27,7 +22,7 @@ permission:
 
 3. Прочитай README выполненного задания (week-XX/day-YY/README.md) — найди раздел с описанием изменённых файлов.
 
-4. Обнови `AGENTS.md` — структура проекта (раздел "## Структура проекта"):
+4. Обнови `CLAUDE.md` — структура проекта (раздел "## Структура проекта"):
    - только **верхнеуровневые директории** с однострочным описанием
    - **не перечисляй файлы внутри директорий**
    - если появились новые корневые директории — добавь их
@@ -39,12 +34,12 @@ permission:
    - проверь `agents/memory/jarvis_history.db` — если изменилась схема
    - проверь `agents/jarvis.py` на новые таблицы/колонки
 
-6. Проверь актуальность Skills в `.opencode/skills/`:
+6. Проверь актуальность Skills в `.claude/skills/`:
 
    | Если менялись | Проверь skill |
    |---|---|
-   | `agents/jarvis.py` или `agents/state_machine.py` или `agents/invariants.py` | `.opencode/skills/backend-rules/SKILL.md` |
-   | `webui/app.py` или `webui/static/script.js` или `webui/static/style.css` или `webui/templates/index.html` | `.opencode/skills/webui-rules/SKILL.md` |
+   | `agents/jarvis.py` или `agents/state_machine.py` или `agents/invariants.py` | `.claude/skills/backend-rules/SKILL.md` |
+   | `webui/app.py` или `webui/static/script.js` или `webui/static/style.css` или `webui/templates/index.html` | `.claude/skills/webui-rules/SKILL.md` |
 
    Для каждого затронутого skill:
    - прочитай его SKILL.md

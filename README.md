@@ -34,7 +34,7 @@ SPA-чат для работы с JarvisAgent через браузер.
 
 **Запуск:**
 ```bash
-python .\webui\app.py 
+python3 ./webui/app.py
 ```
 
 После запуска открыть в браузере: http://127.0.0.1:5000
