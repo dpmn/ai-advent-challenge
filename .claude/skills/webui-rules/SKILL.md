@@ -4,10 +4,6 @@ description: |
   Архитектура webui/. Flask-роуты, JS-фронтенд, Darcula-тема CSS.
   Используй когда нужно добавить новый эндпоинт, UI-компонент,
   изменить стиль или исправить баг в интерфейсе
-license: MIT
-compatibility: opencode
-metadata:
-  audience: developer
 ---
 
 ## Структура файлов

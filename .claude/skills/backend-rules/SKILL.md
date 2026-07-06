@@ -6,10 +6,6 @@ description: |
   jarvis_commands), state_machine.py, invariants.py.
   Используй когда нужно понять структуру бэкенда, добавить
   новый метод, интеграцию или исправить баг в агенте
-license: MIT
-compatibility: opencode
-metadata:
-  audience: developer
 ---
 
 ## Структура файлов
