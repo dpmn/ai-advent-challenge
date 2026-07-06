@@ -25,3 +25,5 @@
 | 5      | 23   | Реранкинг и фильтрация | done | [reranker.py](../ragger/reranker.py), [search.py](../ragger/search.py), [jarvis.py](../agents/jarvis.py), [jarvis_session.py](../agents/jarvis_session.py), [jarvis_commands.py](../agents/jarvis_commands.py) | https://disk.yandex.ru/i/Ym6tsKfV3XaFpA |
 | 5      | 24   | Цитаты, источники и анти-галлюцинации | done | [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/RuEkglvk-Qa--A |
 | 5      | 25   | Мини-чат с RAG + памятью (production-like) | done | [jarvis.py](../agents/jarvis.py), [jarvis_memory.py](../agents/jarvis_memory.py), [jarvis_session.py](../agents/jarvis_session.py) | https://disk.yandex.ru/i/DfEKbvK7RoMtUA |
+| 6      | 26   | Запуск локальной LLM (Ollama) | done | [README.md](../week-06/day-26/README.md) | https://disk.yandex.ru/i/MoXvAKPVX8IphQ |
+| 6      | 27   | TBD | todo | TBD | TBD |
