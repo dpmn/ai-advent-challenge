@@ -228,10 +228,11 @@ async function loadModels() {
   const data = await res.json();
   const select = document.getElementById("model-select");
   select.innerHTML = "";
+  const localModels = data.local_models || [];
   for (const m of data.models) {
     const opt = document.createElement("option");
     opt.value = m;
-    opt.textContent = m;
+    opt.textContent = localModels.includes(m) ? `${m} (local)` : m;
     if (m === data.current) opt.selected = true;
     select.appendChild(opt);
   }

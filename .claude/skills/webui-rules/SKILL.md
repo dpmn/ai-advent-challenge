@@ -27,6 +27,12 @@ agent = JarvisAgent(
 ```
 Один глобальный инстанс на весь сервер. Сессии управляются внутри `JarvisAgent`.
 
+### Модели и провайдеры
+- `DEFAULT_MODELS` / `CLOUD_MODELS` — облачные модели (Cloud.ru), переопределяются env `AVAILABLE_MODELS`
+- `LOCAL_MODEL = "qwen2.5-coder:7b"` — локальная модель через Ollama; адрес — env `OLLAMA_BASE_URL` (дефолт `http://localhost:11434/v1`), api_key — заглушка `"ollama"`
+- `AVAILABLE_MODELS = CLOUD_MODELS + [LOCAL_MODEL]`
+- `MODEL_PROVIDERS` — карта `model_id → {base_url, api_key}`; при смене модели в `update_settings()` переключаются `agent.base_url` и `agent.api_key`
+
 ### Все эндпоинты
 
 | Метод | Путь | Что делает |
@@ -38,9 +44,9 @@ agent = JarvisAgent(
 | POST | `/api/sessions/<id>/switch` | Переключить на сессию |
 | GET | `/api/sessions/<id>/messages` | Сообщения сессии (только если id = current) |
 | POST | `/api/chat` | Отправить сообщение. Body: `{message}`. Возвращает `{response, messages}` |
-| GET | `/api/models` | Список моделей + текущая |
+| GET | `/api/models` | Список моделей + `local_models` (пометка локальных) + текущая |
 | GET | `/api/settings` | Все настройки |
-| POST | `/api/settings` | Обновить model, temperature, max_tokens, context_limit, invariants_enabled |
+| POST | `/api/settings` | Обновить model (+ base_url/api_key по `MODEL_PROVIDERS`), temperature, max_tokens, context_limit, invariants_enabled |
 | GET | `/api/stats` | Статистика агента (текст) |
 | GET | `/api/mcp` | MCP-статус: `{enabled, servers: [...], tools: [...]}` |
 | POST | `/api/mcp/toggle` | Вкл/выкл MCP. Body: `{enabled: bool}` |
@@ -53,7 +59,7 @@ agent = JarvisAgent(
 1. Добавить метод/роут в `app.py`
 2. Если данные нужны на фронтенде — вызвать в `script.js` через `fetch()`
 3. Если нужно в settings — добавить чтение в `get_settings()` и запись в `update_settings()`
-4. Если новая модель — добавить ID в `DEFAULT_MODELS`
+4. Если новая облачная модель — добавить ID в `DEFAULT_MODELS`; если модель с другим провайдером — зарегистрировать её в `MODEL_PROVIDERS` (`base_url` + `api_key`)
 
 ### Типовой паттерн эндпоинта
 ```python
@@ -115,7 +121,7 @@ Theme restored on load from `localStorage`.
 ```
 
 ### Функции settings
-- `loadModels()`, `loadSettings()` — загрузка
+- `loadModels()`, `loadSettings()` — загрузка; `loadModels()` помечает модели из `data.local_models` суффиксом `(local)` в дропдауне
 - `updateSettings()` — POST текущих значений
 
 ### Правила при добавлении UI-компонента
