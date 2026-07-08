@@ -249,20 +249,28 @@ class CommandMixin:
         if cmd == "/task":
             if not arg:
                 data = self.task_context.to_dict()
+                status = "вкл" if self.task_memory_enabled else "выкл"
                 if not data:
-                    return "📋 Рабочая память пуста."
-                lines = ["📋 Рабочая память (TaskContext):"]
+                    return (f"📋 Рабочая память: {status}, пуста.\n"
+                            "Команды: /task on|off|clear, /task <key> <value>")
+                lines = [f"📋 Рабочая память (TaskContext): {status}"]
                 for k, v in data.items():
                     lines.append(f"  \u2022 {k}: {v}")
                 return "\n".join(lines)
             parts = arg.strip().split(maxsplit=1)
             sub = parts[0].lower()
+            if sub == "on":
+                self.task_memory_enabled = True
+                return "✅ Рабочая память включена: авто-extraction после каждого ответа."
+            if sub == "off":
+                self.task_memory_enabled = False
+                return "✅ Рабочая память выключена."
             if sub == "clear":
                 self.task_context.clear()
                 self._save_memory_state()
                 return "✅ Рабочая память очищена."
             if len(parts) < 2:
-                return "❌ Используйте: /task <key> <value> или /task clear"
+                return "❌ Используйте: /task on|off|clear или /task <key> <value>"
             self.task_context.set(parts[0], parts[1])
             self._save_memory_state()
             return f"✅ Задано: {parts[0]} = {parts[1]}"
@@ -451,12 +459,15 @@ class CommandMixin:
             if not arg:
                 status = "вкл" if self.rag_enabled else "выкл"
                 mode = self.rag_mode if self.rag_enabled else "—"
+                strict = "вкл (нет ответа в базе → «не знаю»)" if self.rag_strict \
+                    else "выкл (нет ответа в базе → fallback на основную LLM)"
                 return (
                     f"📖 RAG-режим: {status}\n"
                     f"  Режим:       {mode}\n"
                     f"  top_k_before: {self.rag_top_k_before}\n"
                     f"  top_k_after:  {self.rag_top_k_after}\n"
                     f"  threshold:    {self.rag_threshold}\n"
+                    f"  strict:       {strict}\n"
                     f"Команды: /rag on|off, /rag config <key> <val>, /rag compare <query>"
                 )
 
@@ -500,6 +511,7 @@ class CommandMixin:
             "top_k_after": (int, lambda v: 1 <= v <= 50, "целое от 1 до 50"),
             "mode": (str, lambda v: v.lower() in ("threshold", "rerank", "hybrid"),
                      "threshold / rerank / hybrid"),
+            "strict": (str, lambda v: v.lower() in ("on", "off"), "on / off"),
         }
 
         if key not in valid_keys:
@@ -519,6 +531,9 @@ class CommandMixin:
         if not validator(parsed):
             return f"❌ Для {key} ожидается {hint}"
 
+        if key == "strict":
+            parsed = parsed == "on"
+
         setattr(self, f"rag_{key}", parsed)
         self._save_rag_config()
         return f"✅ RAG {key} = {parsed}"
@@ -530,12 +545,14 @@ class CommandMixin:
 
         try:
             from ragger.search import RagPipeline
+            provider_kwargs, _ = self._rag_provider_kwargs()
             pipeline = RagPipeline(
                 api_key=self.api_key,
                 top_k_before=self.rag_top_k_before,
                 top_k_after=self.rag_top_k_after,
                 threshold=self.rag_threshold,
                 mode="hybrid",
+                **provider_kwargs,
             )
             rows = pipeline.compare_modes(query)
         except FileNotFoundError as e:

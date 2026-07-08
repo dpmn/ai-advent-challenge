@@ -58,7 +58,7 @@ def llm_rerank(
     )
 
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=300) as resp:
             result = json.loads(resp.read().decode("utf-8"))
             content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
     except Exception as e:

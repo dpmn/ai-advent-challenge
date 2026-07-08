@@ -83,6 +83,7 @@ def generate_answer(
     prompt = (
         "Твоя задача — ответить на вопрос пользователя, используя ТОЛЬКО "
         "документы из базы знаний ниже.\n\n"
+        f"❓ ВОПРОС: {query}\n\n"
         "📄 ДОКУМЕНТЫ:\n"
         + chunks_text
         + "\n\n"
@@ -130,17 +131,21 @@ def generate_answer(
         method="POST",
     )
 
+    # 300s: локальная модель при холодном старте сначала грузится в память
+    # (десятки секунд), потом генерирует — 120s не хватало.
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=300) as resp:
             result = json.loads(resp.read().decode("utf-8"))
             content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
     except Exception as e:
         print(f"[ANSWER] LLM error: {e}")
+        # confidence="none" — сигнал вызывающему коду, что ответа нет:
+        # пустой answer с "low" превращался в пустое сообщение пользователю.
         return RagAnswer(
             query=query,
             answer="",
             sources=[],
-            confidence="low",
+            confidence="none",
         )
 
     return _parse_response(content, query)
@@ -192,7 +197,7 @@ def _verify_relevance(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             result = json.loads(resp.read().decode("utf-8"))
             content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip().lower()
             return "yes" if "yes" in content else "no"

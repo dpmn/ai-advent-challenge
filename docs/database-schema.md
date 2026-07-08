@@ -25,7 +25,7 @@
 | `prompt_tokens` | INTEGER DEFAULT 0 | Количество prompt tokens за сессию |
 | `completion_tokens` | INTEGER DEFAULT 0 | Количество completion tokens за сессию |
 | `total_tokens` | INTEGER DEFAULT 0 | Сумма всех токенов за сессию |
-| `compression_enabled` | INTEGER DEFAULT 1 | Флаг включённого сжатия (0/1) |
+| `compression_enabled` | INTEGER DEFAULT 0 | Флаг включённого сжатия (0/1). С дня 28 по умолчанию выключено; включение — `/compression on` |
 | `context_strategy` | TEXT DEFAULT NULL | Стратегия управления контекстом: `sliding_window`, `sticky_facts`, `branching` или NULL |
 | `sticky_facts` | TEXT DEFAULT '{}' | JSON-объект с ключевыми фактами (для стратегии sticky_facts) |
 | `task_context` | TEXT DEFAULT '{}' | JSON-объект с рабочей памятью (TaskContext) — данные текущей задачи |
@@ -44,6 +44,7 @@
 | `rag_top_k_after` | INTEGER DEFAULT 8 | Количество чанков после фильтрации/реранкинга |
 | `rag_threshold` | REAL DEFAULT 0.2 | Порог similarity score для threshold-фильтрации |
 | `rag_mode` | TEXT DEFAULT 'threshold' | Режим обработки: `threshold`, `rerank`, `hybrid` |
+| `rag_strict` | INTEGER DEFAULT 0 | Строгий режим RAG (0/1): при `confidence=none` агент отвечает «Я не знаю» вместо fallback-а на основную LLM. Управляется `/rag config strict on\|off` |
 
 **Важные поля для архитектуры:**
 - Основная связь: `sessions.id` → `messages.session_id`, `compressed_summaries.session_id`, `branches.session_id`, `stage_messages.session_id`
