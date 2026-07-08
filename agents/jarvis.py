@@ -55,6 +55,12 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.api_key = api_key or os.getenv('CLOUDRU_SECRET_KEY')
         self.base_url = base_url
         self.model = model
+        # Провайдер активной модели: "cloud" (Cloud.ru) или "local" (Ollama).
+        # Выставляется webui/app.py при смене модели; управляет выбором
+        # RAG-индекса (data/ vs data_local/) и моделей rerank/verify.
+        self.model_provider = "cloud"
+        # Техническая информация о последнем RAG-запросе (тайминги этапов) для UI.
+        self.last_rag_debug: Optional[dict] = None
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
@@ -69,7 +75,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self._invariants_dir = _AGENTS_DIR / "memory" / "invariants"
         self._invariants_dir.mkdir(parents=True, exist_ok=True)
 
-        self.compression_enabled = compression_enabled if compression_enabled is not None else True
+        self.compression_enabled = compression_enabled if compression_enabled is not None else False
 
         if session_id is not None:
             self.current_session = self._load_session(session_id)
@@ -103,6 +109,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             self._init_branches()
 
         # Трёхуровневая модель памяти
+        # Рабочая память по умолчанию выключена: авто-extraction — лишний
+        # LLM-вызов на каждое сообщение (и 404 на локальной модели).
+        # Включается командой /task on, флаг не персистится.
+        self.task_memory_enabled = False
         self.task_context = TaskContext()
         saved_task = self.current_session.get("task_context")
         if saved_task:
@@ -160,6 +170,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.rag_top_k_after = self.current_session.get("rag_top_k_after", 8) or 8
         self.rag_threshold = float(self.current_session.get("rag_threshold", 0.2) or 0.2)
         self.rag_mode = self.current_session.get("rag_mode", "threshold") or "threshold"
+        self.rag_strict = bool(self.current_session.get("rag_strict", False))
 
         self.total_tokens_used = 0
         self.total_requests = 0
@@ -229,6 +240,28 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
     # ── Основной метод ────────────────────────────────────────────
 
+    def _rag_provider_kwargs(self) -> tuple[dict, str]:
+        """Возвращает (kwargs для RagPipeline, verify_model) под активного провайдера.
+
+        Для "local" весь RAG-путь идёт через Ollama: эмбеддинг запроса
+        (nomic-embed-text, индекс data_local/), реранк, верификация и
+        генерация — активной локальной моделью. Для "cloud" — Cloud.ru
+        и индекс data/ (дефолты RagPipeline).
+        """
+        from ragger.search import DATA_DIR, DATA_DIR_LOCAL
+
+        if self.model_provider == "local":
+            return {
+                "rerank_model": self.model,
+                "base_url": self.base_url,
+                "data_dir": DATA_DIR_LOCAL,
+                "embed_api_key": self.api_key,
+                "embed_model": "nomic-embed-text",
+                "embed_base_url": self.base_url,
+                "embed_prefix": "search_query: ",
+            }, self.model
+        return {"data_dir": DATA_DIR}, "Qwen/Qwen3-30B-A3B"
+
     def chat(self, user_input: str) -> str:
         """Основной метод агента: принимает запрос и возвращает ответ."""
         if not user_input or not user_input.strip():
@@ -277,28 +310,51 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         # RAG: пайплайн поиска → генерация ответа с цитатами и источниками
         rag_override = None  # если установлен — используется как финальный ответ, API не вызывается
         rag_answer = None
+        self.last_rag_debug = None
         if self.rag_enabled:
             try:
+                import time as _time
                 from ragger.search import RagPipeline
+
+                provider_kwargs, verify_model = self._rag_provider_kwargs()
+
                 pipeline = RagPipeline(
                     api_key=self.api_key,
                     top_k_before=self.rag_top_k_before,
                     top_k_after=self.rag_top_k_after,
                     threshold=self.rag_threshold,
                     mode=self.rag_mode,
+                    **provider_kwargs,
                 )
                 rag_chunks = pipeline.run(user_input)
 
                 from ragger.answer import generate_answer
+                t_gen0 = _time.monotonic()
                 rag_answer = generate_answer(
                     query=user_input,
                     chunks=rag_chunks,
                     api_key=self.api_key,
                     model=self.model,
                     base_url=self.base_url,
+                    verify_model=verify_model,
                 )
+                t_gen = _time.monotonic() - t_gen0
 
-                if rag_answer.confidence != "none":
+                timings = dict(pipeline._last_timings)
+                timings["generate_s"] = t_gen
+                self.last_rag_debug = {
+                    "provider": self.model_provider,
+                    "model": self.model,
+                    "embed_model": provider_kwargs.get("embed_model", "openai/text-embedding-3-small"),
+                    "chunks": len(rag_chunks),
+                    "confidence": rag_answer.confidence,
+                    "timings": {k: round(v, 2) for k, v in timings.items()},
+                }
+                print(f"[JARVIS][RAG] provider={self.model_provider} "
+                      f"chunks={len(rag_chunks)} confidence={rag_answer.confidence} "
+                      f"timings={self.last_rag_debug['timings']}")
+
+                if rag_answer.confidence != "none" and rag_answer.answer.strip():
                     sources_str = "\n".join(
                         f"  - {s['source']} [{s['chunk_id']}] (раздел: {s.get('section', '—')})"
                         for s in rag_answer.sources
@@ -316,10 +372,16 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                         f"📚 **Источники:**\n{sources_str}\n\n"
                         f"💬 **Цитаты:**\n{citations_str}"
                     )
-                # confidence == "none" — не переопределяем ответ, оставляем rag_override = None.
-                # Код упадёт на основную LLM, у которой есть история диалога и память.
-                # Это чинит мета-вопросы ("О чём говорили?") и позволяет отвечать на OOD-запросы
-                # из общего знания (Гагарин) без галлюцинаций RAG.
+                # confidence == "none": поведение зависит от rag_strict (день 24 недели 5).
+                # strict on — честное "не знаю" без обращения к основной LLM (анти-галлюцинации).
+                # strict off — rag_override = None, вопрос падает на основную LLM с историей
+                # и памятью: чинит мета-вопросы ("О чём говорили?") и OOD-запросы из общего
+                # знания (Гагарин), но модель может галлюцинировать.
+                elif self.rag_strict:
+                    rag_override = (
+                        rag_answer.answer.strip()
+                        or "Я не знаю ответа на этот вопрос. В базе знаний нет информации по данной теме."
+                    )
             except Exception as e:
                 print(f"[JARVIS][RAG] Error: {e}")
                 import traceback
@@ -337,7 +399,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         profile_block = self.profile.to_full_prompt_block()
         if profile_block:
             memory_blocks.append(profile_block)
-        task_block = self.task_context.to_prompt_block()
+        task_block = self.task_context.to_prompt_block() if self.task_memory_enabled else ""
         if task_block:
             memory_blocks.append(task_block)
 
@@ -500,7 +562,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
         Если тема сменилась относительно текущего goal — не вызывает extract_and_update,
         а только обновляет last_focus. goal и progress сохраняются.
+        Не делает ничего, если рабочая память выключена (task_memory_enabled).
         """
+        if not self.task_memory_enabled:
+            return
         try:
             # Проверка смены темы: если тема не связана с goal — не трогаем goal/progress
             if self.task_context.get("goal"):

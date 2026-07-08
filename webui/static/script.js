@@ -165,6 +165,12 @@ function renderMessages(messages) {
   for (const m of messages) {
     inner.appendChild(createBubble(m.role, m.content));
   }
+  // Техстрока RAG последнего ответа: история перерисовывается из БД целиком
+  // (в т.ч. из loadSessions после отправки), поэтому дорисовываем её здесь,
+  // а не одноразово в sendMessage — иначе строка исчезает при первой перерисовке.
+  if (lastRagDebug && currentSessionId === lastRagDebugSessionId) {
+    inner.appendChild(buildRagDebugDiv(lastRagDebug));
+  }
   scrollToBottom();
 }
 
@@ -172,6 +178,27 @@ function createBubble(role, content) {
   const div = document.createElement("div");
   div.className = "message " + role;
   div.textContent = content;
+  return div;
+}
+
+// Техническая строка RAG (провайдер, модель, тайминги этапов) последнего ответа.
+// Живёт до следующего сообщения; привязана к сессии, в которой получен ответ.
+let lastRagDebug = null;
+let lastRagDebugSessionId = null;
+
+function buildRagDebugDiv(ragDebug) {
+  const t = ragDebug.timings || {};
+  const parts = [];
+  if (t.embed_s !== undefined) parts.push(`embed ${t.embed_s}s`);
+  if (t.faiss_s !== undefined) parts.push(`faiss ${t.faiss_s}s`);
+  if (t.rerank_s !== undefined) parts.push(`rerank ${t.rerank_s}s`);
+  if (t.generate_s !== undefined) parts.push(`verify+generate ${t.generate_s}s`);
+  const div = document.createElement("div");
+  div.className = "rag-debug";
+  div.textContent =
+    `RAG [${ragDebug.provider} · ${ragDebug.model} · emb: ${ragDebug.embed_model}] ` +
+    parts.join(" · ") +
+    ` · chunks ${ragDebug.chunks} · confidence ${ragDebug.confidence}`;
   return div;
 }
 
@@ -205,6 +232,8 @@ async function sendMessage() {
     if (!res.ok) throw new Error(data.error);
 
     // Replace all messages with server state (ensures consistency)
+    lastRagDebug = data.rag_debug || null;
+    lastRagDebugSessionId = currentSessionId;
     renderMessages(data.messages);
     loadSettings(); // Refresh SM/AI settings
     loadSessions(); // Refresh session list

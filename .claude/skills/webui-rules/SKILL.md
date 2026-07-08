@@ -43,10 +43,10 @@ agent = JarvisAgent(
 | DELETE | `/api/sessions/<id>` | Удалить сессию |
 | POST | `/api/sessions/<id>/switch` | Переключить на сессию |
 | GET | `/api/sessions/<id>/messages` | Сообщения сессии (только если id = current) |
-| POST | `/api/chat` | Отправить сообщение. Body: `{message}`. Возвращает `{response, messages}` |
+| POST | `/api/chat` | Отправить сообщение. Body: `{message}`. Возвращает `{response, messages, rag_debug}` (rag_debug — отладка RAG-прогона из `agent.last_rag_debug` или null; дублируется в лог Flask) |
 | GET | `/api/models` | Список моделей + `local_models` (пометка локальных) + текущая |
 | GET | `/api/settings` | Все настройки |
-| POST | `/api/settings` | Обновить model (+ base_url/api_key по `MODEL_PROVIDERS`), temperature, max_tokens, context_limit, invariants_enabled |
+| POST | `/api/settings` | Обновить model (+ base_url/api_key по `MODEL_PROVIDERS` + `agent.model_provider` = "local"/"cloud"), temperature, max_tokens, context_limit, invariants_enabled |
 | GET | `/api/stats` | Статистика агента (текст) |
 | GET | `/api/mcp` | MCP-статус: `{enabled, servers: [...], tools: [...]}` |
 | POST | `/api/mcp/toggle` | Вкл/выкл MCP. Body: `{enabled: bool}` |
@@ -109,6 +109,7 @@ Theme restored on load from `localStorage`.
 - `loadMessages()` — GET /api/sessions/{id}/messages
 - `renderMessages(messages)` — рендер всех сообщений
 - `sendMessage()` — POST /api/chat
+- `buildRagDebugDiv(ragDebug)` — собирает серую техническую строку `.rag-debug`: `RAG [provider · model · emb: embed_model] embed Xs · rerank Ys · verify+generate Zs · chunks N · confidence C`. Последний `rag_debug` хранится в переменных `lastRagDebug` / `lastRagDebugSessionId` (задаются в `sendMessage()`), а дорисовывает строку сам `renderMessages()` под последним сообщением — так она переживает перерисовки истории (например, из `loadSessions()`). Показывается только в сессии, где получен ответ; не персистится (сбрасывается перезагрузкой страницы и следующим сообщением)
 
 ### Паттерн sendMessage()
 ```
@@ -208,6 +209,7 @@ document.getElementById("element-id").addEventListener("change", async () => {
 .message.assistant  { align-self: flex-start; background: var(--bg-assistant); border-bottom-left-radius: 4px }
 .message.system     { align-self: center; color: var(--text-muted); font-style: italic; font-size: 12px }
 .message.command    { align-self: flex-start; font-family: monospace; color: var(--accent) }
+.rag-debug          { align-self: flex-start; color: var(--text-muted); font-family: monospace; font-size: 11px; margin-top: -8px } /* техстрока RAG под ответом */
 ```
 
 ### Chat layout

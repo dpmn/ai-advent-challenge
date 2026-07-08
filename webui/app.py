@@ -105,10 +105,14 @@ def chat():
 
     response = agent.chat(text)
 
+    rag_debug = agent.last_rag_debug
+    if rag_debug:
+        print(f"[WEBUI][RAG] {rag_debug}")
+
     messages = [
         m for m in agent.conversation_history if m["role"] != "system"
     ]
-    return jsonify({"response": response, "messages": messages})
+    return jsonify({"response": response, "messages": messages, "rag_debug": rag_debug})
 
 
 # ──────── Settings & Models ─────────────────────────────────────
@@ -165,6 +169,7 @@ def update_settings():
             agent.model = m
             agent.base_url = provider["base_url"]
             agent.api_key = provider["api_key"]
+            agent.model_provider = "local" if m == LOCAL_MODEL else "cloud"
     if "temperature" in data:
         agent.temperature = float(data["temperature"])
     if "max_tokens" in data:

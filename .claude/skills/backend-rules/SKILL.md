@@ -10,7 +10,7 @@ description: |
 
 ## Структура файлов
 
-- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode`. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` (search → filter → rerank → slice), затем `generate_answer()` из `ragger/answer.py` формирует структурированный `RagAnswer` с цитатами и источниками; при `confidence=none` — не переопределяет ответ (rag_override = None) → выполнение падает на основную LLM с историей диалога и памятью, что чинит мета-вопросы и OOD-запросы без галлюцинаций RAG
+- `agents/jarvis.py` — ядро агента: `__init__`, `_build_messages`, `_call_api`, `chat`, `get_stats`. Поля RAG-конфигурации: `rag_top_k_before/after/threshold/mode/strict`. Атрибут `model_provider` ("cloud"/"local") — выставляется извне (webui) при смене модели. Хелпер `_rag_provider_kwargs()` возвращает `(kwargs, verify_model)` под провайдера: для local — индекс `ragger/data_local/`, эмбеддер Ollama (`nomic-embed-text`, prefix `search_query:`), rerank/verify через локальную модель; для cloud — дефолты (data/, text-embedding-3-small). `last_rag_debug: Optional[dict]` — отладка последнего RAG-прогона (provider, model, embed_model, timings, chunks, confidence), собирается в `chat()` и отдаётся webui. RAG-инжекция: при `rag_enabled=True` в `chat()` создаётся `RagPipeline` (search → filter → rerank → slice), затем `generate_answer()` из `ragger/answer.py` формирует структурированный `RagAnswer` с цитатами и источниками; rag_override используется только при непустом ответе; при `confidence=none` поведение зависит от `rag_strict`: strict on → ответ «Я не знаю» (контракт day-24, анти-галлюцинации), strict off (default) → fallback на основную LLM с историей и памятью. Флаг `task_memory_enabled` (default False) — рабочая память (TaskContext + авто-extraction) выключена по умолчанию; компрессия истории тоже выключена по умолчанию (`compression_enabled=False`)
 - `agents/jarvis_memory.py` — Mixin: `TaskContext` (с методами `extract_and_update()`, `_detect_topic_change()`, `_trim_progress()`, `TASK_STATE_KEYS`), `Profile` (трёхуровневая память)
 - `agents/jarvis_session.py` — Mixin: `SessionMixin` — SQLite `_init_db`, session CRUD, сообщения
 - `agents/jarvis_context.py` — Mixin: `ContextStrategyMixin` — стратегии, branching, инварианты, memory state
@@ -28,15 +28,15 @@ description: |
 - `mcp_servers/composer_mcp/server.py` — MCP-сервер Composer: композиция инструментов NASA (compose, apod_today, apod_range), использует NASA MCP как прокси
 - `mcp_servers/composer_mcp/test_server.py` — интеграционный тест Composer через JSON-RPC
 - `mcp_servers/ragger/server.py` — MCP-сервер Ragger: семантический поиск по проиндексированным документам проекта. Инструменты: `search_context` (поиск релевантных чанков), `list_sources` (список источников).
-- `ragger/pipeline.py` — пайплайн индексации документов: chunking → эмбеддинги (Cloud.ru) → FAISS. Сравнение fixed-size и structural стратегий.
+- `ragger/pipeline.py` — пайплайн индексации документов: chunking → эмбеддинги → FAISS. Сравнение fixed-size и structural стратегий. Флаг `--local`: эмбеддинги через Ollama (`nomic-embed-text`, 768-dim), индексы в `ragger/data_local/`; облачный индекс `ragger/data/` живёт параллельно
 - `ragger/document_loader.py` — загрузка .md/.py из проекта
 - `ragger/chunking.py` — две стратегии чанкинга (fixed-size 1000 tok / structural по заголовкам)
-- `ragger/embedder.py` — Cloud.ru `/v1/embeddings` (text-embedding-3-small)
+- `ragger/embedder.py` — `/v1/embeddings`: Cloud.ru (text-embedding-3-small) или Ollama; параметры `base_url` и `prefix` (task-префиксы nomic-embed-text: `search_document:` при индексации, `search_query:` при поиске); один httpx-клиент на все батчи
 - `ragger/indexer.py` — FAISS IndexFlatIP + metadata.json
-- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков. Класс `RagPipeline`: пайплайн search → threshold filter → LLM rerank → slice. Методы `run()` и `compare_modes()` (A/B-тест 3 режимов)
-- `ragger/answer.py` — генерация структурированного ответа RAG: `RagAnswer` dataclass (answer, sources, confidence), `generate_answer()` — pre-verification (`_verify_relevance()`) через дешёвую LLM (Qwen3-30B-A3B) находит прямые ответы среди чанков, затем форматирует чанки с doc-ID разметкой, вызывает LLM на JSON-ответ, робастный парсинг (4 попытки), fallback при пустых чанках или нерелевантности (confidence="none")
+- `ragger/search.py` — семантический поиск: запрос → эмбеддинг → FAISS → топ-k чанков. `search()` и `RagPipeline` принимают `data_dir` + конфиг эмбеддера (`embed_base_url`, `embed_model`, `embed_prefix`, `embed_api_key`); кеш индексов по ключу `(data_dir, strategy)`; тайминги этапов (embed/faiss/rerank) в `_last_timings`. Класс `RagPipeline`: пайплайн search → threshold filter → LLM rerank → slice. Методы `run()` и `compare_modes()` (A/B-тест 3 режимов)
+- `ragger/answer.py` — генерация структурированного ответа RAG: `RagAnswer` dataclass (answer, sources, confidence), `generate_answer()` — pre-verification (`_verify_relevance()`) через дешёвую LLM находит прямые ответы среди чанков, затем форматирует чанки с doc-ID разметкой, вызывает LLM на JSON-ответ (вопрос пользователя подставляется в промпт генерации — фикс day-28), робастный парсинг (4 попытки), fallback при пустых чанках, нерелевантности или ошибке LLM (confidence="none")
 - `ragger/compare.py` — сравнение стратегий чанкинга (таблица)
-- `ragger/reranker.py` — функции фильтрации и реранкинга: `threshold_filter()` (отсев по similarity score) и `llm_rerank()` (батч-реранкинг через LLM с JSON-массивом оценок)
+- `ragger/reranker.py` — функции фильтрации и реранкинга: `threshold_filter()` (отсев по similarity score) и `llm_rerank()` (батч-реранкинг через LLM с JSON-массивом оценок, `timeout=120` у urlopen)
 - `agents/memory/jarvis_history.db` — SQLite с 5 таблицами (sessions, messages, compressed_summaries, branches, stage_messages)
 - `agents/memory/profiles/` — Markdown-файлы профилей
 - `agents/memory/invariants/` — Markdown-файлы инвариантов
@@ -51,7 +51,7 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | id | INTEGER PK | Уникальный ID |
 | name | TEXT | Имя сессии |
 | prompt_tokens / completion_tokens / total_tokens | INTEGER | Счётчики токенов |
-| compression_enabled | INTEGER 0/1 | Флаг сжатия |
+| compression_enabled | INTEGER 0/1 | Флаг сжатия (default 0 — выключено) |
 | context_strategy | TEXT NULL | `sliding_window`, `sticky_facts`, `branching` |
 | sticky_facts | TEXT JSON | Факты для sticky_facts |
 | task_context | TEXT JSON | Рабочая память (TaskContext) |
@@ -68,6 +68,7 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 | rag_top_k_after | INTEGER | Количество чанков после фильтрации (default 8) |
 | rag_threshold | REAL | Порог similarity score для threshold-фильтрации (default 0.2) |
 | rag_mode | TEXT | Режим: `threshold`, `rerank`, `hybrid` (default `threshold`) |
+| rag_strict | INTEGER 0/1 | Строгий режим RAG: при confidence=none — «Я не знаю» вместо fallback на основную LLM (default 0) |
 
 ### messages
 `session_id → sessions.id`, `role` (user/assistant/system/command), `content`, `timestamp`
@@ -96,15 +97,17 @@ SQLite, 5 таблиц. Все `session_id` с `ON DELETE CASCADE`. Создаю
 
 ### RAG-режим
 - Флаг `rag_enabled` хранится в сессии (колонка `sessions.rag_enabled`)
-- Параметры RAG: `rag_top_k_before` (до фильтрации, default 15), `rag_top_k_after` (после, default 8), `rag_threshold` (порог, default 0.2), `rag_mode` (режим, default `threshold`)
+- Параметры RAG: `rag_top_k_before` (до фильтрации, default 15), `rag_top_k_after` (после, default 8), `rag_threshold` (порог, default 0.2), `rag_mode` (режим, default `threshold`), `rag_strict` (default False, персистится в `sessions.rag_strict`)
 - Команды: `/rag [on|off|config|compare]`, `/rag` (статус)
+- Провайдер: `_rag_provider_kwargs()` выбирает под `model_provider` индекс (data/ или data_local/), эмбеддер (text-embedding-3-small или nomic-embed-text через Ollama) и rerank/verify-модели; при "local" весь путь идёт через Ollama без облачных вызовов
 - В `chat()` при `rag_enabled=True`:
-    1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode)`
+    1. Создаётся `RagPipeline(api_key, top_k_before, top_k_after, threshold, mode, **provider_kwargs)`
     2. Выполняется `pipeline.run(user_input)` — search → filter → rerank → slice
     3. `_verify_relevance()` (pre-verification) через дешёвую LLM проверяет, есть ли прямые ответы среди чанков; если нет — confidence="none"
     4. `generate_answer()` из `ragger/answer.py` вызывает LLM с doc-размеченными чанками, возвращает `RagAnswer` (answer, sources, confidence, quotes)
-    5. При `confidence != "none"` — форматируется rag_override (ответ + источники + цитаты) и используется как финальный (без повторного вызова main LLM)
-    6. При `confidence="none"` — rag_override = None, выполнение падает на основную LLM с историей диалога и памятью (чинит мета-вопросы, OOD-запросы, общие знания — без галлюцинаций RAG)
+    5. При `confidence != "none"` и непустом ответе — форматируется rag_override (ответ + источники + цитаты) и используется как финальный (без повторного вызова main LLM)
+    6. При `confidence="none"`: если `rag_strict=True` — финальный ответ «Я не знаю» (анти-галлюцинации); иначе rag_override = None, выполнение падает на основную LLM с историей диалога и памятью (чинит мета-вопросы, OOD-запросы, общие знания)
+    7. Собирается `last_rag_debug` (provider, model, embed_model, timings embed/rerank/generate, chunks, confidence) — webui показывает его серой техстрокой под ответом
 - RAG и MCP независимы и могут работать одновременно
 - Три режима:
   - `threshold` — FAISS search → отсев по similarity score (`threshold_filter`)
@@ -146,6 +149,7 @@ response = agent._call_api(messages)
 Устанавливается `set_strategy(type, api_key, base_url)`.
 
 ### Компрессия
+- По умолчанию **выключена** (day-28): новая сессия стартует без компрессии, включение — `/compression on`
 - Каждые 5 сообщений — LLM создаёт саммари
 - Хранится в таблице `compressed_summaries`
 - В `chat()` обновляется после ответа
@@ -176,8 +180,14 @@ response = agent._call_api(messages)
 - `/rag` — статус (вкл/выкл, параметры)
 - `/rag on` — включить RAG: при каждом запросе подгружаются релевантные чанки из FAISS
 - `/rag off` — выключить RAG: модель отвечает из своего общего знания
-- `/rag config <key> <val>` — настройка параметров: `threshold` (0.0–1.0), `top_k_before`, `top_k_after`, `mode` (threshold/rerank/hybrid)
-- `/rag compare <query>` — A/B-тест 3 режимов: прогоняет запрос через threshold/rerank/hybrid и показывает сравнительную статистику
+- `/rag config <key> <val>` — настройка параметров: `threshold` (0.0–1.0), `top_k_before`, `top_k_after`, `mode` (threshold/rerank/hybrid), `strict` (on/off — «Я не знаю» вместо fallback при confidence=none)
+- `/rag compare <query>` — A/B-тест 3 режимов: прогоняет запрос через threshold/rerank/hybrid (с провайдер-конфигом агента) и показывает сравнительную статистику
+
+### Команда `/task` (в `_handle_command()`)
+- `/task` — статус рабочей памяти (вкл/выкл) и содержимое TaskContext
+- `/task on` / `/task off` — включить/выключить рабочую память (default off; при выключенной нет ни extraction-вызова LLM, ни инжекции блока в system prompt)
+- `/task clear` — очистить рабочую память
+- `/task <key> <value>` — задать значение вручную
 
 ### Команды `/mcp` (в `_handle_command()`)
 - `/mcp` — статус (вкл/выкл, список серверов, инструменты)

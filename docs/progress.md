@@ -27,4 +27,5 @@
 | 5      | 25   | Мини-чат с RAG + памятью (production-like) | done | [jarvis.py](../agents/jarvis.py), [jarvis_memory.py](../agents/jarvis_memory.py), [jarvis_session.py](../agents/jarvis_session.py) | https://disk.yandex.ru/i/DfEKbvK7RoMtUA |
 | 6      | 26   | Запуск локальной LLM (Ollama) | done | [README.md](../week-06/day-26/README.md) | https://disk.yandex.ru/i/MoXvAKPVX8IphQ |
 | 6      | 27   | Интеграция локальной LLM в приложение | done | [app.py](../webui/app.py), [script.js](../webui/static/script.js) | https://disk.yandex.ru/i/2nEGRTnHC3HYsg |
-| 6      | 28   | TBD | todo | TBD | TBD |
+| 6      | 28   | Локальная LLM + RAG (полностью локальный пайплайн) | done | [pipeline.py](../ragger/pipeline.py), [search.py](../ragger/search.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/HF5Z49DpCWLCJg |
+| 6      | 29   | TBD | todo | TBD | TBD |

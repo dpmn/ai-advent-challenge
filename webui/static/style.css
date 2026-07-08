@@ -371,6 +371,16 @@ body {
   word-break: break-all;
 }
 
+.rag-debug {
+  align-self: flex-start;
+  max-width: 85%;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11px;
+  padding: 2px 14px;
+  margin-top: -8px;
+}
+
 /* ──── Input ────────────────────────────────── */
 
 #input-area {

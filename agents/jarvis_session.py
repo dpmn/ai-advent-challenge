@@ -76,7 +76,7 @@ class SessionMixin:
                 except sqlite3.OperationalError:
                     pass
             for col_migration in [
-                ("compression_enabled", "INTEGER DEFAULT 1"),
+                ("compression_enabled", "INTEGER DEFAULT 0"),
                 ("context_strategy", "TEXT DEFAULT NULL"),
                 ("sticky_facts", "TEXT DEFAULT '{}'"),
                 ("task_context", "TEXT DEFAULT '{}'"),
@@ -119,6 +119,7 @@ class SessionMixin:
                 ("rag_top_k_after", "INTEGER DEFAULT 5"),
                 ("rag_threshold", "REAL DEFAULT 0.2"),
                 ("rag_mode", "TEXT DEFAULT 'hybrid'"),
+                ("rag_strict", "INTEGER DEFAULT 0"),
             ]:
                 try:
                     conn.execute(f"ALTER TABLE sessions ADD COLUMN {rag_col[0]} {rag_col[1]}")
@@ -133,7 +134,7 @@ class SessionMixin:
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
                 "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled, "
-                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode "
+                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode, rag_strict "
                 "FROM sessions ORDER BY last_active_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
@@ -149,6 +150,7 @@ class SessionMixin:
                     "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
                     "rag_top_k_before": row[21], "rag_top_k_after": row[22],
                     "rag_threshold": row[23], "rag_mode": row[24],
+                    "rag_strict": row[25],
                 }
             return None
 
@@ -159,7 +161,7 @@ class SessionMixin:
                 "compression_enabled, context_strategy, sticky_facts, task_context, profile_name, "
                 "sm_enabled, sm_validation_enabled, sm_current_state, sm_artifacts, sm_stage_configs, "
                 "invariants_enabled, invariants_config, mcp_enabled, mcp_config, rag_enabled, "
-                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode "
+                "rag_top_k_before, rag_top_k_after, rag_threshold, rag_mode, rag_strict "
                 "FROM sessions WHERE id = ?",
                 (session_id,)
             )
@@ -176,6 +178,7 @@ class SessionMixin:
                     "mcp_enabled": row[18], "mcp_config": row[19], "rag_enabled": row[20],
                     "rag_top_k_before": row[21], "rag_top_k_after": row[22],
                     "rag_threshold": row[23], "rag_mode": row[24],
+                    "rag_strict": row[25],
                 }
             return None
 
@@ -230,6 +233,9 @@ class SessionMixin:
     def create_session(self, name: Optional[str] = None, sm_enabled: bool = False) -> dict:
         if not name:
             name = f"Сессия от {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        # Новая сессия всегда стартует без компрессии (не наследует
+        # состояние текущей сессии агента); включается через /compression on.
+        self.compression_enabled = False
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "INSERT INTO sessions (name, compression_enabled, sm_enabled) VALUES (?, ?, ?)",
@@ -251,6 +257,7 @@ class SessionMixin:
             "rag_top_k_after": 5,
             "rag_threshold": 0.2,
             "rag_mode": "hybrid",
+            "rag_strict": 0,
         }
         self.current_session = session
         self.conversation_history = []
@@ -273,6 +280,7 @@ class SessionMixin:
         self.rag_top_k_after = 8
         self.rag_threshold = 0.2
         self.rag_mode = "threshold"
+        self.rag_strict = False
         self.pipeline = None
         if sm_enabled:
             sm_validation = True
@@ -332,6 +340,7 @@ class SessionMixin:
         self.rag_top_k_after = session.get("rag_top_k_after", 5) or 5
         self.rag_threshold = float(session.get("rag_threshold", 0.2) or 0.2)
         self.rag_mode = session.get("rag_mode", "hybrid") or "hybrid"
+        self.rag_strict = bool(session.get("rag_strict", False))
         sm_enabled = session.get("sm_enabled", False)
         if sm_enabled:
             sm_validation = session.get("sm_validation_enabled", True)
@@ -488,9 +497,9 @@ class SessionMixin:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE sessions SET rag_top_k_before = ?, rag_top_k_after = ?, "
-                "rag_threshold = ?, rag_mode = ? WHERE id = ?",
+                "rag_threshold = ?, rag_mode = ?, rag_strict = ? WHERE id = ?",
                 (self.rag_top_k_before, self.rag_top_k_after,
-                 self.rag_threshold, self.rag_mode,
+                 self.rag_threshold, self.rag_mode, int(self.rag_strict),
                  self.current_session["id"])
             )
             conn.commit()
@@ -498,3 +507,4 @@ class SessionMixin:
         self.current_session["rag_top_k_after"] = self.rag_top_k_after
         self.current_session["rag_threshold"] = self.rag_threshold
         self.current_session["rag_mode"] = self.rag_mode
+        self.current_session["rag_strict"] = int(self.rag_strict)
