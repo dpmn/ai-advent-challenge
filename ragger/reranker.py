@@ -16,11 +16,18 @@ def llm_rerank(
     api_key: str,
     model: str = "Qwen/Qwen3-Coder-Next",
     base_url: str = "https://foundation-models.api.cloud.ru/v1",
+    llm_profile: dict | None = None,
 ) -> list[dict]:
     """Реранкинг чанков через LLM: оценивает релевантность каждого чанка к запросу.
 
     Делает один батч-запрос к LLM, получает оценки для всех чанков,
     сортирует по убыванию оценки.
+
+    Args:
+        llm_profile: Профиль инференса локального провайдера (day-29):
+            transport="ollama" → нативный /api/chat с rerank_options
+            (num_ctx, temperature, num_predict) и keep_alive.
+            None — облачный путь без изменений.
     """
     if not chunks:
         return chunks
@@ -38,6 +45,23 @@ def llm_rerank(
         "0.0 — не релевантен. Индекс элемента в массиве соответствует номеру документа.\n"
         "Формат: [0.1, 0.9, 0.4, ...]"
     )
+
+    profile = llm_profile or {}
+    if profile.get("transport") == "ollama":
+        from ragger.ollama_client import ollama_chat
+        try:
+            content, _metrics = ollama_chat(
+                prompt,
+                model=model,
+                base_url=base_url,
+                options=profile.get("rerank_options"),
+                keep_alive=profile.get("keep_alive", "30m"),
+                timeout=300,
+            )
+        except Exception as e:
+            print(f"[RERANKER] Ollama LLM error: {e}")
+            return chunks
+        return _apply_scores(chunks, content)
 
     payload = {
         "model": model,
@@ -65,6 +89,11 @@ def llm_rerank(
         print(f"[RERANKER] LLM error: {e}")
         return chunks
 
+    return _apply_scores(chunks, content)
+
+
+def _apply_scores(chunks: list[dict], content: str) -> list[dict]:
+    """Парсит оценки из ответа LLM, проставляет rerank_score и сортирует чанки."""
     scores = _parse_scores(content, len(chunks))
 
     for i, c in enumerate(chunks):

@@ -28,4 +28,5 @@
 | 6      | 26   | Запуск локальной LLM (Ollama) | done | [README.md](../week-06/day-26/README.md) | https://disk.yandex.ru/i/MoXvAKPVX8IphQ |
 | 6      | 27   | Интеграция локальной LLM в приложение | done | [app.py](../webui/app.py), [script.js](../webui/static/script.js) | https://disk.yandex.ru/i/2nEGRTnHC3HYsg |
 | 6      | 28   | Локальная LLM + RAG (полностью локальный пайплайн) | done | [pipeline.py](../ragger/pipeline.py), [search.py](../ragger/search.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/HF5Z49DpCWLCJg |
-| 6      | 29   | TBD | todo | TBD | TBD |
+| 6      | 29   | Оптимизация локальной LLM | done | [ollama_client.py](../ragger/ollama_client.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py), [bench.py](../week-06/day-29/bench.py) | https://disk.yandex.ru/i/OC_Aq991Kxi2oQ |
+| 6      | 30   | TBD | todo | TBD | TBD |

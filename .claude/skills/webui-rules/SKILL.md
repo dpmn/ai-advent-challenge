@@ -29,8 +29,8 @@ agent = JarvisAgent(
 
 ### Модели и провайдеры
 - `DEFAULT_MODELS` / `CLOUD_MODELS` — облачные модели (Cloud.ru), переопределяются env `AVAILABLE_MODELS`
-- `LOCAL_MODEL = "qwen2.5-coder:7b"` — локальная модель через Ollama; адрес — env `OLLAMA_BASE_URL` (дефолт `http://localhost:11434/v1`), api_key — заглушка `"ollama"`
-- `AVAILABLE_MODELS = CLOUD_MODELS + [LOCAL_MODEL]`
+- `LOCAL_MODELS = ["qwen2.5-coder:7b", "qwen2.5-coder:7b-instruct-q3_K_M"]` — локальные модели через Ollama (два кванта одной модели, day-29: Q4_K_M — дефолт, Q3_K_M — быстрее/легче); адрес — env `OLLAMA_BASE_URL` (дефолт `http://localhost:11434/v1`), api_key — заглушка `"ollama"`
+- `AVAILABLE_MODELS = CLOUD_MODELS + LOCAL_MODELS`
 - `MODEL_PROVIDERS` — карта `model_id → {base_url, api_key}`; при смене модели в `update_settings()` переключаются `agent.base_url` и `agent.api_key`
 
 ### Все эндпоинты
@@ -46,7 +46,7 @@ agent = JarvisAgent(
 | POST | `/api/chat` | Отправить сообщение. Body: `{message}`. Возвращает `{response, messages, rag_debug}` (rag_debug — отладка RAG-прогона из `agent.last_rag_debug` или null; дублируется в лог Flask) |
 | GET | `/api/models` | Список моделей + `local_models` (пометка локальных) + текущая |
 | GET | `/api/settings` | Все настройки |
-| POST | `/api/settings` | Обновить model (+ base_url/api_key по `MODEL_PROVIDERS` + `agent.model_provider` = "local"/"cloud"), temperature, max_tokens, context_limit, invariants_enabled |
+| POST | `/api/settings` | Обновить model (+ base_url/api_key по `MODEL_PROVIDERS` + `agent.model_provider` = "local" если модель в `LOCAL_MODELS`, иначе "cloud"), temperature, max_tokens, context_limit, invariants_enabled |
 | GET | `/api/stats` | Статистика агента (текст) |
 | GET | `/api/mcp` | MCP-статус: `{enabled, servers: [...], tools: [...]}` |
 | POST | `/api/mcp/toggle` | Вкл/выкл MCP. Body: `{enabled: bool}` |
@@ -109,7 +109,7 @@ Theme restored on load from `localStorage`.
 - `loadMessages()` — GET /api/sessions/{id}/messages
 - `renderMessages(messages)` — рендер всех сообщений
 - `sendMessage()` — POST /api/chat
-- `buildRagDebugDiv(ragDebug)` — собирает серую техническую строку `.rag-debug`: `RAG [provider · model · emb: embed_model] embed Xs · rerank Ys · verify+generate Zs · chunks N · confidence C`. Последний `rag_debug` хранится в переменных `lastRagDebug` / `lastRagDebugSessionId` (задаются в `sendMessage()`), а дорисовывает строку сам `renderMessages()` под последним сообщением — так она переживает перерисовки истории (например, из `loadSessions()`). Показывается только в сессии, где получен ответ; не персистится (сбрасывается перезагрузкой страницы и следующим сообщением)
+- `buildRagDebugDiv(ragDebug)` — собирает серую техническую строку `.rag-debug`: `RAG [provider · model · emb: embed_model] embed Xs · rerank Ys · verify+generate Zs · chunks N · confidence C`; при нативном Ollama-пути (day-29) добавляются `NN tok/s` (`gen_tok_s`) и `load NNs` (`gen_load_s`). Последний `rag_debug` хранится в переменных `lastRagDebug` / `lastRagDebugSessionId` (задаются в `sendMessage()`), а дорисовывает строку сам `renderMessages()` под последним сообщением — так она переживает перерисовки истории (например, из `loadSessions()`). Показывается только в сессии, где получен ответ; не персистится (сбрасывается перезагрузкой страницы и следующим сообщением)
 
 ### Паттерн sendMessage()
 ```

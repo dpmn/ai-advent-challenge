@@ -240,13 +240,43 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
     # ── Основной метод ────────────────────────────────────────────
 
+    def _local_llm_profile(self) -> dict | None:
+        """Профиль инференса Ollama для локального провайдера (day-29), None для cloud.
+
+        Режим выбирается полем `llm_mode` активного профиля Jarvis
+        (agents/memory/profiles/*.md): "baseline" — путь day-28 как есть
+        (OpenAI-совместимый /v1, серверный num_ctx, полный промпт),
+        иначе (в т.ч. default) — оптимизированный нативный путь.
+
+        num_ctx одинаковый на всех этапах: это load-time параметр, разное
+        значение в соседних запросах перегружает модель (десятки секунд).
+        8192 подобран под 6 GiB VRAM: веса Q4_K_M (~4.4 GiB) + KV-cache
+        (~450 MiB) влезают целиком на GPU — против 18/29 слоёв при
+        серверном дефолте 32768.
+        """
+        if self.model_provider != "local":
+            return None
+        if self.profile.get("llm_mode", "").strip().lower() == "baseline":
+            return None
+        num_ctx = 8192
+        return {
+            "transport": "ollama",
+            "keep_alive": "30m",
+            "gen_options": {"num_ctx": num_ctx, "temperature": 0.0, "num_predict": 1024},
+            "verify_options": {"num_ctx": num_ctx, "temperature": 0.0, "num_predict": 5},
+            "rerank_options": {"num_ctx": num_ctx, "temperature": 0.0, "num_predict": 256},
+            "chunk_char_limit": 1600,
+            "prompt_style": "compact",
+        }
+
     def _rag_provider_kwargs(self) -> tuple[dict, str]:
         """Возвращает (kwargs для RagPipeline, verify_model) под активного провайдера.
 
         Для "local" весь RAG-путь идёт через Ollama: эмбеддинг запроса
         (nomic-embed-text, индекс data_local/), реранк, верификация и
-        генерация — активной локальной моделью. Для "cloud" — Cloud.ru
-        и индекс data/ (дефолты RagPipeline).
+        генерация — активной локальной моделью, инференс — по профилю
+        _local_llm_profile(). Для "cloud" — Cloud.ru и индекс data/
+        (дефолты RagPipeline).
         """
         from ragger.search import DATA_DIR, DATA_DIR_LOCAL
 
@@ -259,6 +289,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                 "embed_model": "nomic-embed-text",
                 "embed_base_url": self.base_url,
                 "embed_prefix": "search_query: ",
+                "llm_profile": self._local_llm_profile(),
             }, self.model
         return {"data_dir": DATA_DIR}, "Qwen/Qwen3-30B-A3B"
 
@@ -337,6 +368,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     model=self.model,
                     base_url=self.base_url,
                     verify_model=verify_model,
+                    llm_profile=provider_kwargs.get("llm_profile"),
                 )
                 t_gen = _time.monotonic() - t_gen0
 
@@ -350,6 +382,11 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     "confidence": rag_answer.confidence,
                     "timings": {k: round(v, 2) for k, v in timings.items()},
                 }
+                gen_metrics = (rag_answer.llm_metrics or {}).get("generate")
+                if gen_metrics:
+                    self.last_rag_debug["gen_tok_s"] = gen_metrics.get("tok_s")
+                    self.last_rag_debug["gen_load_s"] = gen_metrics.get("load_s")
+                    self.last_rag_debug["gen_eval_count"] = gen_metrics.get("eval_count")
                 print(f"[JARVIS][RAG] provider={self.model_provider} "
                       f"chunks={len(rag_chunks)} confidence={rag_answer.confidence} "
                       f"timings={self.last_rag_debug['timings']}")

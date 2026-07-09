@@ -193,6 +193,8 @@ function buildRagDebugDiv(ragDebug) {
   if (t.faiss_s !== undefined) parts.push(`faiss ${t.faiss_s}s`);
   if (t.rerank_s !== undefined) parts.push(`rerank ${t.rerank_s}s`);
   if (t.generate_s !== undefined) parts.push(`verify+generate ${t.generate_s}s`);
+  if (ragDebug.gen_tok_s) parts.push(`${ragDebug.gen_tok_s} tok/s`);
+  if (ragDebug.gen_load_s) parts.push(`load ${ragDebug.gen_load_s}s`);
   const div = document.createElement("div");
   div.className = "rag-debug";
   div.textContent =

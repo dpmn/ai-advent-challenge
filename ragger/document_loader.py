@@ -1,4 +1,4 @@
-"""Загрузка документов проекта: .md из docs/lessions и week-*/, docstring-и из agents/*.py, полный код из ragger/*.py."""
+"""Загрузка документов проекта: .md из docs/lessions и week-*/, docs/database-schema.md, docstring-и из agents/*.py, полный код из ragger/*.py."""
 
 import os
 import re
@@ -13,12 +13,15 @@ class Document:
     text: str
 
 
-def _strip_markdown(text: str) -> str:
+def _strip_markdown(text: str, keep_headings: bool = False) -> str:
+    """Чистит Markdown-разметку. keep_headings=True оставляет заголовки (#..###),
+    чтобы structural-чанкер мог разрезать документ по секциям."""
     text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
     text = re.sub(r'`([^`]+)`', r'\1', text)
     text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    if not keep_headings:
+        text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
     text = re.sub(r'[*_]{1,3}', '', text)
     text = re.sub(r'^---+\s*$', '', text, flags=re.MULTILINE)
     return text.strip()
@@ -48,6 +51,19 @@ def load_documents(project_root: str | None = None) -> list[Document]:
                         title=fname.replace('.md', ''),
                         text=text,
                     ))
+
+    # Заголовки сохраняем: док большой и табличный, без разреза по секциям
+    # (### sessions, ### messages, ...) его эмбеддинг размывается и не находится.
+    schema_md = os.path.join(project_root, 'docs', 'database-schema.md')
+    if os.path.isfile(schema_md):
+        text = _strip_markdown(Path(schema_md).read_text(encoding='utf-8'),
+                               keep_headings=True)
+        if text:
+            docs.append(Document(
+                source=os.path.relpath(schema_md, project_root),
+                title='database-schema',
+                text=text,
+            ))
 
     for week_dir in sorted(os.listdir(project_root)):
         if not re.match(r'^week-\d{2}$', week_dir):
