@@ -62,6 +62,176 @@
   {
     "faiss_id": 6,
     "chunk_id": "struct_00006",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "database-schema",
+    "text": "# Схема базы данных JarvisAgent",
+    "strategy": "structural",
+    "token_count": 7
+  },
+  {
+    "faiss_id": 7,
+    "chunk_id": "struct_00007",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Обзор",
+    "text": "База данных SQLite хранится в файле agents/memory/jarvishistory.db.\n\nВся структура автоматически создаётся при первом запуске агента (метод initdb()).\n\nВ проекте нет индексов и миграций — достаточно простого описания таблиц и связей.",
+    "strategy": "structural",
+    "token_count": 58
+  },
+  {
+    "faiss_id": 8,
+    "chunk_id": "struct_00008",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "sessions",
+    "text": "Хранит информацию о сессиях диалога. Каждая сессия — независимый чат с отдельной историей.\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID сессии |\n| name | TEXT NOT NULL | Имя сессии (человекочитаемое) |\n| createdat | TIMESTAMP | Дата создания (автоматически: CURRENTTIMESTAMP) |\n| lastactiveat | TIMESTAMP | Последняя активность (обновляется при сохранении сообщений) |\n| prompttokens | INTEGER DEFAULT 0 | Количество prompt tokens за сессию |\n| completiontokens | INTEGER DEFAULT 0 | Количество completion tokens за сессию |\n| totaltokens | INTEGER DEFAULT 0 | Сумма всех токенов за сессию |\n| compressionenabled | INTEGER DEFAULT 0 | Флаг включённого сжатия (0/1). С дня 28 по умолчанию выключено; включение — /compression on |\n| contextstrategy | TEXT DEFAULT NULL | Стратегия управления контекстом: slidingwindow, stickyfacts, branching или NULL |\n| stickyfacts | TEXT DEFAULT '{}' | JSON-объект с ключевыми фактами (для стратегии stickyfacts) |\n| taskcontext | TEXT DEFAULT '{}' | JSON-объект с рабочей памятью (TaskContext) — данные текущей задачи |\n| profilename | TEXT DEFAULT 'default' | Имя активного профиля (долговременная память) |\n| smenabled | INTEGER DEFAULT 0 | Флаг State Machine (0/1). Устанавливается при создании сессии, не меняется |\n| smvalidationenabled | INTEGER DEFAULT 1 | Флаг валидации перед переходом между этапами SM (0/1) |\n| smcurrentstate | TEXT DEFAULT 'PLANNING' | Текущий этап SM: PLANNING, EXECUTION, VALIDATION, DONE |\n| smartifacts | TEXT DEFAULT '{}' | JSON-объект с артефактами этапов (plan, execution, validation, done) |\n| smstageconfigs | TEXT DEFAULT '{}' | JSON-объект с per-stage настройками LLM (model, temperature, maxtokens) |\n| invariantsenabled | INTEGER DEFAULT 1 | Глобальный флаг проверки инвариантов |\n| invariantsconfig | TEXT DEFAULT '{}' | JSON с enabledids — какие инварианты активны в сессии |\n| mcpenabled | INTEGER DEFAULT 0 | Флаг включённого MCP (0/1) |\n| mcpconfig | TEXT DEFAULT '{}' | JSON-объект с конфигурацией MCP-серверов |\n| ragenabled | INTEGER DEFAULT 0 | Флаг RAG-режима (0/1): при включении перед каждым запросом LLM инжектятся релевантные чанки из FAISS |\n| ragtopkbefore | INTEGER DEFAULT 15 | Количество чанков до фильтрации (FAISS search) |\n| ragtopkafter | INTEGER DEFAULT 8 | Количество чанков после фильтрации/реранкинга |\n| ragthreshold | REAL DEFAULT 0.2 | Порог similarity score для threshold-фильтрации |\n| ragmode | TEXT DEFAULT 'threshold' | Режим обработки: threshold, rerank, hybrid |\n| ragstrict | INTEGER DEFAULT 0 | Строгий режим RAG (0/1): при confidence=none агент отвечает «Я не знаю» вместо fallback-а на основную LLM. Управляется /rag config strict on\\|off |\n\nВажные поля для архитектуры:\n- Основная связь: sessions.id → messages.sessionid, compressedsummaries.sessionid, branches.sessionid, stagemessages.sessionid\n- contextstrategy определяет логику хранения/обработки сообщений\n- smenabled включает State Machine-маршрутизацию в chat()",
+    "strategy": "structural",
+    "token_count": 750
+  },
+  {
+    "faiss_id": 9,
+    "chunk_id": "struct_00009",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "messages",
+    "text": "Хранит все сообщения всех сессий. Каждая запись — одно сообщение (user/assistant/system).\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID сообщения |\n| sessionid | INTEGER NOT NULL | ID сессии (связь с sessions.id) |\n| role | TEXT NOT NULL | Роль сообщения: user, assistant, system, command |\n| content | TEXT NOT NULL | Текст сообщения |\n| timestamp | TIMESTAMP | Время создания (автоматически: CURRENTTIMESTAMP) |\n\nСвязи:\n- Внешний ключ: FOREIGN KEY (sessionid) REFERENCES sessions(id) ON DELETE CASCADE\n- При удалении сессии автоматически удаляются все её сообщения\n\nИспользование:\n- Сортировка по timestamp ASC для получения хронологической истории\n- Фильтрация по sessionid для изоляции чатов\n- role = \"system\" — системный промпт, остальные — user/assistant/commands",
+    "strategy": "structural",
+    "token_count": 208
+  },
+  {
+    "faiss_id": 10,
+    "chunk_id": "struct_00010",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "compressedsummaries",
+    "text": "Хранит итоги сжатия истории (архивные сводки).\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID записи |\n| sessionid | INTEGER NOT NULL | ID сессии (связь с sessions.id) |\n| content | TEXT NOT NULL | Текст суммаризации (сжатая форма истории) |\n| sourcecount | INTEGER DEFAULT 0 | Количество сообщений, из которых собрана суммаризация |\n| tokensbefore | INTEGER DEFAULT 0 | Исходный объём токенов перед сжатием |\n| tokensafter | INTEGER DEFAULT 0 | Токенов после сжатия |\n| createdat | TIMESTAMP | Время создания суммаризации |\n\nСвязи:\n- Внешний ключ: FOREIGN KEY (sessionid) REFERENCES sessions(id) ON DELETE CASCADE\n- При удалении сессии автоматически удаляются все суммаризации\n\nИспользование:\n- При загрузке сессии суммаризации подключаются к началу истории как system-сообщения\n- Позволяют восстановить \"старую\" историю без потерь при сжатии",
+    "strategy": "structural",
+    "token_count": 226
+  },
+  {
+    "faiss_id": 11,
+    "chunk_id": "struct_00011",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "branches",
+    "text": "Хранит информацию о ветках диалога (для стратегии branching).\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID ветки (0 = main) |\n| sessionid | INTEGER NOT NULL | ID сессии (связь с sessions.id) |\n| name | TEXT NOT NULL | Имя ветки (например, \"experiment-1\", \"fallback\") |\n| parentbranchid | INTEGER DEFAULT 0 | ID родительской ветки (для отслеживания иерархии) |\n| checkpointmessageindex | INTEGER DEFAULT 0 | Индекс сообщения, от которого создана ветка |\n| createdat | TIMESTAMP | Время создания ветки |\n\nСвязи:\n- Внешний ключ: FOREIGN KEY (sessionid) REFERENCES sessions(id) ON DELETE CASCADE\n- При удалении сессии автоматически удаляются все ветки\n\nИспользование:\n- При инициализации branching-стратегии загружаются сохранённые ветки из БД\n- На каждой ветке свой conversationhistory, свои счётчики токенов\n- Реальные сообщения хранятся в оперативной памяти (self.branches[<>][\"messages\"]), а не в этой таблице (таблица хранит метаданные о ветках)",
+    "strategy": "structural",
+    "token_count": 252
+  },
+  {
+    "faiss_id": 12,
+    "chunk_id": "struct_00012",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "stagemessages",
+    "text": "Хранит изолированную историю сообщений каждого этапа State Machine.\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID записи |\n| sessionid | INTEGER NOT NULL | ID сессии (связь с sessions.id) |\n| stage | TEXT NOT NULL | Этап SM: PLANNING, EXECUTION, VALIDATION, DONE |\n| role | TEXT NOT NULL | Роль сообщения: user, assistant |\n| content | TEXT NOT NULL | Текст сообщения |\n| timestamp | TIMESTAMP | Время создания (автоматически: CURRENTTIMESTAMP) |\n\nСвязи:\n- Внешний ключ: FOREIGN KEY (sessionid) REFERENCES sessions(id) ON DELETE CASCADE\n- При удалении сессии автоматически удаляются все сообщения этапов\n\nИспользование:\n- При инициализации PipelineAgent загружает историю каждого этапа отдельно\n- Каждый StageAgent работает только со своими сообщениями (фильтр по stage)\n- Позволяет ре-входить на этап без потери контекста",
+    "strategy": "structural",
+    "token_count": 221
+  },
+  {
+    "faiss_id": 13,
+    "chunk_id": "struct_00013",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Схема связей",
+    "text": "ON DELETE CASCADE: удаление сессии → автоматическое удаление всех связанных данных.",
+    "strategy": "structural",
+    "token_count": 20
+  },
+  {
+    "faiss_id": 14,
+    "chunk_id": "struct_00014",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Создание сессии",
+    "text": "1. Вставляется строка в sessions\n2. Возвращается id новой сессии\n3. Сообщения и суммаризации хранятся только в памяти (БД не трогаем)\n4. При первом user-сообщении оно сохраняется в messages",
+    "strategy": "structural",
+    "token_count": 47
+  },
+  {
+    "faiss_id": 15,
+    "chunk_id": "struct_00015",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Сохранение сообщений",
+    "text": "- Каждое user и assistant сообщение сохраняется в messages сразу после отправки в API\n- Строка обновляется lastactiveat в sessions",
+    "strategy": "structural",
+    "token_count": 32
+  },
+  {
+    "faiss_id": 16,
+    "chunk_id": "struct_00016",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Загрузка сессии",
+    "text": "1. Берётся последняя активная сессия из sessions\n2. Загружаются все её сообщения из messages (по sessionid)\n3. Загружаются суммаризации из compressedsummaries\n4. Для branching загружаются метаданные из branches",
+    "strategy": "structural",
+    "token_count": 52
+  },
+  {
+    "faiss_id": 17,
+    "chunk_id": "struct_00017",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Очистка истории",
+    "text": "- Команда /clear удаляет все messages для текущей сессии\n- Суммаризации и метаданные стратегий сбрасываются в памяти (но остаются в БД до удаления сессии)",
+    "strategy": "structural",
+    "token_count": 38
+  },
+  {
+    "faiss_id": 18,
+    "chunk_id": "struct_00018",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Удаление сессии",
+    "text": "- Удаляется строка из sessions\n- Благодаря ON DELETE CASCADE автоматически удаляются все messages, compressedsummaries, branches",
+    "strategy": "structural",
+    "token_count": 32
+  },
+  {
+    "faiss_id": 19,
+    "chunk_id": "struct_00019",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Примеры запросов",
+    "text": "Последняя активная сессия:\n\n\nВсе сообщения сессии с ID = 5:\n\n\nВсе ветки сессии с ID = 5:\n\n\nСуммаризации сессии с ID = 5:",
+    "strategy": "structural",
+    "token_count": 30
+  },
+  {
+    "faiss_id": 20,
+    "chunk_id": "struct_00020",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Space Monitor Database (mcpservers/spacemonitormcp/data/monitor.db)",
+    "text": "Вспомогательная SQLite БД, создаваемая BackgroundCollector из mcpservers/spacemonitormcp/collector.py.",
+    "strategy": "structural",
+    "token_count": 25
+  },
+  {
+    "faiss_id": 21,
+    "chunk_id": "struct_00021",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "collections",
+    "text": "Хранит собранные данные NASA (APOD, NEO).\n\n| Поле | Тип | Описание |\n|------|-----|----------|\n| id | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID записи |\n| ts | TEXT NOT NULL | Время сбора (UTC ISO-8601) |\n| source | TEXT NOT NULL | Источник: apod или neo |\n| data | TEXT NOT NULL | Полный JSON-ответ от NASA API |\n| summary | TEXT | Краткое текстовое описание (например, \"APOD 2026-06-20: Title\") |\n\nИспользуется инструментами MCP-сервера:\n- monitorstatus — общее количество записей, время последней записи\n- monitorsummary — группировка по source, количество, диапазон дат, последние 5 записей",
+    "strategy": "structural",
+    "token_count": 150
+  },
+  {
+    "faiss_id": 22,
+    "chunk_id": "struct_00022",
+    "source": "docs/database-schema.md",
+    "title": "database-schema",
+    "section": "Практические рекомендации",
+    "text": "Для разработки/отладки:\n1. sqlite3 agents/memory/jarvishistory.db — открыть БД\n2. .tables — таблицы\n3. SELECT  FROM sessions; — проверить сессии\n4. SELECT COUNT() FROM messages; — общее количество сообщений\n\nВажно:\n- Не редактировать БД вручную — есть риск нарушить целостность данных\n- При удалении сессии — проверяйте каскадное удаление\n- Для сброса всей истории — удалите файл БД (rm agents/memory/jarvishistory.db) и перезапустите агента",
+    "strategy": "structural",
+    "token_count": 110
+  },
+  {
+    "faiss_id": 23,
+    "chunk_id": "struct_00023",
     "source": "week-01/day-01/README.md",
     "title": "week-01/day-01",
     "section": "week-01/day-01",
@@ -70,8 +240,8 @@
     "token_count": 51
   },
   {
-    "faiss_id": 7,
-    "chunk_id": "struct_00007",
+    "faiss_id": 24,
+    "chunk_id": "struct_00024",
     "source": "week-01/day-02/README.md",
     "title": "week-01/day-02",
     "section": "week-01/day-02",
@@ -80,8 +250,8 @@
     "token_count": 91
   },
   {
-    "faiss_id": 8,
-    "chunk_id": "struct_00008",
+    "faiss_id": 25,
+    "chunk_id": "struct_00025",
     "source": "week-01/day-03/README.md",
     "title": "week-01/day-03",
     "section": "week-01/day-03",
@@ -90,8 +260,8 @@
     "token_count": 1917
   },
   {
-    "faiss_id": 9,
-    "chunk_id": "struct_00009",
+    "faiss_id": 26,
+    "chunk_id": "struct_00026",
     "source": "week-01/day-04/README.md",
     "title": "week-01/day-04",
     "section": "week-01/day-04",
@@ -100,8 +270,8 @@
     "token_count": 1005
   },
   {
-    "faiss_id": 10,
-    "chunk_id": "struct_00010",
+    "faiss_id": 27,
+    "chunk_id": "struct_00027",
     "source": "week-01/day-05/README.md",
     "title": "week-01/day-05",
     "section": "week-01/day-05",
@@ -110,8 +280,8 @@
     "token_count": 1783
   },
   {
-    "faiss_id": 11,
-    "chunk_id": "struct_00011",
+    "faiss_id": 28,
+    "chunk_id": "struct_00028",
     "source": "week-02/day-06/README.md",
     "title": "week-02/day-06",
     "section": "week-02/day-06",
@@ -120,8 +290,8 @@
     "token_count": 121
   },
   {
-    "faiss_id": 12,
-    "chunk_id": "struct_00012",
+    "faiss_id": 29,
+    "chunk_id": "struct_00029",
     "source": "week-02/day-07/README.md",
     "title": "week-02/day-07",
     "section": "week-02/day-07",
@@ -130,8 +300,8 @@
     "token_count": 192
   },
   {
-    "faiss_id": 13,
-    "chunk_id": "struct_00013",
+    "faiss_id": 30,
+    "chunk_id": "struct_00030",
     "source": "week-02/day-08/README.md",
     "title": "week-02/day-08",
     "section": "week-02/day-08",
@@ -140,8 +310,8 @@
     "token_count": 147
   },
   {
-    "faiss_id": 14,
-    "chunk_id": "struct_00014",
+    "faiss_id": 31,
+    "chunk_id": "struct_00031",
     "source": "week-02/day-09/README.md",
     "title": "week-02/day-09",
     "section": "week-02/day-09",
@@ -150,8 +320,8 @@
     "token_count": 1248
   },
   {
-    "faiss_id": 15,
-    "chunk_id": "struct_00015",
+    "faiss_id": 32,
+    "chunk_id": "struct_00032",
     "source": "week-02/day-10/README.md",
     "title": "week-02/day-10",
     "section": "week-02/day-10",
@@ -160,8 +330,8 @@
     "token_count": 1800
   },
   {
-    "faiss_id": 16,
-    "chunk_id": "struct_00016",
+    "faiss_id": 33,
+    "chunk_id": "struct_00033",
     "source": "week-03/day-11/README.md",
     "title": "week-03/day-11",
     "section": "week-03/day-11",
@@ -170,8 +340,8 @@
     "token_count": 1927
   },
   {
-    "faiss_id": 17,
-    "chunk_id": "struct_00017",
+    "faiss_id": 34,
+    "chunk_id": "struct_00034",
     "source": "week-03/day-12/README.md",
     "title": "week-03/day-12",
     "section": "week-03/day-12",
@@ -180,8 +350,8 @@
     "token_count": 1878
   },
   {
-    "faiss_id": 18,
-    "chunk_id": "struct_00018",
+    "faiss_id": 35,
+    "chunk_id": "struct_00035",
     "source": "week-03/day-13/README.md",
     "title": "week-03/day-13",
     "section": "week-03/day-13",
@@ -190,8 +360,8 @@
     "token_count": 1994
   },
   {
-    "faiss_id": 19,
-    "chunk_id": "struct_00019",
+    "faiss_id": 36,
+    "chunk_id": "struct_00036",
     "source": "week-03/day-14/README.md",
     "title": "week-03/day-14",
     "section": "week-03/day-14",
@@ -200,8 +370,8 @@
     "token_count": 1105
   },
   {
-    "faiss_id": 20,
-    "chunk_id": "struct_00020",
+    "faiss_id": 37,
+    "chunk_id": "struct_00037",
     "source": "week-03/day-15/README.md",
     "title": "week-03/day-15",
     "section": "week-03/day-15",
@@ -210,8 +380,8 @@
     "token_count": 1571
   },
   {
-    "faiss_id": 21,
-    "chunk_id": "struct_00021",
+    "faiss_id": 38,
+    "chunk_id": "struct_00038",
     "source": "week-04/day-16/README.md",
     "title": "week-04/day-16",
     "section": "week-04/day-16",
@@ -220,8 +390,8 @@
     "token_count": 1761
   },
   {
-    "faiss_id": 22,
-    "chunk_id": "struct_00022",
+    "faiss_id": 39,
+    "chunk_id": "struct_00039",
     "source": "week-04/day-17/README.md",
     "title": "week-04/day-17",
     "section": "week-04/day-17",
@@ -230,8 +400,8 @@
     "token_count": 1267
   },
   {
-    "faiss_id": 23,
-    "chunk_id": "struct_00023",
+    "faiss_id": 40,
+    "chunk_id": "struct_00040",
     "source": "week-04/day-18/README.md",
     "title": "week-04/day-18",
     "section": "week-04/day-18",
@@ -240,8 +410,8 @@
     "token_count": 1577
   },
   {
-    "faiss_id": 24,
-    "chunk_id": "struct_00024",
+    "faiss_id": 41,
+    "chunk_id": "struct_00041",
     "source": "week-04/day-19/README.md",
     "title": "week-04/day-19",
     "section": "week-04/day-19",
@@ -250,8 +420,8 @@
     "token_count": 1281
   },
   {
-    "faiss_id": 25,
-    "chunk_id": "struct_00025",
+    "faiss_id": 42,
+    "chunk_id": "struct_00042",
     "source": "week-04/day-20/README.md",
     "title": "week-04/day-20",
     "section": "week-04/day-20",
@@ -260,8 +430,8 @@
     "token_count": 1132
   },
   {
-    "faiss_id": 26,
-    "chunk_id": "struct_00026",
+    "faiss_id": 43,
+    "chunk_id": "struct_00043",
     "source": "week-05/day-21/README.md",
     "title": "week-05/day-21",
     "section": "week-05/day-21",
@@ -270,8 +440,8 @@
     "token_count": 533
   },
   {
-    "faiss_id": 27,
-    "chunk_id": "struct_00027",
+    "faiss_id": 44,
+    "chunk_id": "struct_00044",
     "source": "week-05/day-22/README.md",
     "title": "week-05/day-22",
     "section": "week-05/day-22",
@@ -280,8 +450,8 @@
     "token_count": 2000
   },
   {
-    "faiss_id": 28,
-    "chunk_id": "struct_00028",
+    "faiss_id": 45,
+    "chunk_id": "struct_00045",
     "source": "week-05/day-22/README.md",
     "title": "week-05/day-22",
     "section": "week-05/day-22",
@@ -290,8 +460,8 @@
     "token_count": 310
   },
   {
-    "faiss_id": 29,
-    "chunk_id": "struct_00029",
+    "faiss_id": 46,
+    "chunk_id": "struct_00046",
     "source": "week-05/day-23/README.md",
     "title": "week-05/day-23",
     "section": "week-05/day-23",
@@ -300,8 +470,8 @@
     "token_count": 1960
   },
   {
-    "faiss_id": 30,
-    "chunk_id": "struct_00030",
+    "faiss_id": 47,
+    "chunk_id": "struct_00047",
     "source": "week-05/day-24/README.md",
     "title": "week-05/day-24",
     "section": "week-05/day-24",
@@ -310,8 +480,8 @@
     "token_count": 761
   },
   {
-    "faiss_id": 31,
-    "chunk_id": "struct_00031",
+    "faiss_id": 48,
+    "chunk_id": "struct_00048",
     "source": "week-05/day-25/README.md",
     "title": "week-05/day-25",
     "section": "week-05/day-25",
@@ -320,8 +490,8 @@
     "token_count": 2000
   },
   {
-    "faiss_id": 32,
-    "chunk_id": "struct_00032",
+    "faiss_id": 49,
+    "chunk_id": "struct_00049",
     "source": "week-05/day-25/README.md",
     "title": "week-05/day-25",
     "section": "week-05/day-25",
@@ -330,8 +500,8 @@
     "token_count": 897
   },
   {
-    "faiss_id": 33,
-    "chunk_id": "struct_00033",
+    "faiss_id": 50,
+    "chunk_id": "struct_00050",
     "source": "week-06/day-26/README.md",
     "title": "week-06/day-26",
     "section": "week-06/day-26",
@@ -340,8 +510,8 @@
     "token_count": 335
   },
   {
-    "faiss_id": 34,
-    "chunk_id": "struct_00034",
+    "faiss_id": 51,
+    "chunk_id": "struct_00051",
     "source": "week-06/day-27/README.md",
     "title": "week-06/day-27",
     "section": "week-06/day-27",
@@ -350,18 +520,28 @@
     "token_count": 1054
   },
   {
-    "faiss_id": 35,
-    "chunk_id": "struct_00035",
+    "faiss_id": 52,
+    "chunk_id": "struct_00052",
     "source": "week-06/day-28/README.md",
     "title": "week-06/day-28",
     "section": "week-06/day-28",
-    "text": "Неделя 6 — День 28. Локальная LLM + RAG\n\nЗадание\n\nПодключите локальную LLM к вашему RAG-пайплайну:\n- используйте индекс из Недели 5\n- retrieval выполняется локально\n- генерация ответа — через локальную модель\n\nСравните:\n- ответы локальной модели\n- ответы облачной модели\n\nОцените:\n- качество\n- скорость\n- стабильность\n\nРезультат:\n- RAG-система, полностью работающая локально",
+    "text": "Неделя 6 — День 28. Локальная LLM + RAG\n\nЗадание\n\nПодключите локальную LLM к вашему RAG-пайплайну:\n- используйте индекс из Недели 5\n- retrieval выполняется локально\n- генерация ответа — через локальную модель\n\nСравните:\n- ответы локальной модели\n- ответы облачной модели\n\nОцените:\n- качество\n- скорость\n- стабильность\n\nРезультат:\n- RAG-система, полностью работающая локально\n\nЧто сделано\n\nВесь RAG-путь параметризован по провайдеру: при активной локальной модели эмбеддинг запроса,\nFAISS-поиск, реранк, верификация и генерация идут через Ollama — без единого облачного вызова.\n\n- ragger/embedder.py — параметры baseurl и prefix (task-префиксы nomic-embed-text:\n  searchdocument: при индексации, searchquery: при поиске); один httpx-клиент на все батчи.\n- ragger/pipeline.py — флаг --local: эмбеддинги через Ollama (nomic-embed-text, 768-dim),\n  индексы в ragger/datalocal/. Облачный индекс ragger/data/ не тронут — оба живут параллельно.\n- ragger/search.py — search() и RagPipeline принимают datadir + конфиг эмбеддера\n  (embedbaseurl, embedmodel, embedprefix, embedapikey); кеш индексов по ключу\n  (datadir, strategy); тайминги этапов (embed/faiss/rerank) в lasttimings.\n- ragger/reranker.py — добавлен timeout=120 у urlopen (мог висеть вечно).\n- ragger/answer.py — фикс бага недели 5: в промпт генерации не подставлялся вопрос\n  пользователя. Облачная модель это маскировала (пересказывала найденные документы),\n  локальная 7B честно отвечала «Я не знаю». Также при ошибке LLM теперь confidence=\"none\"\n  вместо пустого ответа с \"low\".\n- agents/jarvis.py — атрибут modelprovider (\"cloud\"/\"local\"), хелпер ragproviderkwargs()\n  (выбор индекса, эмбеддера, rerank/verify-моделей под провайдера), сбор lastragdebug\n  (провайдер, модели, тайминги этапов, число чанков); RAG-override только при непустом ответе.\n- agents/jarviscommands.py — /rag compare использует провайдер-конфиг агента.\n- webui/app.py — POST /api/settings выставляет agent.modelprovider; POST /api/chat\n  возвращает ragdebug и дублирует его в лог Flask.\n- webui/static/script.js, style.css — серая техническая строка под ответом:\n  RAG [local · qwen2.5-coder:7b · emb: nomic-embed-text] embed 0.3s · rerank 11.9s · verify+generate 47.8s · chunks 5 · confidence high.\n\nПо результатам проверки (мешали чистоте эксперимента и давали 404 на локальной модели):\n- компрессия истории по умолчанию выключена (agents/jarvis.py, jarvissession.py);\n  новая сессия всегда стартует без компрессии, включение — /compression on;\n- рабочая память (TaskContext, авто-extraction через LLM после каждого ответа) по умолчанию\n  выключена: новый флаг taskmemoryenabled, команды /task on|off; при выключенной\n  памяти нет ни extraction-вызова, ни инжекции блока в system prompt;\n- строгий режим RAG (/rag config strict on|off, по умолчанию off, персистится в сессии,\n  колонка sessions.ragstrict) — возврат контракта day-24: при confidence=none агент\n  отвечает «Я не знаю» вместо fallback-а на основную LLM (fallback давал галлюцинации\n  на OOD-вопросах, например выдуманных авторов RAG).\n\nПереиндексация: python3 ragger/pipeline.py --local (нужен туннель к Ollama).\n\nОграничения:\n- у nomic-embed-text контекст 2048 токенов — длинные structural-чанки при индексации молча обрезаются;\n- порог threshold=0.2 оставлен: скоры nomic на реальных запросах ~0.65–0.75, порог не мешает;\n- первый локальный запрос после простоя медленный: Ollama грузит модель в память\n  (Ollama выгружает её через ~5 минут простоя). Таймауты RAG-этапов подняты:\n  генерация 300s, реранк 300s, верификация 120s.\n\nСценарий проверки\n\nПеред проверкой: поднять туннель к Ollama (порт 11434), запустить python3 ./webui/app.py.\n\n1. Открой http://127.0.0.1:5000, создай новую сессию.\n2. Отправь: /rag on\n3. Ожидаемый результат: «✅ RAG-режим включён».\n4. Убедись, что в Settings выбрана облачная модель (Qwen/Qwen3-Coder-Next).\n5. Отправь запрос: \"Какие стратегии чанкинга используются в ragger?\"\n6. Ожидаемый результат: ответ про две стратегии (fixed-size с перекрытием и structural\n   по заголовкам Markdown), блок «📚 Источники» с ragger/chunking.py.\n7. Проверь серую техническую строку под ответом: RAG [cloud · Qwen/Qwen3-Coder-Next · emb: openai/text-embedding-3-small] ...\n   с таймингами embed/rerank/verify+generate. Запомни тайминги.\n8. В Settings переключи модель на qwen2.5-coder:7b (local).\n9. Отправь тот же запрос: \"Какие стратегии чанкинга используются в ragger?\"\n10. Ожидаемый результат: ответ по смыслу тот же (fixed-size + structural), источник ragger/chunking.py.\n11. Проверь техническую строку: RAG [local · qwen2.5-coder:7b · emb: nomic-embed-text] ... —\n    провайдер и эмбеддер локальные, тайминги заметно больше облачных (генерация ~30–60 с).\n12. Отправь запрос: \"Какие таблицы есть в базе данных jarvis?\"\n13. Ожидаемый результат: ответ на основе документов (sessions, messages, compressedsummaries,\n    branches, stagemessages) с источниками; провайдер в техстроке — local.\n14. Сравни облачный (шаги 5–7) и локальный (шаги 9–11) прогоны: качество ответа, скорость\n    по таймингам, стабильность (нет ли «Я не знаю» / пустых ответов у локалки).\n15. Строгий режим: переключись обратно на облачную модель, отправь /rag config strict on,\n    затем \"Сколько лет Юрию Гагарину?\"\n16. Ожидаемый результат: «Я не знаю…» — без сочинения ответа из общих знаний модели\n    (без strict такой OOD-вопрос уходит в основную LLM и она отвечает из общих знаний).\n\nВыводы\n\nЧто работает\n- Полностью локальный RAG-путь: эмбеддинг запроса (nomic-embed-text) → FAISS (datalocal/) →\n  верификация → генерация (qwen2.5-coder:7b) — все этапы через Ollama, облачных вызовов нет.\n- Ответ по базе знаний у локальной модели корректный, с источниками и цитатами\n  (вопрос про чанкинг: confidence high, верный источник ragger/chunking.py).\n- Строгий режим (/rag config strict on): OOD-вопрос («Сколько лет Юрию Гагарину?») →\n  «Я не знаю» у обеих моделей, галлюцинаций нет. Контракт day-24 восстановлен.\n- Техническая строка с таймингами в UI и логах — сравнение стало измеримым.\n- Фикс бага недели 5 (вопрос не подставлялся в промпт генерации) улучшил ответы обоих режимов.\n\nСравнение локальная vs облачная\n- Качество. Облако полнее: на вопросе про таблицы БД облачный retrieval нашёл\n  docstring jarvissession.py (5 таблиц с колонками), локальный — только старые README\n  недели 2 (2 таблицы, неполный ответ). Разница в качестве эмбеддингов:\n  text-embedding-3-small (1536-dim) точнее nomic-embed-text (768-dim, 137M) на этом корпусе.\n  На простых вопросах (чанкинг) ответы эквивалентны.\n- Скорость. Генерация: локально 75–104 с против 12–16 с в облаке (~6–8× медленнее,\n  7B через туннель). Эмбеддинг запроса: локально на тёплой модели быстрее облака\n  (0.3–0.4 с против 0.8–1.9 с), но холодный старт добавляет 9–28 с.\n- Стабильность. После поднятия таймаутов (генерация 300 с) — стабильно; до этого\n  первый запрос падал по таймауту на холодной загрузке модели (~5 мин простоя —\n  Ollama выгружает модель). Verify на 7B местами недетерминирован (тот же вопрос —\n  то yes, то no).\n\nЧто не работает / требует доработки\n- Ответ про таблицы БД неполный у обеих моделей: чанки режутся до 1200 символов в промпте\n  генерации (видно по оборванной цитате CREATE TABLE), длинные docstring-и теряют хвост.\n  Наследие недели 5, кандидат на доработку.\n- Локальный retrieval слабее облачного на вопросах, где ответ в длинном техническом чанке;\n  вклад дают и 768-dim эмбеддинги, и обрезка чанков под 2048-токенный контекст nomic.\n\nЗамечания\n- Fallback на основную LLM при confidence=none оставлен как режим по умолчанию\n  (нужен для мета-вопросов), strict — осознанное переключение для анти-галлюцинаций.\n- Компрессия и рабочая память отключены по умолчанию — меньше фоновых LLM-вызовов,\n  чище эксперимент; рабочая память на локальной модели давала 404 (облачное имя модели).\n- Оба прогона шли в режиме threshold (rerank не участвовал); реранк локальной моделью\n  проверен отдельно (~12 с на 8 чанков).",
     "strategy": "structural",
-    "token_count": 93
+    "token_count": 1974
   },
   {
-    "faiss_id": 36,
-    "chunk_id": "struct_00036",
+    "faiss_id": 53,
+    "chunk_id": "struct_00053",
+    "source": "week-06/day-29/README.md",
+    "title": "week-06/day-29",
+    "section": "week-06/day-29",
+    "text": "Неделя 6 — День 29. Оптимизация локальной LLM\n\nЗадание\n\nОптимизируйте локальную модель под свою задачу:\n- настройте параметры (temperature, max tokens, context window)\n- попробуйте квантование (если доступно)\n- измените prompt-шаблон под конкретный кейс\n\nСравните:\n- качество ответов до оптимизации\n- качество после\n- скорость и потребление ресурсов\n\nРезультат:\n- Оптимизированная локальная LLM под конкретную задачу\n\nЧто сделано\n\nКейс: RAG-ответы по базе знаний проекта на локальной модели (day-28).\n\nДиагноз (из логов ollama serve, ollama-serve-log-sample.txt): сервер сконфигурирован\nна контекст 32768 (OLLAMACONTEXTLENGTH), KV-cache 1792 MiB не влезал в 6 GiB VRAM →\nтолько 18/29 слоёв на GPU → ~12 tok/s.\n\nИзменённые файлы:\n\n- ragger/ollamaclient.py (новый) — нативный клиент /api/chat: per-request options\n  (numctx, temperature, numpredict), keepalive, метрики инференса\n  (load, prompteval, eval → tok/s). OpenAI-совместимый /v1 этого не умеет.\n- ragger/answer.py — параметр llmprofile: генерация и verify через нативный клиент,\n  компактный промпт под 7B (buildcompactprompt), лимит чанков параметром\n  (1200 → 1600 для local), метрики в RagAnswer.llmmetrics.\n- ragger/reranker.py — llmprofile в llmrerank (нативный путь, temp 0.0).\n- ragger/search.py — поле llmprofile в RagPipeline, прокидывание в реранк.\n- agents/jarvis.py — localllmprofile(): numctx 8192 (единый на все этапы —\n  смена numctx перегружает модель), temp 0.0, компактный промпт, keepalive 30m;\n  tok/s и load в lastragdebug.\n- webui/app.py — два локальных кванта в списке моделей: qwen2.5-coder:7b (Q4KM)\n  и qwen2.5-coder:7b-instruct-q3KM.\n- webui/static/script.js — tok/s и load в техстроке RAG.\n- week-06/day-29/bench.py — бенчмарк: 5 вопросов × профили (baseline/optimized) ×\n  модели; JSON в results/, сводная таблица в stdout.\n\nРезультаты бенчмарка (5 вопросов, mode=threshold; полные данные в\nresults/bench-20260709-123518.json):\n\n| model | profile | avg total, s | avg generate, s | avg tok/s | VRAM |\n|---|---|---|---|---|---|\n| Q4KM | baseline (32k ctx, полный промпт) | 50.8 | 49.8 | ~12 | 53% GPU |\n| Q4KM | optimized (8k ctx, компактный) | 28.1 | 27.2 | 11.2 | 79% GPU |\n| Q3KM | baseline | 36.8 | 36.0 | — | — |\n| Q3KM | optimized | 26.9 | 26.1 | 13.3 | 100% GPU |\n\n- Латентность ответа: 50.8 → 26.9 с (−53%); загрузка модели 19 → 8 с.\n- Качество не просело: confidence high на 4/4 отвечаемых вопросах во всех конфигурациях,\n  источники и цитаты на месте; на вопросе вне базы знаний — честное «Я не знаю» (все конфигурации).\n- temp 0.0 на всех этапах: verify детерминирован (3/3 одинаковых ответа в проверке).\n- Загадка: Q3KM на 100% GPU даёт лишь 13.3 tok/s — подозрение на power-limit/троттлинг\n  ноутбучного GPU, нужен nvidia-smi во время генерации.\n\nСценарий проверки\n\n1. Подними туннель к Ollama (порт 11434) и запусти WebUI: python3 ./webui/app.py → открой http://127.0.0.1:5000\n2. В Settings выбери модель qwen2.5-coder:7b (local).\n3. Отправь: /rag on\n4. Ожидаемый результат: «RAG-режим включён».\n5. Отправь запрос: \"Какие этапы проходит State Machine агента?\"\n6. Ожидаемый результат: ответ с этапами PLANNING, EXECUTION, VALIDATION, DONE, источниками и цитатами.\n7. Проверь серую техстроку под ответом: в ней есть provider local, тайминги этапов и новые поля NN tok/s и load NNs — метрики пришли из нативного API Ollama.\n8. В Settings переключи модель на qwen2.5-coder:7b-instruct-q3KM (local).\n9. Отправь запрос: \"Какие режимы работы поддерживает RAG-пайплайн и чем они отличаются?\"\n10. Ожидаемый результат: ответ по существу (threshold / rerank / hybrid) с источниками; в техстроке — модель qwen2.5-coder:7b-instruct-q3KM, tok/s не ниже, чем у Q4 (первый запрос после переключения может быть дольше — модель загружается).\n11. Отправь запрос: \"Какие таблицы есть в базе данных проекта и какие у них поля?\"\n12. Ожидаемый результат: честное «Я не знаю» (схемы БД нет в базе знаний), confidence none в техстроке — анти-галлюцинации работают и на компактном промпте.\n13. (Опционально, для «до/после» на видео) В терминале: python3 week-06/day-29/bench.py --profiles baseline,optimized --questions 2 — покажет сравнение старой и новой конфигурации на живых замерах.",
+    "strategy": "structural",
+    "token_count": 1040
+  },
+  {
+    "faiss_id": 54,
+    "chunk_id": "struct_00054",
     "source": "agents/invariants.py",
     "title": "invariants",
     "section": "invariants",
@@ -370,18 +550,18 @@
     "token_count": 98
   },
   {
-    "faiss_id": 37,
-    "chunk_id": "struct_00037",
+    "faiss_id": 55,
+    "chunk_id": "struct_00055",
     "source": "agents/jarvis.py",
     "title": "jarvis",
     "section": "jarvis",
-    "text": "Агент для взаимодействия с LLM через API с сохранением контекста в SQLite.\n\n    Поддерживает:\n    - Несколько изолированных сессий диалога\n    - Переключение между сессиями\n    - Автоматическое восстановление истории при перезапуске\n    - Стратегии управления контекстом:\n      \\u2022 sliding_window — только последние 5 сообщений\n      \\u2022 sticky_facts — ключевые факты + последние 5 сообщений\n      \\u2022 branching — ветки диалога от checkpoint\n    - Трёхуровневую модель памяти:\n      \\u2022 Short-term — текущий диалог (сессия)\n      \\u2022 Working — TaskContext (данные текущей задачи)\n      \\u2022 Long-term — Profile (профиль, предпочтения, знания)\nПрямой вызов Cloud.ru FM /chat/completions.\nОсновной метод агента: принимает запрос и возвращает ответ.\nИзвлекает и обновляет task state через дешёвую LLM после каждого ответа.\n\n        Если тема сменилась относительно текущего goal — не вызывает extract_and_update,\n        а только обновляет last_focus. goal и progress сохраняются.",
+    "text": "Агент для взаимодействия с LLM через API с сохранением контекста в SQLite.\n\n    Поддерживает:\n    - Несколько изолированных сессий диалога\n    - Переключение между сессиями\n    - Автоматическое восстановление истории при перезапуске\n    - Стратегии управления контекстом:\n      \\u2022 sliding_window — только последние 5 сообщений\n      \\u2022 sticky_facts — ключевые факты + последние 5 сообщений\n      \\u2022 branching — ветки диалога от checkpoint\n    - Трёхуровневую модель памяти:\n      \\u2022 Short-term — текущий диалог (сессия)\n      \\u2022 Working — TaskContext (данные текущей задачи)\n      \\u2022 Long-term — Profile (профиль, предпочтения, знания)\nПрямой вызов Cloud.ru FM /chat/completions.\nПрофиль инференса Ollama для локального провайдера (day-29), None для cloud.\n\n        Режим выбирается полем `llm_mode` активного профиля Jarvis\n        (agents/memory/profiles/*.md): \"baseline\" — путь day-28 как есть\n        (OpenAI-совместимый /v1, серверный num_ctx, полный промпт),\n        иначе (в т.ч. default) — оптимизированный нативный путь.\n\n        num_ctx одинаковый на всех этапах: это load-time параметр, разное\n        значение в соседних запросах перегружает модель (десятки секунд).\n        8192 подобран под 6 GiB VRAM: веса Q4_K_M (~4.4 GiB) + KV-cache\n        (~450 MiB) влезают целиком на GPU — против 18/29 слоёв при\n        серверном дефолте 32768.\nВозвращает (kwargs для RagPipeline, verify_model) под активного провайдера.\n\n        Для \"local\" весь RAG-путь идёт через Ollama: эмбеддинг запроса\n        (nomic-embed-text, индекс data_local/), реранк, верификация и\n        генерация — активной локальной моделью, инференс — по профилю\n        _local_llm_profile(). Для \"cloud\" — Cloud.ru и индекс data/\n        (дефолты RagPipeline).\nОсновной метод агента: принимает запрос и возвращает ответ.\nИзвлекает и обновляет task state через дешёвую LLM после каждого ответа.\n\n        Если тема сменилась относительно текущего goal — не вызывает extract_and_update,\n        а только обновляет last_focus. goal и progress сохраняются.\n        Не делает ничего, если рабочая память выключена (task_memory_enabled).",
     "strategy": "structural",
-    "token_count": 248
+    "token_count": 533
   },
   {
-    "faiss_id": 38,
-    "chunk_id": "struct_00038",
+    "faiss_id": 56,
+    "chunk_id": "struct_00056",
     "source": "agents/jarvis_commands.py",
     "title": "jarvis_commands",
     "section": "jarvis_commands",
@@ -390,8 +570,8 @@
     "token_count": 40
   },
   {
-    "faiss_id": 39,
-    "chunk_id": "struct_00039",
+    "faiss_id": 57,
+    "chunk_id": "struct_00057",
     "source": "agents/jarvis_compression.py",
     "title": "jarvis_compression",
     "section": "jarvis_compression",
@@ -400,8 +580,8 @@
     "token_count": 9
   },
   {
-    "faiss_id": 40,
-    "chunk_id": "struct_00040",
+    "faiss_id": 58,
+    "chunk_id": "struct_00058",
     "source": "agents/jarvis_context.py",
     "title": "jarvis_context",
     "section": "jarvis_context",
@@ -410,8 +590,8 @@
     "token_count": 22
   },
   {
-    "faiss_id": 41,
-    "chunk_id": "struct_00041",
+    "faiss_id": 59,
+    "chunk_id": "struct_00059",
     "source": "agents/jarvis_memory.py",
     "title": "jarvis_memory",
     "section": "jarvis_memory",
@@ -420,8 +600,8 @@
     "token_count": 243
   },
   {
-    "faiss_id": 42,
-    "chunk_id": "struct_00042",
+    "faiss_id": 60,
+    "chunk_id": "struct_00060",
     "source": "agents/jarvis_session.py",
     "title": "jarvis_session",
     "section": "jarvis_session",
@@ -430,8 +610,8 @@
     "token_count": 666
   },
   {
-    "faiss_id": 43,
-    "chunk_id": "struct_00043",
+    "faiss_id": 61,
+    "chunk_id": "struct_00061",
     "source": "agents/mcp_manager.py",
     "title": "mcp_manager",
     "section": "mcp_manager",
@@ -440,8 +620,8 @@
     "token_count": 477
   },
   {
-    "faiss_id": 44,
-    "chunk_id": "struct_00044",
+    "faiss_id": 62,
+    "chunk_id": "struct_00062",
     "source": "agents/state_machine.py",
     "title": "state_machine",
     "section": "state_machine",
@@ -450,18 +630,18 @@
     "token_count": 537
   },
   {
-    "faiss_id": 45,
-    "chunk_id": "struct_00045",
+    "faiss_id": 63,
+    "chunk_id": "struct_00063",
     "source": "ragger/answer.py",
     "title": "ragger/answer",
     "section": "ragger/answer",
-    "text": "Генерация ответа RAG с цитатами, источниками, анти-галлюцинациями и confidence.\n\nФорсирует LLM возвращать структурированный JSON с полями:\n  - answer: текст ответа\n  - sources: список {source, chunk_id, section, quote}\n  - confidence: high|medium|low|none\nСтруктурированный ответ RAG с обязательными источниками и цитатами.\n\n    Attributes:\n        query: Исходный запрос пользователя.\n        answer: Текст ответа (может содержать \"не знаю\" при confidence=none).\n        sources: Список словарей {source, chunk_id, section, quote}.\n        confidence: Уровень уверенности (high|medium|low|none).\nГенерирует структурированный ответ на основе RAG-чанков.\n\n    Перед генерацией выполняет pre-verification — проверяет через\n    дешёвую LLM, есть ли среди чанков информация, отвечающая на\n    запрос. Если нет — confidence=\"none\" без вызова основной модели.\n\n    Args:\n        query: Запрос пользователя.\n        chunks: Список чанков от RagPipeline (поля chunk_id, source, section, text, score).\n        api_key: API-ключ Cloud.ru.\n        model: ID модели для генерации ответа.\n        base_url: Базовый URL API.\n        verify_model: ID дешёвой модели для pre-verification.\n\n    Returns:\n        RagAnswer с заполненными answer, sources, confidence.\nПроверяет, есть ли среди чанков информация по теме запроса.\n\n    Вызов дешёвой LLM (Qwen3-30B-A3B), ответ — \"yes\"/\"no\".\n    \"no\" — только если ни один чанк не связан с темой запроса.\n    Даже частичное совпадение = \"yes\" (основная LLM разберётся).\nФорматирует чанки с doc ID-разметкой для промпта.\nПарсит JSON-ответ от LLM с fallback-стратегией.\n\n    Пытается извлечь JSON разными паттернами, при полной неудаче\n    возвращает ответ как plain text с confidence=\"low\".\nИзвлекает JSON-объект из ответа LLM.\n\n    Пробует: прямой парсинг → поиск { } с \"answer\" → поиск ```json блоков.\nПриводит источники к единому формату {source, chunk_id, section, quote}.",
+    "text": "Генерация ответа RAG с цитатами, источниками, анти-галлюцинациями и confidence.\n\nФорсирует LLM возвращать структурированный JSON с полями:\n  - answer: текст ответа\n  - sources: список {source, chunk_id, section, quote}\n  - confidence: high|medium|low|none\nСтруктурированный ответ RAG с обязательными источниками и цитатами.\n\n    Attributes:\n        query: Исходный запрос пользователя.\n        answer: Текст ответа (может содержать \"не знаю\" при confidence=none).\n        sources: Список словарей {source, chunk_id, section, quote}.\n        confidence: Уровень уверенности (high|medium|low|none).\n        llm_metrics: Метрики инференса Ollama по этапам {\"verify\": {...},\n            \"generate\": {...}} — только при llm_profile с transport=\"ollama\".\nГенерирует структурированный ответ на основе RAG-чанков.\n\n    Перед генерацией выполняет pre-verification — проверяет через\n    дешёвую LLM, есть ли среди чанков информация, отвечающая на\n    запрос. Если нет — confidence=\"none\" без вызова основной модели.\n\n    Args:\n        query: Запрос пользователя.\n        chunks: Список чанков от RagPipeline (поля chunk_id, source, section, text, score).\n        api_key: API-ключ Cloud.ru.\n        model: ID модели для генерации ответа.\n        base_url: Базовый URL API.\n        verify_model: ID дешёвой модели для pre-verification.\n        llm_profile: Профиль инференса локального провайдера (day-29).\n            None — облачный путь без изменений. Поддерживаемые ключи:\n            transport=\"ollama\" (нативный /api/chat вместо /v1),\n            keep_alive, gen_options/verify_options (num_ctx, temperature,\n            num_predict), chunk_char_limit (обрезка чанков в промпте),\n            prompt_style=\"compact\" (короткий промпт под 7B).\n\n    Returns:\n        RagAnswer с заполненными answer, sources, confidence\n        (+ llm_metrics при transport=\"ollama\").\nПолный промпт генерации (облачные модели): развёрнутые правила, JSON-схема.\nКомпактный промпт генерации под локальные 7B-модели.\n\n    Та же JSON-схема, что и в полном промпте (парсер общий), но короткие\n    правила без эмодзи-разметки — маленькие модели следуют им надёжнее.\nПроверяет, есть ли среди чанков информация по теме запроса.\n\n    Вызов дешёвой LLM (Qwen3-30B-A3B), ответ — \"yes\"/\"no\".\n    \"no\" — только если ни один чанк не связан с темой запроса.\n    Даже частичное совпадение = \"yes\" (основная LLM разберётся).\n\n    Returns:\n        (relevance, metrics): \"yes\"/\"no\" и метрики Ollama\n        (None на облачном пути или при ошибке).\nФорматирует чанки с doc ID-разметкой для промпта, обрезая до char_limit символов.\nПарсит JSON-ответ от LLM с fallback-стратегией.\n\n    Пытается извлечь JSON разными паттернами, при полной неудаче\n    возвращает ответ как plain text с confidence=\"low\".\nИзвлекает JSON-объект из ответа LLM.\n\n    Пробует: прямой парсинг → поиск { } с \"answer\" → поиск ```json блоков.\nПриводит источники к единому формату {source, chunk_id, section, quote}.",
     "strategy": "structural",
-    "token_count": 475
+    "token_count": 734
   },
   {
-    "faiss_id": 46,
-    "chunk_id": "struct_00046",
+    "faiss_id": 64,
+    "chunk_id": "struct_00064",
     "source": "ragger/chunking.py",
     "title": "ragger/chunking",
     "section": "ragger/chunking",
@@ -470,18 +650,18 @@
     "token_count": 118
   },
   {
-    "faiss_id": 47,
-    "chunk_id": "struct_00047",
+    "faiss_id": 65,
+    "chunk_id": "struct_00065",
     "source": "ragger/document_loader.py",
     "title": "ragger/document_loader",
     "section": "ragger/document_loader",
-    "text": "Загрузка документов проекта: .md из docs/lessions и week-*/, docstring-и из agents/*.py, полный код из ragger/*.py.\n(.*?)\nСканирует проект, собирает .md и .py файлы, извлекает текст.",
+    "text": "Загрузка документов проекта: .md из docs/lessions и week-*/, docs/database-schema.md, docstring-и из agents/*.py, полный код из ragger/*.py.\nЧистит Markdown-разметку. keep_headings=True оставляет заголовки (#..###),\n    чтобы structural-чанкер мог разрезать документ по секциям.\n(.*?)\nСканирует проект, собирает .md и .py файлы, извлекает текст.",
     "strategy": "structural",
-    "token_count": 45
+    "token_count": 86
   },
   {
-    "faiss_id": 48,
-    "chunk_id": "struct_00048",
+    "faiss_id": 66,
+    "chunk_id": "struct_00066",
     "source": "ragger/embedder.py",
     "title": "ragger/embedder",
     "section": "ragger/embedder",
@@ -490,8 +670,8 @@
     "token_count": 241
   },
   {
-    "faiss_id": 49,
-    "chunk_id": "struct_00049",
+    "faiss_id": 67,
+    "chunk_id": "struct_00067",
     "source": "ragger/indexer.py",
     "title": "ragger/indexer",
     "section": "ragger/indexer",
@@ -500,8 +680,18 @@
     "token_count": 118
   },
   {
-    "faiss_id": 50,
-    "chunk_id": "struct_00050",
+    "faiss_id": 68,
+    "chunk_id": "struct_00068",
+    "source": "ragger/ollama_client.py",
+    "title": "ragger/ollama_client",
+    "section": "ragger/ollama_client",
+    "text": "Нативный клиент Ollama (/api/chat) для локального RAG-пути.\n\nЗачем не OpenAI-совместимый /v1: тот не принимает options (num_ctx и др.)\nи не возвращает метрики инференса. Нативный /api/chat даёт per-request:\n  - options: num_ctx, temperature, num_predict — без правки серверных env;\n  - keep_alive: модель не выгружается между запросами (лечит холодный старт);\n  - метрики: load_duration, prompt_eval_*, eval_* → tokens/sec.\n\nВажно: num_ctx — load-time параметр. Разный num_ctx в соседних запросах\nперегружает модель (десятки секунд), поэтому все этапы RAG (rerank, verify,\ngenerate) должны использовать одно значение.\nВозвращает корень Ollama-сервера, срезая OpenAI-совместимый суффикс /v1.\nОдин запрос к нативному /api/chat Ollama.\n\n    Args:\n        prompt: Текст user-сообщения.\n        model: Имя модели Ollama (например \"qwen2.5-coder:7b\").\n        base_url: Адрес сервера; допустим и с суффиксом /v1 (будет срезан).\n        options: Ollama options (num_ctx, temperature, num_predict, ...).\n        keep_alive: Сколько держать модель в памяти после запроса.\n        timeout: Таймаут запроса, секунды.\n\n    Returns:\n        (content, metrics): текст ответа и метрики инференса\n        (load_s, prompt_eval_count, prompt_eval_s, eval_count, eval_s,\n        tok_s, total_s). Сетевые ошибки не глотает — обработка на вызывающем.\nДостаёт метрики инференса из ответа /api/chat (наносекунды → секунды).",
+    "strategy": "structural",
+    "token_count": 350
+  },
+  {
+    "faiss_id": 69,
+    "chunk_id": "struct_00069",
     "source": "ragger/pipeline.py",
     "title": "ragger/pipeline",
     "section": "ragger/pipeline",
@@ -510,23 +700,23 @@
     "token_count": 129
   },
   {
-    "faiss_id": 51,
-    "chunk_id": "struct_00051",
+    "faiss_id": 70,
+    "chunk_id": "struct_00070",
     "source": "ragger/reranker.py",
     "title": "ragger/reranker",
     "section": "ragger/reranker",
-    "text": "Функции фильтрации (threshold_filter) и LLM-реранкинга (llm_rerank) для RAG-пайплайна.\nОтсекает чанки с score ниже порога.\nРеранкинг чанков через LLM: оценивает релевантность каждого чанка к запросу.\n\n    Делает один батч-запрос к LLM, получает оценки для всех чанков,\n    сортирует по убыванию оценки.\nПарсит JSON-массив оценок из ответа LLM.",
+    "text": "Функции фильтрации (threshold_filter) и LLM-реранкинга (llm_rerank) для RAG-пайплайна.\nОтсекает чанки с score ниже порога.\nРеранкинг чанков через LLM: оценивает релевантность каждого чанка к запросу.\n\n    Делает один батч-запрос к LLM, получает оценки для всех чанков,\n    сортирует по убыванию оценки.\n\n    Args:\n        llm_profile: Профиль инференса локального провайдера (day-29):\n            transport=\"ollama\" → нативный /api/chat с rerank_options\n            (num_ctx, temperature, num_predict) и keep_alive.\n            None — облачный путь без изменений.\nПарсит оценки из ответа LLM, проставляет rerank_score и сортирует чанки.\nПарсит JSON-массив оценок из ответа LLM.",
     "strategy": "structural",
-    "token_count": 85
+    "token_count": 169
   },
   {
-    "faiss_id": 52,
-    "chunk_id": "struct_00052",
+    "faiss_id": 71,
+    "chunk_id": "struct_00071",
     "source": "ragger/search.py",
     "title": "ragger/search",
     "section": "ragger/search",
-    "text": "Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом.\n\nRagPipeline — основной класс для RAG-поиска. Поддерживает три режима:\n- threshold: только фильтрация по similarity score\n- rerank: только LLM-реранкинг\n- hybrid: фильтрация + реранкинг\n\nЭтапы пайплайна: FAISS search → threshold filter → LLM rerank → top-K slice.\nМожно настроить top_k_before, top_k_after, threshold через параметры конструктора.\nЗагружает FAISS + metadata. Кеширует в памяти после первого вызова.\nСемантический поиск по FAISS-индексу. Запрос → эмбеддинг (Cloud.ru) → FAISS search → ранжированные чанки.\n\n    Args:\n        query: поисковый запрос (русский или английский).\n        top_k: количество возвращаемых чанков.\n        strategy: \"structural\" (по разделам документа) или \"fixed\" (фиксированный размер).\n\n    Returns:\n        Список чанков с полями chunk_id, source, title, section, text, score, token_count.\nПайплайн RAG-поиска: FAISS search → threshold filter → LLM rerank → top-K slice.\n\n    Режимы:\n      \"threshold\" — только фильтр по similarity score\n      \"rerank\"    — только LLM-реранкинг (без threshold)\n      \"hybrid\"    — threshold-фильтр, затем реранкинг оставшихся\nПолный пайплайн: search → filter → rerank → slice.\nБазовый FAISS-поиск.\nПрогоняет запрос во всех 3 режимах и возвращает статистику.",
+    "text": "Семантический поиск по FAISS и RagPipeline — пайплайн поиска с фильтрацией и реранкингом.\n\nRagPipeline — основной класс для RAG-поиска. Поддерживает три режима:\n- threshold: только фильтрация по similarity score\n- rerank: только LLM-реранкинг\n- hybrid: фильтрация + реранкинг\n\nЭтапы пайплайна: FAISS search → threshold filter → LLM rerank → top-K slice.\nМожно настроить top_k_before, top_k_after, threshold через параметры конструктора.\n\nПоддерживает два набора индексов: облачный (ragger/data/, эмбеддинги Cloud.ru)\nи локальный (ragger/data_local/, эмбеддинги nomic-embed-text через Ollama).\nВыбор — через параметры data_dir / embed_* у search() и RagPipeline.\nТайминги этапов последнего запроса — в RagPipeline._last_timings.\nЗагружает FAISS + metadata из data_dir. Кеширует в памяти по ключу (data_dir, strategy).\nСемантический поиск по FAISS-индексу. Запрос → эмбеддинг → FAISS search → ранжированные чанки.\n\n    Args:\n        query: поисковый запрос (русский или английский).\n        top_k: количество возвращаемых чанков.\n        strategy: \"structural\" (по разделам документа) или \"fixed\" (фиксированный размер).\n        data_dir: каталог индексов (DATA_DIR — облачный, DATA_DIR_LOCAL — локальный).\n        embed_api_key: ключ API эмбеддера (None → CLOUDRU_SECRET_KEY из env).\n        embed_model: модель эмбеддинга запроса (должна совпадать с моделью индекса).\n        embed_base_url: base_url API эмбеддера (Cloud.ru или Ollama).\n        embed_prefix: task-префикс запроса ('search_query: ' для nomic-embed-text).\n        timings: словарь для записи таймингов этапов (embed_s, faiss_s), опционально.\n\n    Returns:\n        Список чанков с полями chunk_id, source, title, section, text, score, token_count.\nПайплайн RAG-поиска: FAISS search → threshold filter → LLM rerank → top-K slice.\n\n    Режимы:\n      \"threshold\" — только фильтр по similarity score\n      \"rerank\"    — только LLM-реранкинг (без threshold)\n      \"hybrid\"    — threshold-фильтр, затем реранкинг оставшихся\n\n    Провайдер выбирается полями data_dir + embed_* (индекс и эмбеддинг запроса\n    должны быть от одной модели) и base_url + rerank_model (реранк).\nПолный пайплайн: search → filter → rerank → slice.\nБазовый FAISS-поиск с эмбеддингом запроса по конфигу провайдера.\nПрогоняет запрос во всех 3 режимах и возвращает статистику.",
     "strategy": "structural",
-    "token_count": 331
+    "token_count": 576
   }
 ]

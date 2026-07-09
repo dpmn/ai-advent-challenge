@@ -4,6 +4,7 @@ description: >
   При получении нового задания дня читает progress.md, лекцию текущей недели,
   README предыдущего дня и выдаёт структурированный контекст main agent-у
 tools: Read, Glob, Grep
+model: haiku
 ---
 
 ## Что ты делаешь

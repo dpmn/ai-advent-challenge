@@ -1,0 +1,47 @@
+[
+  {
+    "model": "qwen2.5-coder:7b",
+    "profile": "optimized",
+    "mode": "threshold",
+    "base_url": "http://localhost:11434/v1",
+    "warmup": {
+      "load_s": 18.19,
+      "prompt_eval_count": 34,
+      "prompt_eval_s": 0.41,
+      "eval_count": 4,
+      "eval_s": 0.23,
+      "tok_s": 17.0,
+      "total_s": 18.87,
+      "wall_s": 18.26
+    },
+    "runs": [
+      {
+        "question": "Какие таблицы есть в базе данных проекта и какие у них поля?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 3.78,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 2.98
+        },
+        "total_s": 6.76,
+        "confidence": "none",
+        "n_sources": 0,
+        "answer_len": 86,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.3,
+            "prompt_eval_count": 1760,
+            "prompt_eval_s": 2.51,
+            "eval_count": 3,
+            "eval_s": 0.12,
+            "tok_s": 24.7,
+            "total_s": 2.97
+          }
+        },
+        "answer": "Я не знаю ответа на этот вопрос. В найденных документах нет информации по данной теме.",
+        "sources": []
+      }
+    ]
+  }
+]

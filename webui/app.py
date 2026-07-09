@@ -19,7 +19,8 @@ CLOUD_MODELS = json.loads(os.getenv("AVAILABLE_MODELS", json.dumps(DEFAULT_MODEL
 
 CLOUD_BASE_URL = "https://foundation-models.api.cloud.ru/v1"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-LOCAL_MODEL = "qwen2.5-coder:7b"
+# Кванты одной модели (day-29): Q4_K_M — дефолт, Q3_K_M — быстрее/легче.
+LOCAL_MODELS = ["qwen2.5-coder:7b", "qwen2.5-coder:7b-instruct-q3_K_M"]
 
 # Провайдер модели: куда ходить (base_url) и с каким ключом.
 # Ollama авторизацию не требует, но OpenAI-совместимый клиент хочет непустой ключ.
@@ -27,9 +28,10 @@ MODEL_PROVIDERS = {
     m: {"base_url": CLOUD_BASE_URL, "api_key": os.getenv("CLOUDRU_SECRET_KEY")}
     for m in CLOUD_MODELS
 }
-MODEL_PROVIDERS[LOCAL_MODEL] = {"base_url": OLLAMA_BASE_URL, "api_key": "ollama"}
+for m in LOCAL_MODELS:
+    MODEL_PROVIDERS[m] = {"base_url": OLLAMA_BASE_URL, "api_key": "ollama"}
 
-AVAILABLE_MODELS = CLOUD_MODELS + [LOCAL_MODEL]
+AVAILABLE_MODELS = CLOUD_MODELS + LOCAL_MODELS
 
 agent = JarvisAgent(
     model=AVAILABLE_MODELS[0],
@@ -122,7 +124,7 @@ def chat():
 def list_models():
     return jsonify({
         "models": AVAILABLE_MODELS,
-        "local_models": [LOCAL_MODEL],
+        "local_models": LOCAL_MODELS,
         "current": agent.model,
     })
 
@@ -169,7 +171,7 @@ def update_settings():
             agent.model = m
             agent.base_url = provider["base_url"]
             agent.api_key = provider["api_key"]
-            agent.model_provider = "local" if m == LOCAL_MODEL else "cloud"
+            agent.model_provider = "local" if m in LOCAL_MODELS else "cloud"
     if "temperature" in data:
         agent.temperature = float(data["temperature"])
     if "max_tokens" in data:

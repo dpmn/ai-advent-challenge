@@ -1,0 +1,800 @@
+[
+  {
+    "model": "qwen2.5-coder:7b",
+    "profile": "baseline",
+    "mode": "threshold",
+    "base_url": "http://localhost:11434/v1",
+    "warmup": {
+      "load_s": 19.15,
+      "prompt_eval_count": 34,
+      "prompt_eval_s": 0.57,
+      "eval_count": 3,
+      "eval_s": 0.24,
+      "tok_s": 12.3,
+      "total_s": 19.98,
+      "wall_s": 19.3
+    },
+    "runs": [
+      {
+        "question": "Какие стратегии чанкинга используются в RAG-пайплайне?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 3.8,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 36.03
+        },
+        "total_s": 39.83,
+        "confidence": "high",
+        "n_sources": 1,
+        "answer_len": 284,
+        "llm_metrics": null,
+        "answer": "RAG-пайплайн использует стратегию чанкинга, которая включает поиск релевантных чанков через ragger.search.search() по вопросу пользователя. Найденные чанки инжектируются как system-сообщение перед user message, что позволяет модели получать актуальный контекст из базы знаний проекта.",
+        "sources": [
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "week-05/day-22",
+            "quote": "1. Ищет релевантные чанки через ragger.search.search() по вопросу пользователя"
+          }
+        ]
+      },
+      {
+        "question": "Какие режимы работы поддерживает RAG-пайплайн и чем они отличаются?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.28,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 40.03
+        },
+        "total_s": 40.31,
+        "confidence": "high",
+        "n_sources": 1,
+        "answer_len": 137,
+        "llm_metrics": null,
+        "answer": "RAG-пайплайн поддерживает два режима работы: с RAG и без RAG. Режимы различаются тем, как агент обрабатывает контекст для запросов к LLM.",
+        "sources": [
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "Неделя 5 — День 22. Первый RAG-запрос",
+            "quote": "Когда режим включён, перед каждым запросом к LLM агент автоматически: 1. Ищет релевантные чанки через ragger.search.search() по вопросу пользователя 2. Инжектирует их как system-сообщение перед user message 3. Модель получает актуальный контекст из базы знаний проекта"
+          }
+        ]
+      },
+      {
+        "question": "Что такое MCP и какие MCP-серверы есть в проекте?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.26,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 116.78
+        },
+        "total_s": 117.04,
+        "confidence": "high",
+        "n_sources": 5,
+        "answer_len": 362,
+        "llm_metrics": null,
+        "answer": "MCP (Model Context Protocol) — это открытый стандарт, разработанный для обеспечения взаимодействия LLM (нейросетей) с внешними сервисами. Примеры MCP-серверов в проекте включают mcpservers/nasamcp/server.py, mcpservers/composermcp/server.py и mcpservers/spacemonitormcp/. Эти серверы предоставляют различные инструменты для взаимодействия с различными сервисами.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-04.md",
+            "chunk_id": "struct_00003",
+            "section": "Неделя 4. MCP (Model Context Protocol)",
+            "quote": "MCP (Model Context Protocol) — открытый стандарт, разработанный для обеспечения взаимодействия LLM (нейросетей) с внешними сервисами, такими как корпоративные базы знаний, таск-трекеры, чаты или личные календари."
+          },
+          {
+            "source": "week-04/day-20/README.md",
+            "chunk_id": "struct_00025",
+            "section": "Неделя 4 — День 20. Orchestration MCP",
+            "quote": "Созданные файлы\n- mcpservers/analyzermcp/server.py — новый MCP-сервер (FastMCP, порт 8768) с инструментами:\n  - extractkeywords(text, maxkeywords) — извлечение топ-N ключевых слов (с фильтрацией стоп-слов EN/RU)\n  - generatereport(title, content) — генерация markdown-отчёта с метаданными"
+          },
+          {
+            "source": "week-04/day-19/README.md",
+            "chunk_id": "struct_00024",
+            "section": "Неделя 4 — День 19. Композиция MCP-инструментов",
+            "quote": "Реализуйте пайплайн:\n- первый инструмент получает данные\n- второй — обрабатывает\n- третий — сохраняет результат"
+          },
+          {
+            "source": "week-04/day-17/README.md",
+            "chunk_id": "struct_00022",
+            "section": "Неделя 4 — День 17. Первый инструмент MCP",
+            "quote": "Реализовать MCP-сервер вокруг NASA API (используя DEMOKEY)."
+          },
+          {
+            "source": "week-04/day-18/README.md",
+            "chunk_id": "struct_00023",
+            "section": "Неделя 4 — День 18. Планировщик и фоновые задачи",
+            "quote": "Пример:\n👉 reminder\n👉 периодический сбор данных\n👉 регулярный summary"
+          }
+        ]
+      },
+      {
+        "question": "Какие этапы проходит State Machine агента?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.27,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 52.06
+        },
+        "total_s": 52.33,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 306,
+        "llm_metrics": null,
+        "answer": "State Machine агента проходит следующие этапы: planning → execution → validation → done. Каждый этап имеет отдельный StageAgent с изолированной историей и параметрами LLM, которые могут быть настроены для каждого этапа. PipelineAgent оркестрирует переходы между этими этапами и управляет состоянием задачи.",
+        "sources": [
+          {
+            "source": "week-03/day-15/README.md",
+            "chunk_id": "struct_00020",
+            "section": "Неделя 3 — День 15. Контролируемые переходы состояний",
+            "quote": "State Machine была реализована ранее в agents/statemachine.py. Для задания дня 15 выполнена проверка соответствия требованиям — все три пункта полностью покрыты существующим кодом."
+          },
+          {
+            "source": "agents/state_machine.py",
+            "chunk_id": "struct_00044",
+            "section": "State Machine module for pipeline-based task processing.",
+            "quote": "Допустимые этапы пайплайна задачи. Отправляет запрос к LLM API и возвращает ответ."
+          }
+        ]
+      },
+      {
+        "question": "Какие таблицы есть в базе данных проекта и какие у них поля?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.26,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 4.15
+        },
+        "total_s": 4.41,
+        "confidence": "none",
+        "n_sources": 0,
+        "answer_len": 86,
+        "llm_metrics": null,
+        "answer": "Я не знаю ответа на этот вопрос. В найденных документах нет информации по данной теме.",
+        "sources": []
+      }
+    ]
+  },
+  {
+    "model": "qwen2.5-coder:7b",
+    "profile": "optimized",
+    "mode": "threshold",
+    "base_url": "http://localhost:11434/v1",
+    "warmup": {
+      "load_s": 14.44,
+      "prompt_eval_count": 34,
+      "prompt_eval_s": 0.37,
+      "eval_count": 4,
+      "eval_s": 0.2,
+      "tok_s": 20.3,
+      "total_s": 15.02,
+      "wall_s": 14.52
+    },
+    "runs": [
+      {
+        "question": "Какие стратегии чанкинга используются в RAG-пайплайне?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 3.44,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 24.64
+        },
+        "total_s": 28.08,
+        "confidence": "high",
+        "n_sources": 1,
+        "answer_len": 276,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.28,
+            "prompt_eval_count": 1861,
+            "prompt_eval_s": 2.67,
+            "eval_count": 2,
+            "eval_s": 0.07,
+            "tok_s": 28.4,
+            "total_s": 3.06
+          },
+          "generate": {
+            "load_s": 0.28,
+            "prompt_eval_count": 4293,
+            "prompt_eval_s": 6.21,
+            "eval_count": 186,
+            "eval_s": 15.73,
+            "tok_s": 11.8,
+            "total_s": 22.39
+          }
+        },
+        "answer": "RAG-пайплайн использует стратегию чанкинга, которая включает поиск релевантных чанков через ragger.search.search() по вопросу пользователя. Найденные чанки инжектируются как system-сообщение перед user message, чтобы модель получала актуальный контекст из базы знаний проекта.",
+        "sources": [
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "week-05/day-22",
+            "quote": "1. Ищет релевантные чанки через ragger.search.search() по вопросу пользователя"
+          }
+        ]
+      },
+      {
+        "question": "Какие режимы работы поддерживает RAG-пайплайн и чем они отличаются?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.27,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 23.72
+        },
+        "total_s": 23.99,
+        "confidence": "high",
+        "n_sources": 1,
+        "answer_len": 129,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.23,
+            "prompt_eval_count": 1692,
+            "prompt_eval_s": 2.53,
+            "eval_count": 2,
+            "eval_s": 0.07,
+            "tok_s": 27.2,
+            "total_s": 3.1
+          },
+          "generate": {
+            "load_s": 0.36,
+            "prompt_eval_count": 3910,
+            "prompt_eval_s": 5.65,
+            "eval_count": 183,
+            "eval_s": 15.2,
+            "tok_s": 12.0,
+            "total_s": 21.38
+          }
+        },
+        "answer": "RAG-пайплайн поддерживает два режима работы: с RAG и без RAG. Режимы различаются тем, как агент обрабатывает запрос пользователя.",
+        "sources": [
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "week-05/day-22",
+            "quote": "Режимы RAG и MCP независимы и могут работать одновременно: - RAG — автоматическая подгрузка контекста, модель не управляет ретривом - MCP — модель сама решает, вызывать ли searchcontext как tool"
+          }
+        ]
+      },
+      {
+        "question": "Что такое MCP и какие MCP-серверы есть в проекте?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.27,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 55.09
+        },
+        "total_s": 55.36,
+        "confidence": "high",
+        "n_sources": 3,
+        "answer_len": 209,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.25,
+            "prompt_eval_count": 1896,
+            "prompt_eval_s": 2.67,
+            "eval_count": 2,
+            "eval_s": 0.06,
+            "tok_s": 32.0,
+            "total_s": 3.24
+          },
+          "generate": {
+            "load_s": 0.26,
+            "prompt_eval_count": 4634,
+            "prompt_eval_s": 6.7,
+            "eval_count": 469,
+            "eval_s": 46.92,
+            "tok_s": 10.0,
+            "total_s": 54.06
+          }
+        },
+        "answer": "MCP (Model Context Protocol) — это открытый стандарт для обеспечения взаимодействия LLM с внешними сервисами через унифицированный интерфейс. В проекте есть несколько MCP-серверов, включая analyzer и composer.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-04.md",
+            "chunk_id": "struct_00003",
+            "section": "week-04",
+            "quote": "MCP (Model Context Protocol) — открытый стандарт, разработанный для обеспечения взаимодействия LLM (нейросетей) с внешними сервисами, такими как корпоративные базы знаний, таск-трекеры, чаты или личные календари."
+          },
+          {
+            "source": "week-04/day-20/README.md",
+            "chunk_id": "struct_00025",
+            "section": "week-04/day-20",
+            "quote": "Созданные файлы\n- mcpservers/analyzermcp/server.py — новый MCP-сервер (FastMCP, порт 8768) с инструментами:\n  - extractkeywords(text, maxkeywords) — извлечение топ-N ключевых слов (с фильтрацией стоп-слов EN/RU)\n  - generatereport(title, content) — генерация markdown-отчёта с метаданными\n- agents/mcp/servers.json — добавлен сервер analyzer (enabled: true)"
+          },
+          {
+            "source": "week-04/day-16/README.md",
+            "chunk_id": "struct_00021",
+            "section": "week-04/day-16",
+            "quote": "Конфигурация в формате JSON, поддерживает несколько серверов с разными транспортами:"
+          }
+        ]
+      },
+      {
+        "question": "Какие этапы проходит State Machine агента?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.26,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 29.49
+        },
+        "total_s": 29.75,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 244,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.22,
+            "prompt_eval_count": 1747,
+            "prompt_eval_s": 2.58,
+            "eval_count": 2,
+            "eval_s": 0.06,
+            "tok_s": 34.5,
+            "total_s": 3.19
+          },
+          "generate": {
+            "load_s": 0.23,
+            "prompt_eval_count": 3661,
+            "prompt_eval_s": 5.27,
+            "eval_count": 240,
+            "eval_s": 21.74,
+            "tok_s": 11.0,
+            "total_s": 27.41
+          }
+        },
+        "answer": "State Machine агента проходит следующие этапы: PLANNING, EXECUTION, VALIDATION и DONE. Каждый этап имеет отдельный StageAgent с изолированной историей и параметрами LLM. PipelineAgent оркестрирует переходы между этапами и управляет артефактами.",
+        "sources": [
+          {
+            "source": "week-03/day-15/README.md",
+            "chunk_id": "struct_00020",
+            "section": "week-03/day-15",
+            "quote": "Ключевые файлы:\n- agents/statemachine.py — AgentState, ALLOWEDTRANSITIONS, PipelineAgent.transitionto(), StageAgent"
+          },
+          {
+            "source": "agents/state_machine.py",
+            "chunk_id": "struct_00044",
+            "section": "state_machine",
+            "quote": "Допустимые этапы пайплайна задачи."
+          }
+        ]
+      },
+      {
+        "question": "Какие таблицы есть в базе данных проекта и какие у них поля?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.25,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 3.16
+        },
+        "total_s": 3.41,
+        "confidence": "none",
+        "n_sources": 0,
+        "answer_len": 86,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.21,
+            "prompt_eval_count": 1760,
+            "prompt_eval_s": 2.51,
+            "eval_count": 3,
+            "eval_s": 0.13,
+            "tok_s": 23.4,
+            "total_s": 3.17
+          }
+        },
+        "answer": "Я не знаю ответа на этот вопрос. В найденных документах нет информации по данной теме.",
+        "sources": []
+      }
+    ]
+  },
+  {
+    "model": "qwen2.5-coder:7b-instruct-q3_K_M",
+    "profile": "baseline",
+    "mode": "threshold",
+    "base_url": "http://localhost:11434/v1",
+    "warmup": {
+      "load_s": 21.65,
+      "prompt_eval_count": 34,
+      "prompt_eval_s": 23.57,
+      "eval_count": 4,
+      "eval_s": 0.24,
+      "tok_s": 17.0,
+      "total_s": 45.46,
+      "wall_s": 43.63
+    },
+    "runs": [
+      {
+        "question": "Какие стратегии чанкинга используются в RAG-пайплайне?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 3.2,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 46.13
+        },
+        "total_s": 49.33,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 223,
+        "llm_metrics": null,
+        "answer": "RAG-пайплайн использует стратегию чанкинга, которая включает поиск релевантных чанков из базы знаний перед отправкой запроса к языковому модели. Это позволяет модели получать актуальный контекст и улучшить качество ответов.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-05.md",
+            "chunk_id": "struct_00004",
+            "section": "Неделя 5. RAG (Retrieval-Augmented Generation)",
+            "quote": "RAG (генерация, дополненная поиском) — это паттерн, позволяющий дополнять ответы языковых моделей (LLM) знаниями из внешних или внутренних источников непосредственно во время работы (инференса)."
+          },
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "Неделя 5 — День 22. Первый RAG-запрос",
+            "quote": "Когда режим включён, перед каждым запросом к LLM агент автоматически: 1. Ищет релевантные чанки через ragger.search.search() по вопросу пользователя"
+          }
+        ]
+      },
+      {
+        "question": "Какие режимы работы поддерживает RAG-пайплайн и чем они отличаются?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.23,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 39.08
+        },
+        "total_s": 39.31,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 126,
+        "llm_metrics": null,
+        "answer": "RAG-пайплайн поддерживает два режима работы: с RAG и без RAG. Режимы отличаются тем, как модель получает контекст для ответов.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-05.md",
+            "chunk_id": "struct_00004",
+            "section": "Неделя 5. RAG (Retrieval-Augmented Generation)",
+            "quote": "RAG (генерация, дополненная поиском) — это паттерн, позволяющий дополнять ответы языковых моделей (LLM) знаниями из внешних или внутренних источников непосредственно во время работы (инференса)."
+          },
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "Неделя 5 — День 22. Первый RAG-запрос",
+            "quote": "Режимы RAG и MCP независимы и могут работать одновременно:"
+          }
+        ]
+      },
+      {
+        "question": "Что такое MCP и какие MCP-серверы есть в проекте?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.26,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 64.35
+        },
+        "total_s": 64.61,
+        "confidence": "high",
+        "n_sources": 3,
+        "answer_len": 169,
+        "llm_metrics": null,
+        "answer": "MCP (Model Context Protocol) — это открытый стандарт для взаимодействия LLM с внешними сервисами. В проекте есть несколько MCP-серверов, включая FastMCP и Space Monitor.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-04.md",
+            "chunk_id": "struct_00003",
+            "section": "Неделя 4. MCP (Model Context Protocol)",
+            "quote": "- Стандарт, а не фреймворк: MCP — это единый протокол, реализованный на разных языках (Python, Kotlin и др.), который позволяет любой модели (Claude, GPT и др.) общаться с любым внешним сервисом через унифицированный интерфейс."
+          },
+          {
+            "source": "week-04/day-20/README.md",
+            "chunk_id": "struct_00025",
+            "section": "Неделя 4 — День 20. Orchestration MCP",
+            "quote": "Созданные файлы\n- mcpservers/analyzermcp/server.py — новый MCP-сервер (FastMCP, порт 8768) с инструментами:\n  - extractkeywords(text, maxkeywords) — извлечение топ-N ключевых слов (с фильтрацией стоп-слов EN/RU)\n  - generatereport(title, content) — генерация markdown-отчёта с метаданными"
+          },
+          {
+            "source": "week-04/day-18/README.md",
+            "chunk_id": "struct_00023",
+            "section": "Неделя 4 — День 18. Планировщик и фоновые задачи",
+            "quote": "Результат:\nАгент, который работает 24/7 и периодически выдаёт сводку"
+          }
+        ]
+      },
+      {
+        "question": "Какие этапы проходит State Machine агента?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.25,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 26.85
+        },
+        "total_s": 27.1,
+        "confidence": "high",
+        "n_sources": 1,
+        "answer_len": 171,
+        "llm_metrics": null,
+        "answer": "State Machine агента проходит следующие этапы: PLANNING → EXECUTION → VALIDATION → DONE. Каждый этап имеет отдельный StageAgent с изолированной историей и параметрами LLM.",
+        "sources": [
+          {
+            "source": "week-03/day-15/README.md",
+            "chunk_id": "struct_00020",
+            "section": "Неделя 3 — День 15. Контролируемые переходы состояний",
+            "quote": "Ключевые файлы: agents/statemachine.py — AgentState, ALLOWEDTRANSITIONS, PipelineAgent.transitionto(), StageAgent"
+          }
+        ]
+      },
+      {
+        "question": "Какие таблицы есть в базе данных проекта и какие у них поля?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.25,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 3.36
+        },
+        "total_s": 3.61,
+        "confidence": "none",
+        "n_sources": 0,
+        "answer_len": 86,
+        "llm_metrics": null,
+        "answer": "Я не знаю ответа на этот вопрос. В найденных документах нет информации по данной теме.",
+        "sources": []
+      }
+    ]
+  },
+  {
+    "model": "qwen2.5-coder:7b-instruct-q3_K_M",
+    "profile": "optimized",
+    "mode": "threshold",
+    "base_url": "http://localhost:11434/v1",
+    "warmup": {
+      "load_s": 8.21,
+      "prompt_eval_count": 34,
+      "prompt_eval_s": 0.16,
+      "eval_count": 4,
+      "eval_s": 0.18,
+      "tok_s": 21.7,
+      "total_s": 8.57,
+      "wall_s": 8.33
+    },
+    "runs": [
+      {
+        "question": "Какие стратегии чанкинга используются в RAG-пайплайне?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 3.19,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 30.77
+        },
+        "total_s": 33.96,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 207,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.23,
+            "prompt_eval_count": 1861,
+            "prompt_eval_s": 2.15,
+            "eval_count": 2,
+            "eval_s": 0.06,
+            "tok_s": 35.5,
+            "total_s": 2.48
+          },
+          "generate": {
+            "load_s": 0.23,
+            "prompt_eval_count": 4293,
+            "prompt_eval_s": 5.21,
+            "eval_count": 317,
+            "eval_s": 23.78,
+            "tok_s": 13.3,
+            "total_s": 29.41
+          }
+        },
+        "answer": "RAG (Retrieval-Augmented Generation) использует стратегии чанкинга для улучшения ответов языковых моделей. Он ищет релевантные чанки из базы знаний, инжектирует их в контекст модели и затем генерирует ответ.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-05.md",
+            "chunk_id": "struct_00004",
+            "section": "week-05",
+            "quote": "RAG (генерация, дополненная поиском) — это паттерн, позволяющий дополнять ответы языковых моделей (LLM) знаниями из внешних или внутренних источников непосредственно во время работы (инференса)."
+          },
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "week-05/day-22",
+            "quote": "В JarvisAgent добавлен RAG-режим — флаг ragenabled, который хранится в сессии (БД). Когда режим включён, перед каждым запросом к LLM агент автоматически:"
+          }
+        ]
+      },
+      {
+        "question": "Какие режимы работы поддерживает RAG-пайплайн и чем они отличаются?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.25,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 31.67
+        },
+        "total_s": 31.92,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 249,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.27,
+            "prompt_eval_count": 1692,
+            "prompt_eval_s": 1.98,
+            "eval_count": 2,
+            "eval_s": 0.08,
+            "tok_s": 26.6,
+            "total_s": 2.63
+          },
+          "generate": {
+            "load_s": 0.23,
+            "prompt_eval_count": 3910,
+            "prompt_eval_s": 4.74,
+            "eval_count": 335,
+            "eval_s": 25.12,
+            "tok_s": 13.3,
+            "total_s": 30.22
+          }
+        },
+        "answer": "RAG-пайплайн поддерживает два режима работы: с RAG и без RAG. Режимы отличаются тем, что в RAG автоматически подгружаются релевантные контекстные данные из базы знаний проекта, а в обычном режиме модель работает только с предоставленными ей данными.",
+        "sources": [
+          {
+            "source": "week-05/day-22/README.md",
+            "chunk_id": "struct_00027",
+            "section": "week-05/day-22",
+            "quote": "Режимы RAG и MCP независимы и могут работать одновременно: - RAG — автоматическая подгрузка контекста, модель не управляет ретривом - MCP — модель сама решает, вызывать ли searchcontext как tool"
+          },
+          {
+            "source": "docs/lessions/week-05.md",
+            "chunk_id": "struct_00004",
+            "section": "week-05",
+            "quote": "RAG (Retrieval Augmented Generation): паттерн дополнения ответов модели внешними знаниями непосредственно во время инференса. Система ищет подходящую информацию в вашей базе знаний и подкладывает её в контекст модели."
+          }
+        ]
+      },
+      {
+        "question": "Что такое MCP и какие MCP-серверы есть в проекте?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.25,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 41.41
+        },
+        "total_s": 41.66,
+        "confidence": "high",
+        "n_sources": 3,
+        "answer_len": 201,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.23,
+            "prompt_eval_count": 1896,
+            "prompt_eval_s": 2.18,
+            "eval_count": 2,
+            "eval_s": 0.06,
+            "tok_s": 34.3,
+            "total_s": 2.74
+          },
+          "generate": {
+            "load_s": 0.23,
+            "prompt_eval_count": 4634,
+            "prompt_eval_s": 5.7,
+            "eval_count": 453,
+            "eval_s": 34.22,
+            "tok_s": 13.2,
+            "total_s": 40.32
+          }
+        },
+        "answer": "MCP (Model Context Protocol) — это открытый стандарт для взаимодействия LLM с внешними сервисами через унифицированный интерфейс. В проекте есть несколько MCP-серверов, включая FastMCP и Space Monitor.",
+        "sources": [
+          {
+            "source": "docs/lessions/week-04.md",
+            "chunk_id": "struct_00003",
+            "section": "week-04",
+            "quote": "MCP (Model Context Protocol) — открытый стандарт, разработанный для обеспечения взаимодействия LLM с внешними сервисами, такими как корпоративные базы знаний, таск-трекеры, чаты или личные календари."
+          },
+          {
+            "source": "week-04/day-20/README.md",
+            "chunk_id": "struct_00025",
+            "section": "week-04/day-20",
+            "quote": "Созданные файлы\n- mcpservers/analyzermcp/server.py — новый MCP-сервер (FastMCP, порт 8768) с инструментами:\n  - extractkeywords(text, maxkeywords) — извлечение топ-N ключевых слов (с фильтрацией стоп-слов EN/RU)\n  - generatereport(title, content) — генерация markdown-отчёта с метаданными"
+          },
+          {
+            "source": "week-04/day-20/README.md",
+            "chunk_id": "struct_00025",
+            "section": "week-04/day-20",
+            "quote": "Созданные файлы\n- mcpservers/spacemonitormcp/server.py — FastMCP-сервер (порт 8766)"
+          }
+        ]
+      },
+      {
+        "question": "Какие этапы проходит State Machine агента?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.28,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 23.99
+        },
+        "total_s": 24.27,
+        "confidence": "high",
+        "n_sources": 2,
+        "answer_len": 240,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.21,
+            "prompt_eval_count": 1747,
+            "prompt_eval_s": 2.0,
+            "eval_count": 2,
+            "eval_s": 0.07,
+            "tok_s": 28.6,
+            "total_s": 2.61
+          },
+          "generate": {
+            "load_s": 0.22,
+            "prompt_eval_count": 3661,
+            "prompt_eval_s": 4.4,
+            "eval_count": 233,
+            "eval_s": 17.39,
+            "tok_s": 13.4,
+            "total_s": 22.19
+          }
+        },
+        "answer": "State Machine агента проходит следующие этапы: PLANNING, EXECUTION, VALIDATION и DONE. Каждый этап имеет изолированную историю и свои параметры LLM. PipelineAgent оркестрирует переходы между этими этапами и управляет их последовательностью.",
+        "sources": [
+          {
+            "source": "week-03/day-15/README.md",
+            "chunk_id": "struct_00020",
+            "section": "week-03/day-15",
+            "quote": "Ключевые файлы:\n- agents/statemachine.py — AgentState, ALLOWEDTRANSITIONS, PipelineAgent.transitionto(), StageAgent"
+          },
+          {
+            "source": "agents/state_machine.py",
+            "chunk_id": "struct_00044",
+            "section": "state_machine",
+            "quote": "Допустимые этапы пайплайна задачи."
+          }
+        ]
+      },
+      {
+        "question": "Какие таблицы есть в базе данных проекта и какие у них поля?",
+        "chunks": 8,
+        "timings": {
+          "embed_s": 0.26,
+          "faiss_s": 0.0,
+          "rerank_s": 0.0,
+          "generate_s": 2.62
+        },
+        "total_s": 2.88,
+        "confidence": "none",
+        "n_sources": 0,
+        "answer_len": 86,
+        "llm_metrics": {
+          "verify": {
+            "load_s": 0.23,
+            "prompt_eval_count": 1760,
+            "prompt_eval_s": 2.02,
+            "eval_count": 2,
+            "eval_s": 0.07,
+            "tok_s": 30.0,
+            "total_s": 2.61
+          }
+        },
+        "answer": "Я не знаю ответа на этот вопрос. В найденных документах нет информации по данной теме.",
+        "sources": []
+      }
+    ]
+  }
+]

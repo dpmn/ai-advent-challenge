@@ -1,0 +1,289 @@
+time=2026-07-09T14:22:00.167+03:00 level=INFO source=routes.go:1919 msg="server config" env="map[CUDA_VISIBLE_DEVICES: GGML_VK_VISIBLE_DEVICES: GPU_DEVICE_ORDINAL: HIP_VISIBLE_DEVICES: HSA_OVERRIDE_GFX_VERSION: HTTPS_PROXY:http://127.0.0.1:7897 HTTP_PROXY:http://127.0.0.1:7897 LLAMA_ARG_FIT: LLAMA_ARG_FIT_TARGET: NO_PROXY:172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,192.168.*,127.*,localhost,<local> OLLAMA_CONTEXT_LENGTH:32768 OLLAMA_DEBUG:INFO OLLAMA_DEBUG_LOG_REQUESTS:false OLLAMA_EDITOR: OLLAMA_FLASH_ATTENTION:false OLLAMA_GO_TEMPLATE:true OLLAMA_GPU_OVERHEAD:0 OLLAMA_HOST:http://127.0.0.1:11434 OLLAMA_IGPU_ENABLE: OLLAMA_KEEP_ALIVE:5m0s OLLAMA_KV_CACHE_TYPE: OLLAMA_LLM_LIBRARY: OLLAMA_LOAD_TIMEOUT:5m0s OLLAMA_MAX_LOADED_MODELS:0 OLLAMA_MAX_QUEUE:512 OLLAMA_MAX_TRANSFER_STREAMS:4 OLLAMA_MODELS:/home/ionov/.ollama/models OLLAMA_NOHISTORY:false OLLAMA_NOPRUNE:false OLLAMA_NO_CLOUD:false OLLAMA_NUM_PARALLEL:1 OLLAMA_ORIGINS:[http://localhost https://localhost http://localhost:* https://localhost:* http://127.0.0.1 https://127.0.0.1 http://127.0.0.1:* https://127.0.0.1:* http://0.0.0.0 https://0.0.0.0 http://0.0.0.0:* https://0.0.0.0:* app://* file://* tauri://* vscode-webview://* vscode-file://*] OLLAMA_REMOTES:[ollama.com] OLLAMA_SCHED_SPREAD:false OLLAMA_VULKAN:true ROCR_VISIBLE_DEVICES: http_proxy:http://127.0.0.1:7897 https_proxy:http://127.0.0.1:7897 no_proxy:172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,192.168.*,127.*,localhost,<local>]"
+time=2026-07-09T14:22:00.168+03:00 level=INFO source=routes.go:1921 msg="Ollama cloud disabled: false"
+time=2026-07-09T14:22:00.174+03:00 level=INFO source=images.go:864 msg="total blobs: 9"
+time=2026-07-09T14:22:00.174+03:00 level=INFO source=images.go:871 msg="total unused blobs removed: 0"
+time=2026-07-09T14:22:00.177+03:00 level=INFO source=routes.go:1981 msg="Listening on 127.0.0.1:11434 (version 0.30.10)"
+time=2026-07-09T14:22:00.182+03:00 level=INFO source=runner.go:60 msg="discovering available GPUs..."
+time=2026-07-09T14:22:00.188+03:00 level=INFO source=model_list_cache.go:111 msg="model list cache hydration complete" models=2 failures=0 elapsed=11.029417ms
+time=2026-07-09T14:22:00.472+03:00 level=INFO source=model_recommendations.go:177 msg="model recommendations cache sleep scheduled" wait=3h19m24.156663111s consecutive_failures=0
+time=2026-07-09T14:22:05.414+03:00 level=INFO source=types.go:32 msg="inference compute" id=0 filter_id=0 library=CUDA compute=8.6 name=CUDA0 description="NVIDIA GeForce RTX 3060 Laptop GPU" libdirs=ollama,cuda_v13 driver=13.1 pci_id=0000:01:00.0 type=discrete total="6.0 GiB" available="5.0 GiB"
+time=2026-07-09T14:22:05.414+03:00 level=INFO source=routes.go:2031 msg="vram-based default context" total_vram="6.0 GiB" default_num_ctx=4096
+[GIN] 2026/07/09 - 14:22:18 | 200 |    1.815077ms |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/07/09 - 14:22:18 | 200 |    1.091153ms |       127.0.0.1 | GET      "/api/ps"
+[GIN] 2026/07/09 - 14:22:22 | 200 |     449.795µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/07/09 - 14:22:22 | 200 |      834.31µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/07/09 - 14:22:32 | 200 |      43.067µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/07/09 - 14:22:32 | 200 |  180.163767ms |       127.0.0.1 | POST     "/api/show"
+[GIN] 2026/07/09 - 14:22:32 | 200 |      887.02µs |       127.0.0.1 | POST     "/api/show"
+time=2026-07-09T14:22:34.363+03:00 level=INFO source=server.go:109 msg="using llama-server for model" model=/home/ionov/.ollama/models/blobs/sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463
+time=2026-07-09T14:22:34.368+03:00 level=INFO source=llama_server.go:406 msg="starting llama-server" cmd="/usr/local/lib/ollama/llama-server --model /home/ionov/.ollama/models/blobs/sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463 --port 44548 --host 127.0.0.1 --no-webui --offline -c 32768 -np 1 --log-verbosity 4 --no-log-prefix --no-log-timestamps --no-jinja --chat-template chatml --flash-attn auto -b 512 -ub 512 --context-shift --keep 4"
+time=2026-07-09T14:22:34.369+03:00 level=INFO source=sched.go:623 msg="system memory" total="7.7 GiB" free="7.0 GiB" free_swap="2.0 GiB"
+time=2026-07-09T14:22:34.369+03:00 level=INFO source=sched.go:630 msg="gpu memory" id=0 library=CUDA available="4.6 GiB" free="5.0 GiB" minimum="457.0 MiB" overhead="0 B"
+time=2026-07-09T14:22:34.369+03:00 level=INFO source=llama_server.go:889 msg="loading model via llama-server" model=/home/ionov/.ollama/models/blobs/sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463
+time=2026-07-09T14:22:34.369+03:00 level=INFO source=llama_server.go:1134 msg="waiting for llama-server to start responding"
+time=2026-07-09T14:22:34.370+03:00 level=INFO source=llama_server.go:1189 msg="waiting for llama-server to become available" status="llm server not responding"
+common_params_print_info: build 1 (74ade5274) with GNU 11.2.1 for Linux x86_64
+log_info: verbosity = 4 (adjust with the `-lv N` CLI arg)
+device_info:
+  - CPU     : 11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz (7838 MiB, 7838 MiB free)
+  - CUDA0   : NVIDIA GeForce RTX 3060 Laptop GPU (6143 MiB, 5118 MiB free)
+system_info: n_threads = 4 (n_threads_batch = 4) / 8 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | LLAMAFILE = 1 | REPACK = 1 | CUDA : ARCHS = 750,800,860,890,900,1000,1030,1100,1200,1210 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 |
+srv          init: using 7 threads for HTTP server
+srv          init: The UI is disabled
+srv          init: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+srv         start: binding port with default address family
+srv  llama_server: loading model
+srv    load_model: loading model '/home/ionov/.ollama/models/blobs/sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463'
+common_init_result: fitting params to device memory ...
+common_init_result: (for bugs during this step try to reproduce them with -fit off, or provide --verbose logs if the bug only occurs with -fit on)
+common_params_fit_impl: getting device memory data for initial parameters:
+time=2026-07-09T14:22:34.876+03:00 level=INFO source=llama_server.go:1189 msg="waiting for llama-server to become available" status="llm server loading model"
+common_memory_breakdown_print: | memory breakdown [MiB]          | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 3060 Laptop GPU) |  6143 = 5118 + (6124 =  4168 +    1792 +     164) +       -5098 |
+common_memory_breakdown_print: |   - Host                        |                  338 =   292 +       0 +      46                |
+common_params_fit_impl: projected to use 6124 MiB of device memory vs. 5118 MiB of free device memory
+common_params_fit_impl: cannot meet free memory target of 1024 MiB, need to reduce device memory by 2030 MiB
+common_params_fit_impl: context size set by user to 32768 -> no change
+common_params_fit_impl: id=0, target=4094 MiB
+common_memory_breakdown_print: | memory breakdown [MiB]          | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 3060 Laptop GPU) |  6143 = 5118 + ( 204 =     0 +       0 +     204) +         820 |
+common_memory_breakdown_print: |   - Host                        |                 6298 =  4460 +    1792 +      46                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer= 0, n_part= 0, overflow_type=4, mem=   204 MiB
+common_params_fit_impl: filling dense layers back-to-front:
+common_memory_breakdown_print: | memory breakdown [MiB]          | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 3060 Laptop GPU) |  6143 = 5118 + (6124 =  4168 +    1792 +     164) +       -5098 |
+common_memory_breakdown_print: |   - Host                        |                  338 =   292 +       0 +      46                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=29, n_part= 0, overflow_type=4, mem=  6124 MiB
+common_params_fit_impl: start filling device 0, delta=29
+common_memory_breakdown_print: | memory breakdown [MiB]          | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 3060 Laptop GPU) |  6143 = 5118 + (4188 =  2831 +    1152 +     204) +       -3163 |
+common_memory_breakdown_print: |   - Host                        |                 2314 =  1628 +     640 +      46                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=19, n_part= 0, overflow_type=4, mem=  4188 MiB
+common_params_fit_impl: set ngl_per_device_high[0].n_layer=19
+common_memory_breakdown_print: | memory breakdown [MiB]          | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 3060 Laptop GPU) |  6143 = 5118 + (3982 =  2690 +    1088 +     204) +       -2957 |
+common_memory_breakdown_print: |   - Host                        |                 2520 =  1770 +     704 +      46                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=18, n_part= 0, overflow_type=4, mem=  3982 MiB
+common_params_fit_impl: set ngl_per_device[0].n_layer=18
+common_params_fit_impl:   - CUDA0 (NVIDIA GeForce RTX 3060 Laptop GPU): 18 layers,   3982 MiB used,   1135 MiB free
+common_fit_params: successfully fit params to free device memory
+common_fit_params: fitting params to free memory took 5.79 seconds
+llama_model_loader: loaded meta data with 34 key-value pairs and 339 tensors from /home/ionov/.ollama/models/blobs/sha256-60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463 (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen2
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = Qwen2.5 Coder 7B Instruct
+llama_model_loader: - kv   3:                           general.finetune str              = Instruct
+llama_model_loader: - kv   4:                           general.basename str              = Qwen2.5-Coder
+llama_model_loader: - kv   5:                         general.size_label str              = 7B
+llama_model_loader: - kv   6:                            general.license str              = apache-2.0
+llama_model_loader: - kv   7:                       general.license.link str              = https://huggingface.co/Qwen/Qwen2.5-C...
+llama_model_loader: - kv   8:                   general.base_model.count u32              = 1
+llama_model_loader: - kv   9:                  general.base_model.0.name str              = Qwen2.5 Coder 7B
+llama_model_loader: - kv  10:          general.base_model.0.organization str              = Qwen
+llama_model_loader: - kv  11:              general.base_model.0.repo_url str              = https://huggingface.co/Qwen/Qwen2.5-C...
+llama_model_loader: - kv  12:                               general.tags arr[str,6]       = ["code", "codeqwen", "chat", "qwen", ...
+llama_model_loader: - kv  13:                          general.languages arr[str,1]       = ["en"]
+llama_model_loader: - kv  14:                          qwen2.block_count u32              = 28
+llama_model_loader: - kv  15:                       qwen2.context_length u32              = 32768
+llama_model_loader: - kv  16:                     qwen2.embedding_length u32              = 3584
+llama_model_loader: - kv  17:                  qwen2.feed_forward_length u32              = 18944
+llama_model_loader: - kv  18:                 qwen2.attention.head_count u32              = 28
+llama_model_loader: - kv  19:              qwen2.attention.head_count_kv u32              = 4
+llama_model_loader: - kv  20:                       qwen2.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  21:     qwen2.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  22:                          general.file_type u32              = 15
+llama_model_loader: - kv  23:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  24:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  25:                      tokenizer.ggml.tokens arr[str,152064]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  26:                  tokenizer.ggml.token_type arr[i32,152064]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  27:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  28:                tokenizer.ggml.eos_token_id u32              = 151645
+llama_model_loader: - kv  29:            tokenizer.ggml.padding_token_id u32              = 151643
+llama_model_loader: - kv  30:                tokenizer.ggml.bos_token_id u32              = 151643
+llama_model_loader: - kv  31:               tokenizer.ggml.add_bos_token bool             = false
+llama_model_loader: - kv  32:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+llama_model_loader: - kv  33:               general.quantization_version u32              = 2
+llama_model_loader: - type  f32:  141 tensors
+llama_model_loader: - type q4_K:  169 tensors
+llama_model_loader: - type q6_K:   29 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 4.36 GiB (4.91 BPW)
+llama_prepare_model_devices: using device CUDA0 (NVIDIA GeForce RTX 3060 Laptop GPU) (0000:01:00.0) - 5118 MiB free
+load: 0 unused tokens
+load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: printing all EOG tokens:
+load:   - 128247 ('</s>')
+load:   - 151643 ('<|endoftext|>')
+load:   - 151645 ('<|im_end|>')
+load:   - 151662 ('<|fim_pad|>')
+load:   - 151663 ('<|repo_name|>')
+load:   - 151664 ('<|file_sep|>')
+load: special tokens cache size = 23
+load: token to piece cache size = 0.9310 MB
+print_info: arch                  = qwen2
+print_info: vocab_only            = 0
+print_info: no_alloc              = 0
+print_info: n_ctx_train           = 32768
+print_info: n_embd_inp            = 3584
+print_info: n_embd                = 3584
+print_info: n_embd_out            = 3584
+print_info: n_layer               = 28
+print_info: n_layer_all           = 28
+print_info: n_head                = 28
+print_info: n_head_kv             = 4
+print_info: n_rot                 = 128
+print_info: n_swa                 = 0
+print_info: is_swa_any            = 0
+print_info: n_embd_head_k         = 128
+print_info: n_embd_head_v         = 128
+print_info: n_gqa                 = 7
+print_info: n_embd_k_gqa          = 512
+print_info: n_embd_v_gqa          = 512
+print_info: f_norm_eps            = 0.0e+00
+print_info: f_norm_rms_eps        = 1.0e-06
+print_info: f_clamp_kqv           = 0.0e+00
+print_info: f_max_alibi_bias      = 0.0e+00
+print_info: f_logit_scale         = 0.0e+00
+print_info: f_attn_scale          = 0.0e+00
+print_info: f_attn_value_scale    = 0.0000
+print_info: n_ff                  = 18944
+print_info: n_expert              = 0
+print_info: n_expert_used         = 0
+print_info: n_expert_groups       = 0
+print_info: n_group_used          = 0
+print_info: causal attn           = 1
+print_info: pooling type          = -1
+print_info: rope type             = 2
+print_info: rope scaling          = linear
+print_info: freq_base_train       = 1000000.0
+print_info: freq_scale_train      = 1
+print_info: n_ctx_orig_yarn       = 32768
+print_info: rope_yarn_log_mul     = 0.0000
+print_info: rope_finetuned        = unknown
+print_info: model type            = 7B
+print_info: model params          = 7.62 B
+print_info: general.name          = Qwen2.5 Coder 7B Instruct
+print_info: vocab type            = BPE
+print_info: n_vocab               = 152064
+print_info: n_merges              = 151387
+print_info: BOS token             = 151643 '<|endoftext|>'
+print_info: EOS token             = 151645 '<|im_end|>'
+print_info: EOT token             = 151645 '<|im_end|>'
+print_info: PAD token             = 151643 '<|endoftext|>'
+print_info: LF token              = 198 'Ċ'
+print_info: FIM PRE token         = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token         = 151661 '<|fim_suffix|>'
+print_info: FIM MID token         = 151660 '<|fim_middle|>'
+print_info: FIM PAD token         = 151662 '<|fim_pad|>'
+print_info: FIM REP token         = 151663 '<|repo_name|>'
+print_info: FIM SEP token         = 151664 '<|file_sep|>'
+print_info: EOG token             = 128247 '</s>'
+print_info: EOG token             = 151643 '<|endoftext|>'
+print_info: EOG token             = 151645 '<|im_end|>'
+print_info: EOG token             = 151662 '<|fim_pad|>'
+print_info: EOG token             = 151663 '<|repo_name|>'
+print_info: EOG token             = 151664 '<|file_sep|>'
+print_info: max token length      = 256
+load_tensors: loading model tensors, this can take a while... (mmap = true, direct_io = false)
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 17 repeating layers to GPU
+load_tensors: offloaded 18/29 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =  2769.22 MiB
+load_tensors:        CUDA0 model buffer size =  2690.01 MiB
+..................................................................................
+common_init_result: added </s> logit bias = -inf
+common_init_result: added <|endoftext|> logit bias = -inf
+common_init_result: added <|im_end|> logit bias = -inf
+common_init_result: added <|fim_pad|> logit bias = -inf
+common_init_result: added <|repo_name|> logit bias = -inf
+common_init_result: added <|file_sep|> logit bias = -inf
+llama_context: constructing llama_context
+llama_context: n_seq_max     = 1
+llama_context: n_ctx         = 32768
+llama_context: n_ctx_seq     = 32768
+llama_context: n_batch       = 512
+llama_context: n_ubatch      = 512
+llama_context: causal_attn   = 1
+llama_context: flash_attn    = auto
+llama_context: kv_unified    = false
+llama_context: freq_base     = 1000000.0
+llama_context: freq_scale    = 1
+llama_context: n_rs_seq      = 0
+llama_context: n_outputs_max = 1
+llama_context:  CUDA_Host  output buffer size =     0.58 MiB
+llama_kv_cache:        CPU KV buffer size =   704.00 MiB
+llama_kv_cache:      CUDA0 KV buffer size =  1088.00 MiB
+llama_kv_cache: size = 1792.00 MiB ( 32768 cells,  28 layers,  1/1 seqs), K (f16):  896.00 MiB, V (f16):  896.00 MiB
+llama_kv_cache: attn_rot_k = 0, n_embd_head_k_all = 128
+llama_kv_cache: attn_rot_v = 0, n_embd_head_k_all = 128
+sched_reserve: reserving ...
+sched_reserve: Flash Attention was auto, set to enabled
+sched_reserve: resolving fused Gated Delta Net support:
+sched_reserve: fused Gated Delta Net (autoregressive) enabled
+sched_reserve: fused Gated Delta Net (chunked) enabled
+sched_reserve:      CUDA0 compute buffer size =   204.89 MiB
+sched_reserve:  CUDA_Host compute buffer size =    46.01 MiB
+sched_reserve: graph nodes  = 958
+sched_reserve: graph splits = 156 (with bs=512), 2 (with bs=1)
+sched_reserve: reserve took 127.42 ms, sched copies = 1
+common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+srv    load_model: initializing slots, n_slots = 1
+common_speculative_init: no implementations specified for speculative decoding
+slot   load_model: id  0 | task -1 | new slot, n_ctx = 32768
+srv    load_model: prompt cache is enabled, size limit: 8192 MiB
+srv    load_model: use `--cache-ram 0` to disable the prompt cache
+srv    load_model: for more info see https://github.com/ggml-org/llama.cpp/pull/16391
+srv    load_model: context checkpoints enabled, max = 32, min spacing = 256
+srv          init: idle slots will be saved to prompt cache upon starting a new task
+init: chat template, example_format: '<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+'
+srv          init: init: chat template, thinking = 0
+srv  llama_server: model loaded
+srv  llama_server: server is listening on http://127.0.0.1:44548
+srv  update_slots: all slots are idle
+time=2026-07-09T14:22:51.240+03:00 level=INFO source=llama_server.go:1201 msg="llama-server started in 17.73 seconds"
+time=2026-07-09T14:22:51.313+03:00 level=INFO source=images.go:354 msg="template selection" model=registry.ollama.ai/library/qwen2.5-coder:7b selected=go_template renderer="" parser="" go_template="[completion tools insert]" chat_template="[tools completion]" harmony=null renderer_parser=null
+time=2026-07-09T14:22:51.313+03:00 level=INFO source=sched.go:739 msg="loaded runners" count=1
+time=2026-07-09T14:22:51.313+03:00 level=INFO source=llama_server.go:1134 msg="waiting for llama-server to start responding"
+time=2026-07-09T14:22:51.316+03:00 level=INFO source=llama_server.go:1201 msg="llama-server started in 17.81 seconds"
+[GIN] 2026/07/09 - 14:22:51 | 200 | 19.275124123s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2026/07/09 - 14:23:03 | 200 |      73.199µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/07/09 - 14:23:03 | 200 |     133.812µs |       127.0.0.1 | GET      "/api/ps"
+slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+srv  get_availabl: updating prompt cache
+srv          load:  - looking for better prompt, base f_keep = -1.000, sim = 0.000
+srv        update:  - cache state: 0 prompts, 0.000 MiB (limits: 8192.000 MiB, 32768 tokens, 8589934592 est)
+srv  get_availabl: prompt cache update took 0.02 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist
+slot launch_slot_: id  0 | task -1 | sampler params:
+        repeat_last_n = 64, repeat_penalty = 1.100, frequency_penalty = 0.000, presence_penalty = 0.000
+        dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 32768
+        top_k = 40, top_p = 0.900, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.800
+        mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+slot update_slots: id  0 | task 0 | new prompt, n_ctx_slot = 32768, n_keep = 4, task.n_tokens = 33
+slot update_slots: id  0 | task 0 | cached n_tokens = 0, memory_seq_rm [0, end)
+slot init_sampler: id  0 | task 0 | init sampler, took 0.02 ms, tokens: text = 33, total = 33
+slot print_timing: id  0 | task 0 | prompt eval time =     844.64 ms /    33 tokens (   25.60 ms per token,    39.07 tokens per second)
+slot print_timing: id  0 | task 0 |        eval time =     986.74 ms /    12 tokens (   82.23 ms per token,    12.16 tokens per second)
+slot print_timing: id  0 | task 0 |       total time =    1831.38 ms /    45 tokens
+slot print_timing: id  0 | task 0 |    graphs reused =         11
+slot      release: id  0 | task 0 | stop processing: n_tokens = 44, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/07/09 - 14:23:13 | 200 |  2.078435945s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/07/09 - 14:23:16 | 200 |      43.454µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/07/09 - 14:23:16 | 200 |      31.636µs |       127.0.0.1 | GET      "/api/ps"

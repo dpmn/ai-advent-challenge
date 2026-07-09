@@ -155,6 +155,10 @@ class RagPipeline:
     embed_model: str = "openai/text-embedding-3-small"
     embed_base_url: str = CLOUD_BASE_URL
     embed_prefix: str = ""
+    # Профиль инференса локального провайдера (day-29): transport="ollama",
+    # rerank_options (num_ctx/temperature/num_predict), keep_alive.
+    # None — облачный путь без изменений.
+    llm_profile: dict | None = None
     _last_timings: dict = field(default_factory=dict, repr=False)
 
     def run(self, query: str) -> list[dict]:
@@ -182,7 +186,8 @@ class RagPipeline:
         elif self.mode == "rerank":
             if chunks:
                 from ragger.reranker import llm_rerank
-                chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+                chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model,
+                                    self.base_url, llm_profile=self.llm_profile)
 
         elif self.mode == "hybrid":
             from ragger.reranker import threshold_filter, llm_rerank
@@ -191,7 +196,8 @@ class RagPipeline:
             stats["threshold_cut"] = before - len(chunks)
             if chunks:
                 try:
-                    chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model, self.base_url)
+                    chunks = llm_rerank(query, chunks, self.api_key, self.rerank_model,
+                                        self.base_url, llm_profile=self.llm_profile)
                 except Exception as e:
                     print(f"[RAGPIPELINE] llm_rerank failed, using threshold-filtered chunks: {e}")
 
