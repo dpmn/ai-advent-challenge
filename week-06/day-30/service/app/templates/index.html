@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отмазочная</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="wrap">
+        <h1>Отмазочная</h1>
+        <p class="subtitle">Генератор отмазок для IT-специалиста. Работает на Qwen2.5-0.5B, так что отмазки местами кривые — это часть шарма.</p>
+
+        <section class="card">
+            <div class="row">
+                <label>Роль
+                    <select id="role">
+                        <option>бэкенд-разработчик</option>
+                        <option>фронтенд-разработчик</option>
+                        <option>девопс</option>
+                        <option>тестировщик</option>
+                        <option>аналитик</option>
+                        <option>тимлид</option>
+                        <option>дата-сайентист</option>
+                    </select>
+                </label>
+                <label>Жанр
+                    <select id="genre">
+                        <option>корпоративный</option>
+                        <option>эпос</option>
+                        <option>нуар</option>
+                        <option>бюрократический</option>
+                        <option>драма</option>
+                    </select>
+                </label>
+            </div>
+            <label>Что провалено (опционально)
+                <input id="context" type="text" maxlength="240" placeholder="например: не задеплоил релиз в пятницу">
+            </label>
+            <button id="generate">Отмазаться</button>
+        </section>
+
+        <section class="card hidden" id="result-card">
+            <div id="result"></div>
+            <div class="chat" id="chat"></div>
+            <div class="chat-input">
+                <input id="chat-message" type="text" maxlength="400" placeholder="доработать: например, «сделай драматичнее»">
+                <button id="send">→</button>
+            </div>
+        </section>
+
+        <p class="status" id="status"></p>
+    </main>
+    <script src="/static/script.js"></script>
+</body>
+</html>
