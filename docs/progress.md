@@ -30,3 +30,5 @@
 | 6      | 28   | Локальная LLM + RAG (полностью локальный пайплайн) | done | [pipeline.py](../ragger/pipeline.py), [search.py](../ragger/search.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py) | https://disk.yandex.ru/i/HF5Z49DpCWLCJg |
 | 6      | 29   | Оптимизация локальной LLM | done | [ollama_client.py](../ragger/ollama_client.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py), [bench.py](../week-06/day-29/bench.py) | https://disk.yandex.ru/i/OC_Aq991Kxi2oQ |
 | 6      | 30   | Локальная LLM как приватный сервис (VDS) | done | [service/](../week-06/day-30/service/) | https://disk.yandex.ru/i/7BItGfg3NfguKg |
+| 7      | 31   | Ассистент разработчика (RAG + MCP по документации проекта) | done | [docent/](../docent/) | — |
+| 7      | 32   | — | todo | | |

@@ -15,6 +15,7 @@
 ```text
 /
 ├─ agents/              # Ядро агента JarvisAgent и его модули (mixin-файлы, FSM, инварианты, MCP-клиент)
+├─ docent/              # Портабельный CLI-ассистент (pip/uv-пакет): RAG по докам репо + git-контекст через MCP (stdio)
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http): nasa, space_monitor, composer, ragger
 ├─ ragger/              # RAG-пайплайн: chunking, эмбеддинги, FAISS, reranker, answer с цитатами, нативный Ollama-клиент
 ├─ webui/               # Flask + SPA (vanilla JS), Claude-inspired тема + light/dark toggle

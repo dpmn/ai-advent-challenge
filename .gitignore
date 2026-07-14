@@ -221,3 +221,9 @@ __marimo__/
 /agents/memory
 *.db
 /mcp_servers/composer_mcp/output
+
+# Индексы подключённых проектов (day-31)
+/ragger/data_projects/
+
+# docent — локальный индекс, создаётся `docent init` в любом репо (day-31)
+.docent/
