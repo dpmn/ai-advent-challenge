@@ -32,8 +32,10 @@
 Что и где:
 
 - `docent/pyproject.toml` — пакет, entry point `docent = docent.cli:main`, deps
-  `mcp`, `numpy`, `httpx`.
+  `mcp`, `numpy`, `httpx`, `rich`.
 - `docent/docent/cli.py` — команды `init` / `ask` / `help` / `auth`.
+- `docent/docent/render.py` — рендер markdown-ответа в терминал через `rich`
+  (форматирование в TTY, сырой текст при пайпе).
 - `docent/docent/config.py` — пути `.docent/`, чтение ключа из `DOCENT_API_KEY`,
   реестр моделей (`MODELS`, дефолт `Qwen/Qwen3-Coder-Next`) — задел под
   opencode-style выбор модели.

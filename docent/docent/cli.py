@@ -21,6 +21,7 @@ from docent.config import (
     load_config,
     save_config,
 )
+from docent.render import render_markdown
 from docent.spinner import Spinner
 
 _COMMANDS_HELP = """🎓 docent — ассистент разработчика по репозиторию.
@@ -38,6 +39,15 @@ _COMMANDS_HELP = """🎓 docent — ассистент разработчика 
 def _repo_root() -> Path:
     """Возвращает корень репозитория для работы (текущий каталог)."""
     return Path.cwd()
+
+
+def _print_bullets(header: str, items: list[str]) -> None:
+    """Печатает заголовок и элементы маркированным списком (если непусто)."""
+    if not items:
+        return
+    print(f"\n{header}:")
+    for item in items:
+        print(f"  • {item}")
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
@@ -77,11 +87,9 @@ def _cmd_ask(args: argparse.Namespace) -> int:
     config = load_config(root)
     with Spinner("Доцент думает"):
         answer = ask(root, config, args.question)
-    print(answer.text)
-    if answer.sources:
-        print("\n📄 Источники: " + ", ".join(answer.sources))
-    if answer.mcp_tools:
-        print("🔧 MCP: " + ", ".join(answer.mcp_tools))
+    render_markdown(answer.text)
+    _print_bullets("📄 Источники", answer.sources)
+    _print_bullets("🔧 MCP-инструменты", answer.mcp_tools)
     return 0
 
 
