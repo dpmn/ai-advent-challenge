@@ -13,11 +13,12 @@ uv pip install -e ./docent      # или: pip install -e ./docent
 
 ## Ключ API
 
-Провайдер — Cloud.ru Foundation Models (OpenAI-совместимый API). Ключ читается
-из переменной окружения:
+Провайдер — любой OpenAI-совместимый API (по умолчанию Cloud.ru Foundation
+Models, задаётся `base_url` в `.docent/config.json`). Ключ читается из
+провайдер-нейтральной переменной окружения:
 
 ```bash
-export CLOUDRU_SECRET_KEY=<ваш ключ>
+export DOCENT_API_KEY=<ваш ключ>
 ```
 
 ## Команды

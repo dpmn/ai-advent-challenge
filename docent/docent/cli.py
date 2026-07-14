@@ -21,16 +21,17 @@ from docent.config import (
     load_config,
     save_config,
 )
+from docent.spinner import Spinner
 
-_COMMANDS_HELP = """docent — ассистент разработчика по репозиторию.
+_COMMANDS_HELP = """🎓 docent — ассистент разработчика по репозиторию.
 
 Команды:
-  docent init            построить индекс по документации текущего репозитория
-  docent ask "вопрос"    ответить на вопрос о проекте (RAG + git-контекст)
-  docent help            показать этот список команд
-  docent auth            установить ключ API (задел, пока не реализовано)
+  📚 init            построить индекс по документации текущего репозитория
+  💬 ask "вопрос"    ответить на вопрос о проекте (RAG + git-контекст)
+  ❓ help            показать этот список команд
+  🔑 auth            установить ключ API (задел, пока не реализовано)
 
-Ключ API читается из переменной окружения {env}.
+🔐 Ключ API читается из переменной окружения {env}.
 """.format(env=API_KEY_ENV)
 
 
@@ -50,8 +51,8 @@ def _cmd_init(args: argparse.Namespace) -> int:
         return 1
     config = load_config(root) if is_initialized(root) else Config()
     save_config(root, config)
-    print(f"Индексирую документацию в {root} …")
-    stats = index.build(root, config)
+    with Spinner("Индексирую документацию"):
+        stats = index.build(root, config)
     print(f"Готово: файлов {stats.files}, чанков {stats.chunks}. Индекс: .docent/")
     if stats.chunks == 0:
         print(
@@ -74,10 +75,13 @@ def _cmd_ask(args: argparse.Namespace) -> int:
         print(f"[error] не задан {API_KEY_ENV} в окружении.", file=sys.stderr)
         return 1
     config = load_config(root)
-    answer = ask(root, config, args.question)
+    with Spinner("Доцент думает"):
+        answer = ask(root, config, args.question)
     print(answer.text)
     if answer.sources:
-        print("\nИсточники: " + ", ".join(answer.sources))
+        print("\n📄 Источники: " + ", ".join(answer.sources))
+    if answer.mcp_tools:
+        print("🔧 MCP: " + ", ".join(answer.mcp_tools))
     return 0
 
 

@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from contextlib import AsyncExitStack
 
@@ -24,6 +25,8 @@ class McpManager:
         self._stack = AsyncExitStack()
         # tool_name -> ClientSession, владеющая этим инструментом.
         self._tools: dict[str, ClientSession] = {}
+        # Служебный лог серверов уводим в devnull, чтобы не шуметь в терминале.
+        self._errlog = open(os.devnull, "w")
 
     async def __aenter__(self) -> "McpManager":
         """Поднимает все серверы, инициализирует сессии и собирает инструменты."""
@@ -31,7 +34,9 @@ class McpManager:
             params = StdioServerParameters(
                 command=sys.executable, args=["-m", spec.module]
             )
-            read, write = await self._stack.enter_async_context(stdio_client(params))
+            read, write = await self._stack.enter_async_context(
+                stdio_client(params, errlog=self._errlog)
+            )
             session = await self._stack.enter_async_context(ClientSession(read, write))
             await session.initialize()
             listed = await session.list_tools()
@@ -40,8 +45,9 @@ class McpManager:
         return self
 
     async def __aexit__(self, *exc) -> None:
-        """Закрывает все сессии и подпроцессы."""
+        """Закрывает все сессии, подпроцессы и служебный лог."""
         await self._stack.aclose()
+        self._errlog.close()
 
     def tool_names(self) -> list[str]:
         """Возвращает имена всех доступных инструментов."""

@@ -19,7 +19,7 @@ CONFIG_FILE = "config.json"
 
 # Провайдер: Cloud.ru Foundation Models (OpenAI-совместимый API).
 BASE_URL = "https://foundation-models.api.cloud.ru/v1"
-API_KEY_ENV = "CLOUDRU_SECRET_KEY"
+API_KEY_ENV = "DOCENT_API_KEY"
 
 # Реестр моделей. Ключ — логическое имя, значение — id у провайдера и описание.
 # Задел под выбор модели: сюда добавляются модели, конфиг ссылается по имени.
@@ -28,7 +28,9 @@ MODELS: dict[str, dict[str, str]] = {
     "base": {"id": "Qwen/Qwen3-30B-A3B", "desc": "простые задачи, дёшево"},
     "heavy": {"id": "MiniMaxAI/MiniMax-M2.5", "desc": "тяжёлые задачи"},
 }
-DEFAULT_MODEL = "coder"
+# В конфиге храним реальный id провайдера (как embed_model), а не логический
+# алиас — так однообразнее и понятнее. resolve_model() понимает и алиас, и id.
+DEFAULT_MODEL = MODELS["coder"]["id"]
 EMBED_MODEL = "openai/text-embedding-3-small"
 
 

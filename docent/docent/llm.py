@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import httpx
 
-from docent.config import Config, get_api_key, resolve_model
+from docent.config import API_KEY_ENV, Config, get_api_key, resolve_model
 
 
 class LLMError(RuntimeError):
@@ -20,7 +20,7 @@ def _client(config: Config, timeout: float) -> httpx.Client:
     key = get_api_key()
     if not key:
         raise LLMError(
-            "Не задан ключ. Установите переменную окружения CLOUDRU_SECRET_KEY."
+            f"Не задан ключ. Установите переменную окружения {API_KEY_ENV}."
         )
     return httpx.Client(
         base_url=config.base_url,

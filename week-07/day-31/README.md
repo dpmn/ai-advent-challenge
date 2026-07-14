@@ -34,7 +34,7 @@
 - `docent/pyproject.toml` — пакет, entry point `docent = docent.cli:main`, deps
   `mcp`, `numpy`, `httpx`.
 - `docent/docent/cli.py` — команды `init` / `ask` / `help` / `auth`.
-- `docent/docent/config.py` — пути `.docent/`, чтение ключа из `CLOUDRU_SECRET_KEY`,
+- `docent/docent/config.py` — пути `.docent/`, чтение ключа из `DOCENT_API_KEY`,
   реестр моделей (`MODELS`, дефолт `Qwen/Qwen3-Coder-Next`) — задел под
   opencode-style выбор модели.
 - `docent/docent/llm.py` — httpx-клиент Cloud.ru (chat + embeddings), без openai SDK.
@@ -53,8 +53,8 @@
 
 ### Сценарий проверки
 
-Предусловие: в окружении задан `CLOUDRU_SECRET_KEY` (ключ Cloud.ru), пакет
-установлен (`uv pip install -e ./docent` или `pip install -e ./docent`).
+Предусловие: в окружении задан `DOCENT_API_KEY` (ключ провайдера, по умолчанию
+Cloud.ru), пакет установлен (`uv pip install -e ./docent` или `pip install -e ./docent`).
 
 1. В корне репозитория выполни:
    ```
