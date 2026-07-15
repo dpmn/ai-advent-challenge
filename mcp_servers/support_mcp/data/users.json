@@ -1,0 +1,38 @@
+[
+  {
+    "user_id": "U-001",
+    "name": "Иван Иванов",
+    "email": "ivanov@example.com",
+    "plan": "Team",
+    "role": "owner",
+    "registered": "2025-11-03",
+    "notes": "Владелец команды 'Рога и Копыта', 8 пользователей. Активно использует API."
+  },
+  {
+    "user_id": "U-002",
+    "name": "Мария Петрова",
+    "email": "petrova@example.com",
+    "plan": "Free",
+    "role": "member",
+    "registered": "2026-05-20",
+    "notes": "Новый пользователь, оценивает продукт."
+  },
+  {
+    "user_id": "U-003",
+    "name": "Сергей Смирнов",
+    "email": "smirnov@example.com",
+    "plan": "Business",
+    "role": "admin",
+    "registered": "2025-08-14",
+    "notes": "Админ команды 'ЛогистикПро', 42 пользователя, включён SSO."
+  },
+  {
+    "user_id": "U-004",
+    "name": "Анна Козлова",
+    "email": "kozlova@example.com",
+    "plan": "Team",
+    "role": "member",
+    "registered": "2026-01-30",
+    "notes": "Разработчик, использует API-интеграцию с внутренним дашбордом."
+  }
+]

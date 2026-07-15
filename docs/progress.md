@@ -32,3 +32,4 @@
 | 6      | 30   | Локальная LLM как приватный сервис (VDS) | done | [service/](../week-06/day-30/service/) | https://disk.yandex.ru/i/7BItGfg3NfguKg |
 | 7      | 31   | Ассистент разработчика (RAG + MCP по документации проекта) | done | [docent/](../docent/) | https://disk.yandex.ru/i/40eYSc7gfSCsbQ |
 | 7      | 32   | Автоматизация ревью кода (AI-ревью PR через docent) | done | [reviewer.py](../docent/docent/reviewer.py), [rag/code.py](../docent/docent/rag/code.py), [ai-review.yml](../.github/workflows/ai-review.yml) |https://disk.yandex.ru/i/Hj4xahGpvdzHBg |
+| 7      | 33   | Ассистент поддержки пользователей (MCP + RAG по FAQ TaskFlow) | done | [server.py](../mcp_servers/support_mcp/server.py), [build_index.py](../mcp_servers/support_mcp/build_index.py), [servers.json](../agents/mcp/servers.json) | https://disk.yandex.ru/i/jIBRtJMwEUTs-g |
