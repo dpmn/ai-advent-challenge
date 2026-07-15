@@ -22,15 +22,20 @@ from docent.rag.store import Hit
 MAX_DIFF_CHARS = 12000
 # Сколько символов diff кладём в RAG-запрос (для поиска релевантного контекста).
 _QUERY_DIFF_CHARS = 2000
+# Лимит на один изменённый файл в контексте и число таких файлов.
+MAX_FILE_CHARS = 6000
+MAX_CONTEXT_FILES = 20
 _RETRIES = 3
 # Запасная модель на случай отказа основной: дешёвая base-модель.
 _FALLBACK_MODEL = "Qwen/Qwen3-30B-A3B"
 
 _SYSTEM_PROMPT = (
     "Ты — старший инженер, делающий ревью pull request. Тебе дают diff "
-    "изменений и релевантные фрагменты документации и кода проекта (docstring-и "
-    "и сигнатуры). Проанализируй именно изменения из diff, опираясь на контекст "
-    "проекта. Отвечай на русском, кратко и по делу, без воды.\n\n"
+    "изменений, полные версии изменённых файлов и релевантные фрагменты "
+    "документации и кода проекта. Анализируй именно изменения из diff, но "
+    "опирайся на полные файлы (строка может использоваться вне хунка — не "
+    "делай выводов «не используется» по одному diff). Отвечай на русском, "
+    "кратко и по делу, без воды.\n\n"
     "Структура ответа — ровно три секции в markdown:\n"
     "## Потенциальные баги\n"
     "## Архитектурные проблемы\n"
@@ -58,6 +63,39 @@ def _changed_files_from_diff(diff: str) -> list[str]:
         if name and name != "/dev/null":
             files.append(name)
     return list(dict.fromkeys(files))
+
+
+def _read_changed_files(root: Path, changed_files: list[str]) -> str:
+    """Читает полное содержимое изменённых файлов из working tree.
+
+    Каждый файл усекается до `MAX_FILE_CHARS`, всего не больше
+    `MAX_CONTEXT_FILES`. Отсутствующие (удалённые) и нечитаемые — пропускаются.
+    """
+    blocks: list[str] = []
+    for name in changed_files[:MAX_CONTEXT_FILES]:
+        path = root / name
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if len(text) > MAX_FILE_CHARS:
+            text = text[:MAX_FILE_CHARS] + "\n[... файл усечён ...]"
+        blocks.append(f"--- {name} ---\n{text}")
+    return "\n\n".join(blocks)
+
+
+def _truncate_diff(diff: str) -> str:
+    """Усекает длинный diff по границе строки, вставляя видимый маркер."""
+    if len(diff) <= MAX_DIFF_CHARS:
+        return diff
+    head = diff[:MAX_DIFF_CHARS]
+    newline = head.rfind("\n")
+    if newline > 0:
+        head = head[:newline]
+    omitted = diff[len(head):].count("\n")
+    return f"{head}\n[... усечено {omitted} строк diff ...]"
 
 
 def _format_context(hits: list[Hit]) -> str:
@@ -103,23 +141,30 @@ def review(
     if changed_files is None:
         changed_files = _changed_files_from_diff(diff)
 
-    truncated = diff[:MAX_DIFF_CHARS]
-    trunc_note = "" if len(diff) <= MAX_DIFF_CHARS else "\n\n[diff усечён до лимита]"
+    diff_block = _truncate_diff(diff)
+    files_block = _read_changed_files(root, changed_files)
+    if not files_block:
+        files_block = "(содержимое изменённых файлов недоступно)"
 
     query = "Изменённые файлы: " + ", ".join(changed_files) + "\n" + diff[:_QUERY_DIFF_CHARS]
     hits = index.query(root, config, query)
-    context = _format_context(hits) if hits else "(релевантный контекст не найден)"
+    # Соседний контекст: RAG-хиты по другим файлам (сами изменённые уже даны
+    # целиком выше — не дублируем).
+    changed_set = set(changed_files)
+    neighbors = [hit for hit in hits if hit.chunk.source not in changed_set]
+    context = _format_context(neighbors) if neighbors else "(связанный контекст не найден)"
 
     files_line = ", ".join(changed_files) if changed_files else "(не определены)"
     user_content = (
         f"=== Изменённые файлы ===\n{files_line}\n\n"
-        f"=== Diff ===\n{truncated}{trunc_note}\n\n"
-        f"=== Контекст проекта (документация и код) ===\n{context}"
+        f"=== Diff ===\n{diff_block}\n\n"
+        f"=== Полные версии изменённых файлов ===\n{files_block}\n\n"
+        f"=== Связанный контекст проекта (RAG) ===\n{context}"
     )
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
     text, model = _chat_with_retry(messages, config)
-    sources = list(dict.fromkeys(hit.chunk.source for hit in hits))
+    sources = list(dict.fromkeys(hit.chunk.source for hit in neighbors))
     return ReviewResult(text=text, sources=sources, model=model)
