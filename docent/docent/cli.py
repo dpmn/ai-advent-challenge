@@ -27,8 +27,9 @@ from docent.spinner import Spinner
 _COMMANDS_HELP = """🎓 docent — ассистент разработчика по репозиторию.
 
 Команды:
-  📚 init            построить индекс по документации текущего репозитория
+  📚 init            построить индекс по документации и коду текущего репозитория
   💬 ask "вопрос"    ответить на вопрос о проекте (RAG + git-контекст)
+  🔍 review          AI-ревью diff: баги, архитектура, рекомендации (diff из --diff/stdin)
   ❓ help            показать этот список команд
   🔑 auth            установить ключ API (задел, пока не реализовано)
 
@@ -93,6 +94,52 @@ def _cmd_ask(args: argparse.Namespace) -> int:
     return 0
 
 
+def _read_diff(args: argparse.Namespace) -> str:
+    """Читает diff: из файла `--diff` или из stdin (если это не терминал)."""
+    if args.diff:
+        return Path(args.diff).read_text(encoding="utf-8")
+    if not sys.stdin.isatty():
+        return sys.stdin.read()
+    return ""
+
+
+def _cmd_review(args: argparse.Namespace) -> int:
+    """Делает AI-ревью diff: RAG-контекст проекта + анализ изменений.
+
+    Текст ревью печатается в stdout (пригоден для `gh pr comment --body-file`),
+    диагностика (контекст, модель) — в stderr, чтобы не пачкать комментарий.
+    """
+    from docent.reviewer import review
+
+    root = _repo_root()
+    if not is_initialized(root):
+        print("[error] сначала выполните `docent init`.", file=sys.stderr)
+        return 1
+    if get_api_key() is None:
+        print(f"[error] не задан {API_KEY_ENV} в окружении.", file=sys.stderr)
+        return 1
+
+    diff = _read_diff(args)
+    if not diff.strip():
+        print(
+            "[error] пустой diff. Передайте `--diff <файл>` или подайте на stdin.",
+            file=sys.stderr,
+        )
+        return 1
+
+    files = [f.strip() for f in args.files.split(",") if f.strip()] if args.files else None
+    config = load_config(root)
+    with Spinner("Ревьюю изменения"):
+        result = review(root, config, diff, files)
+    render_markdown(result.text)
+    if result.sources:
+        print("\n📄 Контекст:", file=sys.stderr)
+        for src in result.sources:
+            print(f"  • {src}", file=sys.stderr)
+    print(f"🤖 Модель: {result.model}", file=sys.stderr)
+    return 0
+
+
 def _cmd_help(args: argparse.Namespace) -> int:
     """Печатает список команд docent."""
     print(_COMMANDS_HELP)
@@ -119,6 +166,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ask = sub.add_parser("ask", help="ответить на вопрос о проекте")
     p_ask.add_argument("question", help="вопрос о проекте")
     p_ask.set_defaults(func=_cmd_ask)
+
+    p_review = sub.add_parser("review", help="AI-ревью diff (баги, архитектура, рекомендации)")
+    p_review.add_argument("--diff", help="путь к файлу с diff (иначе читается stdin)")
+    p_review.add_argument("--files", help="изменённые файлы через запятую (иначе — из diff)")
+    p_review.set_defaults(func=_cmd_review)
 
     sub.add_parser("help", help="показать список команд").set_defaults(func=_cmd_help)
     sub.add_parser("auth", help="установить ключ API (задел)").set_defaults(func=_cmd_auth)

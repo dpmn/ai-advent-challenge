@@ -19,3 +19,66 @@
 
 **Результат:**
 - Автоматическое AI-ревью кода
+
+## Что сделано
+
+Нарастили ассистент `docent` (день 31) до пайплайна AI-ревью PR и подключили
+реактивный запуск через GitHub Action.
+
+### docent — код в RAG
+- `docent/docent/rag/code.py` (новый) — python-чанкер: через `ast` индексируем
+  docstring модуля + сигнатуру и docstring каждого class/def (без тела). RAG
+  получает «карту» кода без шума реализации. Битые файлы пропускаются.
+- `docent/docent/config.py` — новое поле `code_globs` (явный список каталогов:
+  `agents/`, `ragger/`, `docent/`, `mcp_servers/`, `webui/`).
+- `docent/docent/rag/index.py` — `build` диспетчеризует по расширению:
+  `.md` → markdown-чанкер, `.py` → python-чанкер.
+
+### docent — команда review (мозг ревью)
+- `docent/docent/reviewer.py` (новый) — `review(root, config, diff, changed_files)`:
+  RAG-контекст (доки + docstring-и кода) + diff → LLM → текст ревью в трёх секциях
+  (потенциальные баги / архитектурные проблемы / рекомендации).
+  Production-ready надёжность: retry с backoff, fallback на запасную модель,
+  усечение гигантских diff.
+- `docent/docent/cli.py` — подкоманда `docent review`: diff из `--diff <файл>`
+  или stdin; текст ревью → stdout (пригоден для `gh pr comment`), диагностика
+  (контекст, модель) → stderr.
+
+### Реактивный пайплайн
+- `.github/workflows/ai-review.yml` (новый) — триггер `on: pull_request`
+  (opened/synchronize/reopened). Шаги: checkout → setup-python →
+  `pip install ./docent` → `docent init` (индекс на лету) →
+  `gh pr diff` → `docent review` → пишет/**обновляет** один комментарий к PR
+  (поиск прежнего по маркеру `<!-- docent-ai-review -->`).
+
+## Настройка секрета (нужно один раз)
+
+Action берёт ключ Cloud.ru из GitHub Secrets:
+
+1. Репозиторий на GitHub → **Settings** → **Secrets and variables** → **Actions**.
+2. **New repository secret**.
+3. Name: `DOCENT_API_KEY`, Value: ключ сервиса Cloud.ru Foundation Models.
+4. Save. `GITHUB_TOKEN` добавляется автоматически — настраивать не нужно.
+
+## Сценарий проверки
+
+**Локальная часть (терминал):**
+
+1. Экспортируй ключ: `export DOCENT_API_KEY="<ключ Cloud.ru>"`.
+2. Построй индекс: `docent init` — ожидается «Готово: файлов …, чанков …».
+3. Сгенерируй diff и прогони ревью:
+   `git diff main...HEAD | docent review`
+4. Ожидаемый результат: в выводе ровно три markdown-секции —
+   «## Потенциальные баги», «## Архитектурные проблемы», «## Рекомендации».
+5. Проверь, что в ревью есть ссылки на конкретные изменённые файлы из diff,
+   а в конце (stderr) — строка «🤖 Модель: …».
+
+**Реактивная часть (GitHub):**
+
+6. Убедись, что секрет `DOCENT_API_KEY` добавлен (см. выше).
+7. Создай Pull Request с этой ветки в `main`.
+8. Открой вкладку **Actions** — workflow «AI Code Review» должен запуститься
+   автоматически на событие открытия PR.
+9. Дождись завершения. Ожидаемый результат: в PR появился комментарий от бота
+   с текстом ревью (три секции). При новом пуше в ту же ветку комментарий
+   **обновляется**, а не дублируется.

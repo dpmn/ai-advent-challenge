@@ -41,9 +41,19 @@ class Config:
     model: str = DEFAULT_MODEL
     embed_model: str = EMBED_MODEL
     base_url: str = BASE_URL
-    # Glob-паттерны (относительно корня репо), которые попадают в индекс.
+    # Glob-паттерны документации (относительно корня репо) для индекса.
     index_globs: list[str] = field(
         default_factory=lambda: ["README*", "docs/**/*.md", "docs/**/*.markdown"]
+    )
+    # Glob-паттерны кода: индексируем docstring-и и сигнатуры (см. rag/code.py).
+    code_globs: list[str] = field(
+        default_factory=lambda: [
+            "agents/**/*.py",
+            "ragger/**/*.py",
+            "docent/**/*.py",
+            "mcp_servers/**/*.py",
+            "webui/*.py",
+        ]
     )
     top_k: int = 5
 
