@@ -158,8 +158,9 @@ Action берёт ключ Cloud.ru из GitHub Secrets:
 
 **Открытые пункты (бэклог)**
 - ✅ Усекать контекст файлов по границе строки — сделано (закрыло ложняк выше).
-- `MAX_FILE_CHARS`/`MAX_CONTEXT_FILES`/`code_globs` — в конфиг/переменные
-  окружения (портабельность CLI).
+- ✅ Лимиты (`max_diff_chars`/`max_file_chars`/`max_context_files`) вынесены в
+  `Config`; `code_globs` там с дня 32 — всё переопределяется через
+  `.docent/config.json`.
 - SOURCES-маркер парсить только в самом конце ответа.
 - Тесты на `_signature`/`chunk_python` (edge-кейсы: `*args`, вложенные скобки,
   строки с `:`).

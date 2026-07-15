@@ -18,13 +18,9 @@ from docent.config import Config
 from docent.rag import index
 from docent.rag.store import Hit
 
-# Верхняя граница размера diff в промпте (символы). Хвост усекаем.
-MAX_DIFF_CHARS = 12000
 # Сколько символов diff кладём в RAG-запрос (для поиска релевантного контекста).
+# Лимиты объёма контекста (diff/файлы/число файлов) — в Config, см. config.py.
 _QUERY_DIFF_CHARS = 2000
-# Лимит на один изменённый файл в контексте и число таких файлов.
-MAX_FILE_CHARS = 6000
-MAX_CONTEXT_FILES = 20
 _RETRIES = 3
 # Расширения, которые считаем кодом. На не-кодовом diff код-ревью пропускаем.
 CODE_EXTS = {
@@ -80,14 +76,31 @@ def _changed_files_from_diff(diff: str) -> list[str]:
     return list(dict.fromkeys(files))
 
 
-def _read_changed_files(root: Path, changed_files: list[str]) -> str:
+def _truncate_at_line(text: str, max_chars: int, marker: str) -> str:
+    """Усекает текст по границе строки до `max_chars`, вставляя видимый маркер.
+
+    `marker` содержит `{n}` — число пропущенных строк.
+    """
+    if len(text) <= max_chars:
+        return text
+    head = text[:max_chars]
+    newline = head.rfind("\n")
+    if newline > 0:
+        head = head[:newline]
+    omitted = text[len(head):].count("\n")
+    return f"{head}\n{marker.format(n=omitted)}"
+
+
+def _read_changed_files(
+    root: Path, changed_files: list[str], max_file_chars: int, max_files: int
+) -> str:
     """Читает полное содержимое изменённых файлов из working tree.
 
-    Каждый файл усекается до `MAX_FILE_CHARS`, всего не больше
-    `MAX_CONTEXT_FILES`. Отсутствующие (удалённые) и нечитаемые — пропускаются.
+    Каждый файл усекается до `max_file_chars` (по границе строки), всего не
+    больше `max_files`. Отсутствующие (удалённые) и нечитаемые — пропускаются.
     """
     blocks: list[str] = []
-    for name in changed_files[:MAX_CONTEXT_FILES]:
+    for name in changed_files[:max_files]:
         path = root / name
         if not path.is_file():
             continue
@@ -95,27 +108,9 @@ def _read_changed_files(root: Path, changed_files: list[str]) -> str:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if len(text) > MAX_FILE_CHARS:
-            head = text[:MAX_FILE_CHARS]
-            newline = head.rfind("\n")
-            if newline > 0:
-                head = head[:newline]
-            omitted = text[len(head):].count("\n")
-            text = f"{head}\n[... файл усечён, ещё {omitted} строк ...]"
+        text = _truncate_at_line(text, max_file_chars, "[... файл усечён, ещё {n} строк ...]")
         blocks.append(f"--- {name} ---\n{text}")
     return "\n\n".join(blocks)
-
-
-def _truncate_diff(diff: str) -> str:
-    """Усекает длинный diff по границе строки, вставляя видимый маркер."""
-    if len(diff) <= MAX_DIFF_CHARS:
-        return diff
-    head = diff[:MAX_DIFF_CHARS]
-    newline = head.rfind("\n")
-    if newline > 0:
-        head = head[:newline]
-    omitted = diff[len(head):].count("\n")
-    return f"{head}\n[... усечено {omitted} строк diff ...]"
 
 
 def _format_context(hits: list[Hit]) -> str:
@@ -184,8 +179,10 @@ def review(
     if changed_files and not _has_code(changed_files):
         return ReviewResult(text="В diff нет изменений кода — код-ревью пропущено.")
 
-    diff_block = _truncate_diff(diff)
-    files_block = _read_changed_files(root, changed_files)
+    diff_block = _truncate_at_line(diff, config.max_diff_chars, "[... усечено {n} строк diff ...]")
+    files_block = _read_changed_files(
+        root, changed_files, config.max_file_chars, config.max_context_files
+    )
     if not files_block:
         files_block = "(содержимое изменённых файлов недоступно)"
 

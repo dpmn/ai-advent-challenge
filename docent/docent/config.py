@@ -58,6 +58,10 @@ class Config:
         ]
     )
     top_k: int = 5
+    # Лимиты ревью (символы/файлы). Переопределяются через .docent/config.json.
+    max_diff_chars: int = 12000
+    max_file_chars: int = 6000
+    max_context_files: int = 20
 
     def to_dict(self) -> dict:
         """Сериализует конфиг в словарь для записи в JSON."""
