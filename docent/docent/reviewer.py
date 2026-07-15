@@ -96,7 +96,12 @@ def _read_changed_files(root: Path, changed_files: list[str]) -> str:
         except OSError:
             continue
         if len(text) > MAX_FILE_CHARS:
-            text = text[:MAX_FILE_CHARS] + "\n[... файл усечён ...]"
+            head = text[:MAX_FILE_CHARS]
+            newline = head.rfind("\n")
+            if newline > 0:
+                head = head[:newline]
+            omitted = text[len(head):].count("\n")
+            text = f"{head}\n[... файл усечён, ещё {omitted} строк ...]"
         blocks.append(f"--- {name} ---\n{text}")
     return "\n\n".join(blocks)
 
