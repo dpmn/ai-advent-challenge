@@ -28,6 +28,11 @@ MAX_CONTEXT_FILES = 20
 _RETRIES = 3
 # Запасная модель на случай отказа основной: дешёвая base-модель.
 _FALLBACK_MODEL = "Qwen/Qwen3-30B-A3B"
+# Расширения, которые считаем кодом. На не-кодовом diff код-ревью пропускаем.
+CODE_EXTS = {
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java",
+    ".c", ".h", ".cpp", ".cc", ".rb", ".php", ".sh", ".sql",
+}
 
 _SYSTEM_PROMPT = (
     "Ты — старший инженер, делающий ревью pull request. Тебе дают diff "
@@ -53,6 +58,11 @@ class ReviewResult:
     text: str
     sources: list[str] = field(default_factory=list)
     model: str = ""
+
+
+def _has_code(changed_files: list[str]) -> bool:
+    """True, если среди изменённых файлов есть хотя бы один файл с кодом."""
+    return any(Path(name).suffix.lower() in CODE_EXTS for name in changed_files)
 
 
 def _changed_files_from_diff(diff: str) -> list[str]:
@@ -140,6 +150,10 @@ def review(
 
     if changed_files is None:
         changed_files = _changed_files_from_diff(diff)
+
+    # Не гоняем LLM на чисто «не-кодовом» diff (только доки/конфиги).
+    if changed_files and not _has_code(changed_files):
+        return ReviewResult(text="В diff нет изменений кода — код-ревью пропущено.")
 
     diff_block = _truncate_diff(diff)
     files_block = _read_changed_files(root, changed_files)

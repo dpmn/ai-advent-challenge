@@ -15,27 +15,21 @@ from docent.rag.chunker import Chunk
 _DECLS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
 
 
-def _signature(lines: list[str], node: ast.AST) -> str:
-    """Восстанавливает строку сигнатуры class/def из исходных строк файла.
+def _signature(node: ast.AST) -> str:
+    """Строит строку сигнатуры class/def через `ast.unparse` (без тела).
 
-    Идём от строки объявления до двоеточия, закрывающего заголовок на нулевой
-    глубине скобок (корректно для многострочных сигнатур). Декораторы не
-    включаются — `lineno` указывает на строку `def`/`class`, а не на декоратор.
+    Надёжнее ручного разбора: скобки и `:` в строковых литералах и
+    аннотациях не сбивают границу заголовка. Декораторы не включаются.
     """
-    start = node.lineno - 1
-    depth = 0
-    collected: list[str] = []
-    for line in lines[start:]:
-        collected.append(line)
-        for ch in line:
-            if ch in "([{":
-                depth += 1
-            elif ch in ")]}":
-                depth -= 1
-        if depth <= 0 and line.rstrip().endswith(":"):
-            break
-    joined = " ".join(part.strip() for part in collected)
-    return joined.rstrip().rstrip(":").strip()
+    if isinstance(node, ast.ClassDef):
+        parts = [ast.unparse(base) for base in node.bases]
+        parts += [ast.unparse(kw) for kw in node.keywords]
+        bases = f"({', '.join(parts)})" if parts else ""
+        return f"class {node.name}{bases}:"
+    prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
+    args = ast.unparse(node.args)
+    returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+    return f"{prefix} {node.name}({args}){returns}:"
 
 
 def chunk_python(text: str, source: str) -> list[Chunk]:
@@ -49,7 +43,6 @@ def chunk_python(text: str, source: str) -> list[Chunk]:
     except SyntaxError:
         return []
 
-    lines = text.splitlines()
     chunks: list[Chunk] = []
 
     module_doc = ast.get_docstring(tree)
@@ -61,7 +54,7 @@ def chunk_python(text: str, source: str) -> list[Chunk]:
             if not isinstance(child, _DECLS):
                 continue
             name = f"{prefix}{child.name}"
-            signature = _signature(lines, child)
+            signature = _signature(child)
             doc = ast.get_docstring(child) or ""
             body = signature if not doc else f"{signature}\n{doc}"
             chunks.append(Chunk(source=source, heading=name, text=body))
