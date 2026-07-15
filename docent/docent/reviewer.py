@@ -125,21 +125,25 @@ def _format_context(hits: list[Hit]) -> str:
 
 
 def _extract_sources(text: str, hits: list[Hit]) -> tuple[str, list[str]]:
-    """Вырезает маркер SOURCES из ответа, возвращает (чистый_текст, источники).
+    """Вырезает маркер SOURCES из конца ответа, возвращает (текст, источники).
 
-    Источники — файлы фрагментов связанного контекста, на которые сослалась
-    модель (по номерам). Нет маркера или none — пустой список.
+    Маркер учитывается ТОЛЬКО если он на последней непустой строке — упоминание
+    «SOURCES» в теле рекомендаций не считается и не вырезается. Источники —
+    файлы фрагментов связанного контекста по номерам. Нет маркера — пустой
+    список, текст не тронут.
     """
-    matches = list(_SOURCES_RE.finditer(text))
-    clean = _SOURCES_RE.sub("", text).rstrip()
-    if not matches:
-        return clean, []
-    numbers = re.findall(r"\d+", matches[-1].group(1))
+    lines = text.rstrip().splitlines()
+    if not lines:
+        return text.rstrip(), []
+    match = _SOURCES_RE.match(lines[-1])
+    if not match:
+        return "\n".join(lines).rstrip(), []
     sources: list[str] = []
-    for num in numbers:
+    for num in re.findall(r"\d+", match.group(1)):
         idx = int(num) - 1
         if 0 <= idx < len(hits):
             sources.append(hits[idx].chunk.source)
+    clean = "\n".join(lines[:-1]).rstrip()
     return clean, list(dict.fromkeys(sources))
 
 

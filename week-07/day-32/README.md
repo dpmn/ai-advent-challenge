@@ -161,6 +161,11 @@ Action берёт ключ Cloud.ru из GitHub Secrets:
 - ✅ Лимиты (`max_diff_chars`/`max_file_chars`/`max_context_files`) вынесены в
   `Config`; `code_globs` там с дня 32 — всё переопределяется через
   `.docent/config.json`.
-- SOURCES-маркер парсить только в самом конце ответа.
-- Тесты на `_signature`/`chunk_python` (edge-кейсы: `*args`, вложенные скобки,
-  строки с `:`).
+- ✅ SOURCES-маркер парсится только на последней строке ответа (упоминание в
+  теле рекомендаций больше не ловится).
+- ✅ Юнит-тесты `docent/tests/test_code_review.py` (`_signature`, `chunk_python`,
+  `_extract_sources`, `_truncate_at_line`; edge-кейсы: `*args`, скобки/`:` в
+  литералах, async, вложенные классы, битый файл). Запуск:
+  `python3 docent/tests/test_code_review.py`.
+
+Бэклог закрыт.
