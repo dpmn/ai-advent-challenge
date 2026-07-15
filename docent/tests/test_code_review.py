@@ -13,7 +13,12 @@ from docent.config import Config
 from docent.rag.chunker import Chunk
 from docent.rag.code import _signature, chunk_python
 from docent.rag.store import Hit
-from docent.reviewer import _extract_sources, _load_review_notes, _truncate_at_line
+from docent.reviewer import (
+    _extract_sources,
+    _load_review_notes,
+    _read_changed_files,
+    _truncate_at_line,
+)
 
 
 def _headings(src: str) -> dict[str, str]:
@@ -115,6 +120,16 @@ def test_load_review_notes() -> None:
         assert _load_review_notes(root, cfg) == ""  # файла нет
         (root / cfg.review_notes).write_text("решение X\n", encoding="utf-8")
         assert _load_review_notes(root, cfg) == "решение X"
+
+
+def test_read_changed_files_skips_missing() -> None:
+    """Отсутствующие файлы пропускаются, существующие читаются с заголовком."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "a.py").write_text("print('a')\n", encoding="utf-8")
+        block = _read_changed_files(root, ["a.py", "missing.py"], 6000, 20)
+        assert "--- a.py ---" in block and "print('a')" in block, block
+        assert "missing.py" not in block, block
 
 
 def main() -> int:
