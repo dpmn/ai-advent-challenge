@@ -31,4 +31,4 @@
 | 6      | 29   | Оптимизация локальной LLM | done | [ollama_client.py](../ragger/ollama_client.py), [answer.py](../ragger/answer.py), [jarvis.py](../agents/jarvis.py), [bench.py](../week-06/day-29/bench.py) | https://disk.yandex.ru/i/OC_Aq991Kxi2oQ |
 | 6      | 30   | Локальная LLM как приватный сервис (VDS) | done | [service/](../week-06/day-30/service/) | https://disk.yandex.ru/i/7BItGfg3NfguKg |
 | 7      | 31   | Ассистент разработчика (RAG + MCP по документации проекта) | done | [docent/](../docent/) | https://disk.yandex.ru/i/40eYSc7gfSCsbQ |
-| 7      | 32   | — | todo | | |
+| 7      | 32   | Автоматизация ревью кода (AI-ревью PR через docent) | done | [reviewer.py](../docent/docent/reviewer.py), [rag/code.py](../docent/docent/rag/code.py), [ai-review.yml](../.github/workflows/ai-review.yml) |https://disk.yandex.ru/i/Hj4xahGpvdzHBg |
