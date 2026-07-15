@@ -130,6 +130,8 @@ def _cmd_review(args: argparse.Namespace) -> int:
 
     files = [f.strip() for f in args.files.split(",") if f.strip()] if args.files else None
     config = load_config(root)
+    if args.no_verify:
+        config.review_verify = False
     with Spinner("Ревьюю изменения"):
         result = review(root, config, diff, files)
     render_markdown(result.text)
@@ -171,6 +173,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_review = sub.add_parser("review", help="AI-ревью diff (баги, архитектура, рекомендации)")
     p_review.add_argument("--diff", help="путь к файлу с diff (иначе читается stdin)")
     p_review.add_argument("--files", help="изменённые файлы через запятую (иначе — из diff)")
+    p_review.add_argument(
+        "--no-verify", action="store_true",
+        help="пропустить пасс верификации находок (быстрее и дешевле)",
+    )
     p_review.set_defaults(func=_cmd_review)
 
     sub.add_parser("help", help="показать список команд").set_defaults(func=_cmd_help)

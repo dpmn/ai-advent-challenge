@@ -6,11 +6,14 @@
 from __future__ import annotations
 
 import sys
+import tempfile
+from pathlib import Path
 
+from docent.config import Config
 from docent.rag.chunker import Chunk
 from docent.rag.code import _signature, chunk_python
 from docent.rag.store import Hit
-from docent.reviewer import _extract_sources, _truncate_at_line
+from docent.reviewer import _extract_sources, _load_review_notes, _truncate_at_line
 
 
 def _headings(src: str) -> dict[str, str]:
@@ -102,6 +105,16 @@ def test_truncate_at_line() -> None:
     assert out == "a\nbb\n[3]", repr(out)
     # Короткий текст не трогается.
     assert _truncate_at_line("short", 100, "[{n}]") == "short"
+
+
+def test_load_review_notes() -> None:
+    """Notes читаются, если файл есть; иначе — пустая строка."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        cfg = Config()
+        assert _load_review_notes(root, cfg) == ""  # файла нет
+        (root / cfg.review_notes).write_text("решение X\n", encoding="utf-8")
+        assert _load_review_notes(root, cfg) == "решение X"
 
 
 def main() -> int:

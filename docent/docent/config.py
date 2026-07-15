@@ -62,6 +62,11 @@ class Config:
     max_diff_chars: int = 12000
     max_file_chars: int = 6000
     max_context_files: int = 20
+    # Пасс верификации: второй LLM-вызов отсеивает недоказуемые находки.
+    review_verify: bool = True
+    # Файл осознанных решений проекта (в корне репо, коммитится) — гасит
+    # повторные находки по уже принятым решениям.
+    review_notes: str = ".docent-review-notes.md"
 
     def to_dict(self) -> dict:
         """Сериализует конфиг в словарь для записи в JSON."""
