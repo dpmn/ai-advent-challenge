@@ -39,6 +39,8 @@ class Config:
     """Настройки индексации и генерации для одного репозитория."""
 
     model: str = DEFAULT_MODEL
+    # Запасная модель для ревью, если основная недоступна (retry/fallback).
+    fallback_model: str = MODELS["base"]["id"]
     embed_model: str = EMBED_MODEL
     base_url: str = BASE_URL
     # Glob-паттерны документации (относительно корня репо) для индекса.

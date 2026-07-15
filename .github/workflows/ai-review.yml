@@ -37,6 +37,7 @@ jobs:
         run: gh pr diff ${{ github.event.pull_request.number }} > pr.diff
 
       - name: Run AI review
+        continue-on-error: true
         env:
           DOCENT_API_KEY: ${{ secrets.DOCENT_API_KEY }}
         run: docent review --diff pr.diff > review.md
@@ -48,6 +49,10 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           MARKER="<!-- docent-ai-review -->"
+          # Шаг ревью мог упасть (continue-on-error) — не постим пустой коммент.
+          if [ ! -s review.md ] || ! grep -q '[^[:space:]]' review.md; then
+            echo "⚠️ AI-ревью не сформировано (см. логи шага «Run AI review»)." > review.md
+          fi
           { echo "$MARKER"; echo; cat review.md; } > comment.md
           CID=$(gh api "repos/$REPO/issues/$PR/comments" \
                 --jq "map(select(.body | contains(\"$MARKER\"))) | .[0].id // empty")

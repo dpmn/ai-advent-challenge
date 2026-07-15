@@ -26,8 +26,6 @@ _QUERY_DIFF_CHARS = 2000
 MAX_FILE_CHARS = 6000
 MAX_CONTEXT_FILES = 20
 _RETRIES = 3
-# Запасная модель на случай отказа основной: дешёвая base-модель.
-_FALLBACK_MODEL = "Qwen/Qwen3-30B-A3B"
 # Расширения, которые считаем кодом. На не-кодовом diff код-ревью пропускаем.
 CODE_EXTS = {
     ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java",
@@ -47,8 +45,15 @@ _SYSTEM_PROMPT = (
     "## Рекомендации\n\n"
     "В каждой секции — маркированный список. Если по секции замечаний нет — "
     "напиши «Замечаний нет». Не выдумывай проблемы на пустом месте; ссылайся на "
-    "конкретные файлы и строки из diff, где это уместно."
+    "конкретные файлы и строки из diff, где это уместно.\n\n"
+    "В САМОМ КОНЦЕ ответа добавь отдельной строкой номера фрагментов «Связанного "
+    "контекста», которые реально использовал, в формате:\n"
+    "SOURCES: 1, 3\n"
+    "Если связанный контекст не использовался — напиши: SOURCES: none"
 )
+
+# Маркер использованных фрагментов связанного контекста в конце ответа.
+_SOURCES_RE = re.compile(r"(?im)^[ \t]*(?:SOURCES|ИСТОЧНИКИ)[ \t]*[:：][ \t]*(.*)$")
 
 
 @dataclass
@@ -119,14 +124,33 @@ def _format_context(hits: list[Hit]) -> str:
     return "\n\n".join(blocks)
 
 
+def _extract_sources(text: str, hits: list[Hit]) -> tuple[str, list[str]]:
+    """Вырезает маркер SOURCES из ответа, возвращает (чистый_текст, источники).
+
+    Источники — файлы фрагментов связанного контекста, на которые сослалась
+    модель (по номерам). Нет маркера или none — пустой список.
+    """
+    matches = list(_SOURCES_RE.finditer(text))
+    clean = _SOURCES_RE.sub("", text).rstrip()
+    if not matches:
+        return clean, []
+    numbers = re.findall(r"\d+", matches[-1].group(1))
+    sources: list[str] = []
+    for num in numbers:
+        idx = int(num) - 1
+        if 0 <= idx < len(hits):
+            sources.append(hits[idx].chunk.source)
+    return clean, list(dict.fromkeys(sources))
+
+
 def _chat_with_retry(messages: list[dict], config: Config) -> tuple[str, str]:
     """Шлёт запрос с ретраями и fallback-моделью. Возвращает (текст, модель).
 
-    Пробуем основную модель с экспоненциальным backoff, затем — запасную.
-    Пробрасываем последнюю ошибку, если все попытки исчерпаны.
+    Пробуем основную модель с экспоненциальным backoff, затем — запасную из
+    конфига. Пробрасываем последнюю ошибку, если все попытки исчерпаны.
     """
     last_err: Exception | None = None
-    for model in (config.model, _FALLBACK_MODEL):
+    for model in (config.model, config.fallback_model):
         for attempt in range(_RETRIES):
             try:
                 return llm.chat(messages, config, model=model), model
@@ -179,6 +203,6 @@ def review(
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
-    text, model = _chat_with_retry(messages, config)
-    sources = list(dict.fromkeys(hit.chunk.source for hit in neighbors))
+    raw, model = _chat_with_retry(messages, config)
+    text, sources = _extract_sources(raw, neighbors)
     return ReviewResult(text=text, sources=sources, model=model)

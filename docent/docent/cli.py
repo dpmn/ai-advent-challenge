@@ -122,7 +122,8 @@ def _cmd_review(args: argparse.Namespace) -> int:
     diff = _read_diff(args)
     if not diff.strip():
         print(
-            "[error] пустой diff. Передайте `--diff <файл>` или подайте на stdin.",
+            "[error] пустой diff. Передайте `--diff <файл>` или подайте на stdin.\n"
+            "  Пример: git diff HEAD~1 | docent review",
             file=sys.stderr,
         )
         return 1
