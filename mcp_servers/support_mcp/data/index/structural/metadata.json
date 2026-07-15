@@ -1,0 +1,232 @@
+[
+  {
+    "faiss_id": 0,
+    "chunk_id": "struct_00000",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "TaskFlow — гайд по авторизации и токенам",
+    "text": "# TaskFlow — гайд по авторизации и токенам",
+    "strategy": "structural",
+    "token_count": 10
+  },
+  {
+    "faiss_id": 1,
+    "chunk_id": "struct_00001",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "Способы входа",
+    "text": "TaskFlow поддерживает три способа входа: email + пароль, вход через Google,\nSSO по SAML 2.0 (только на тарифе Business). Способ входа привязан к аккаунту:\nесли вы регистрировались через Google, вход по паролю недоступен, пока вы\nне зададите пароль в «Настройки → Безопасность».",
+    "strategy": "structural",
+    "token_count": 69
+  },
+  {
+    "faiss_id": 2,
+    "chunk_id": "struct_00002",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "Сессии",
+    "text": "Сессия живёт 30 дней с момента последней активности. Все активные сессии видны\nв «Настройки → Безопасность → Активные сессии», любую можно завершить удалённо.\nСмена пароля завершает все сессии сразу.",
+    "strategy": "structural",
+    "token_count": 49
+  },
+  {
+    "faiss_id": 3,
+    "chunk_id": "struct_00003",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "Персональные API-токены",
+    "text": "Токены создаются в «Настройки → API-токены». Токен показывается один раз при\nсоздании. У токена есть скоупы: read, write, admin. Токены отзываются:\n\n- вручную владельцем;\n- автоматически при смене пароля владельца;\n- автоматически при отключении пользователя из команды.\n\nЗапрос с отозванным токеном возвращает 403 Forbidden с телом\n{\"error\": \"token_revoked\"}.",
+    "strategy": "structural",
+    "token_count": 90
+  },
+  {
+    "faiss_id": 4,
+    "chunk_id": "struct_00004",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "Коды ошибок авторизации",
+    "text": "- 401 Unauthorized — токен не передан или неверный формат заголовка.\n  Правильный формат: Authorization: Bearer tf_xxxxx.\n- 403 token_revoked — токен отозван (смена пароля, удаление из команды).\n- 403 insufficient_scope — у токена нет нужного скоупа (например, write).\n- 429 rate_limited — превышен лимит запросов тарифа.",
+    "strategy": "structural",
+    "token_count": 80
+  },
+  {
+    "faiss_id": 5,
+    "chunk_id": "struct_00005",
+    "source": "mcp_servers/support_mcp/faq/auth-guide.md",
+    "title": "TaskFlow — гайд по авторизации и токенам",
+    "section": "SSO (Business)",
+    "text": "При включённом SSO вход по паролю для участников команды отключается,\nкроме владельца (аварийный доступ). Провижининг пользователей — SCIM 2.0.",
+    "strategy": "structural",
+    "token_count": 35
+  },
+  {
+    "faiss_id": 6,
+    "chunk_id": "struct_00006",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "TaskFlow — оплата и тарифы",
+    "text": "# TaskFlow — оплата и тарифы",
+    "strategy": "structural",
+    "token_count": 7
+  },
+  {
+    "faiss_id": 7,
+    "chunk_id": "struct_00007",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "Как происходит оплата",
+    "text": "Оплата помесячная, картой, списание в дату подключения тарифа. Принимаются\nкарты Visa, Mastercard, МИР. Счёт для юрлиц — на тарифе Business, по запросу\nв поддержку.",
+    "strategy": "structural",
+    "token_count": 41
+  },
+  {
+    "faiss_id": 8,
+    "chunk_id": "struct_00008",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "Не прошёл платёж — что будет с аккаунтом",
+    "text": "При неудачном списании TaskFlow делает 3 повторные попытки в течение 7 дней\nи шлёт уведомления на email владельца. Если оплата так и не прошла — команда\nпереводится на тариф Free: доски свыше лимита переходят в режим «только чтение»,\nAPI отключается. Данные не удаляются.",
+    "strategy": "structural",
+    "token_count": 67
+  },
+  {
+    "faiss_id": 9,
+    "chunk_id": "struct_00009",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "Как сменить тариф",
+    "text": "«Настройки → Тариф». Повышение тарифа применяется сразу, разница пересчитывается\nпропорционально остатку месяца. Понижение — с начала следующего платёжного периода.",
+    "strategy": "structural",
+    "token_count": 41
+  },
+  {
+    "faiss_id": 10,
+    "chunk_id": "struct_00010",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "Возврат средств",
+    "text": "Возврат возможен в течение 14 дней после первого платежа на новом тарифе.\nЗапрос — через тикет в поддержку с темой «Возврат». Возврат приходит на карту\nв течение 5–10 рабочих дней.",
+    "strategy": "structural",
+    "token_count": 45
+  },
+  {
+    "faiss_id": 11,
+    "chunk_id": "struct_00011",
+    "source": "mcp_servers/support_mcp/faq/billing.md",
+    "title": "TaskFlow — оплата и тарифы",
+    "section": "Скидки",
+    "text": "При оплате за год — скидка 20%. Для образовательных и некоммерческих\nорганизаций — скидка 50% на тариф Team (подтверждение статуса через поддержку).",
+    "strategy": "structural",
+    "token_count": 37
+  },
+  {
+    "faiss_id": 12,
+    "chunk_id": "struct_00012",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "TaskFlow — FAQ",
+    "text": "# TaskFlow — FAQ",
+    "strategy": "structural",
+    "token_count": 4
+  },
+  {
+    "faiss_id": 13,
+    "chunk_id": "struct_00013",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Что такое TaskFlow",
+    "text": "TaskFlow — облачный таск-трекер для небольших команд. Доски, задачи, спринты,\nинтеграции со Slack и GitHub, REST API. Работает в браузере, есть мобильное\nприложение для iOS и Android.",
+    "strategy": "structural",
+    "token_count": 45
+  },
+  {
+    "faiss_id": 14,
+    "chunk_id": "struct_00014",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Почему я получаю ошибку 403 после смены пароля",
+    "text": "При смене пароля TaskFlow автоматически отзывает все активные сессии\nи все персональные API-токены — это защита от перехвата аккаунта.\nПоэтому после смены пароля:\n\n1. Выйдите из приложения и войдите заново с новым паролем.\n2. Если вы используете API — перевыпустите персональный токен в разделе\n   «Настройки → API-токены» и обновите его в своих скриптах и интеграциях.\n\nСтарые токены восстановить нельзя, только выпустить новые.",
+    "strategy": "structural",
+    "token_count": 107
+  },
+  {
+    "faiss_id": 15,
+    "chunk_id": "struct_00015",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Не приходит письмо для сброса пароля",
+    "text": "Проверьте папку «Спам». Письмо отправляется с адреса no-reply@taskflow.app.\nЕсли письма нет более 15 минут — запросите сброс повторно. На тарифе Free\nдействует лимит: не более 3 запросов сброса пароля в час.",
+    "strategy": "structural",
+    "token_count": 51
+  },
+  {
+    "faiss_id": 16,
+    "chunk_id": "struct_00016",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Как включить двухфакторную аутентификацию (2FA)",
+    "text": "«Настройки → Безопасность → Двухфакторная аутентификация». Поддерживаются\nTOTP-приложения (Google Authenticator, 1Password). После включения 2FA все\nактивные сессии, кроме текущей, завершаются. Резервные коды показываются\nодин раз — сохраните их.",
+    "strategy": "structural",
+    "token_count": 61
+  },
+  {
+    "faiss_id": 17,
+    "chunk_id": "struct_00017",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Заблокирован аккаунт после неудачных попыток входа",
+    "text": "После 10 неудачных попыток входа подряд аккаунт блокируется на 30 минут.\nБлокировка снимается автоматически. Если нужно срочно — обратитесь в поддержку,\nадминистратор может снять блокировку вручную после подтверждения личности.",
+    "strategy": "structural",
+    "token_count": 56
+  },
+  {
+    "faiss_id": 18,
+    "chunk_id": "struct_00018",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Какие тарифы есть в TaskFlow",
+    "text": "- Free — до 5 пользователей, 3 доски, без API.\n- Team — 990 ₽/мес за пользователя: неограниченные доски, API (1000 запросов/час), интеграции.\n- Business — 1990 ₽/мес за пользователя: SSO, аудит-лог, API 10000 запросов/час, приоритетная поддержка.",
+    "strategy": "structural",
+    "token_count": 61
+  },
+  {
+    "faiss_id": 19,
+    "chunk_id": "struct_00019",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Почему API возвращает 429 Too Many Requests",
+    "text": "Вы упёрлись в лимит запросов вашего тарифа: Team — 1000 запросов/час,\nBusiness — 10000 запросов/час. Лимит считается по API-токену. Решения:\nдождаться сброса окна (раз в час), оптимизировать запросы (используйте\nбатч-эндпоинты), или перейти на тариф выше.",
+    "strategy": "structural",
+    "token_count": 63
+  },
+  {
+    "faiss_id": 20,
+    "chunk_id": "struct_00020",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Как выгрузить данные из TaskFlow",
+    "text": "«Настройки → Экспорт данных». Доступны форматы JSON и CSV. Экспорт формируется\nасинхронно, ссылка на архив приходит на email и живёт 72 часа. На тарифе Free\nэкспорт доступен один раз в 30 дней.",
+    "strategy": "structural",
+    "token_count": 48
+  },
+  {
+    "faiss_id": 21,
+    "chunk_id": "struct_00021",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Не работает интеграция со Slack",
+    "text": "Проверьте, что бот TaskFlow добавлен в нужный канал Slack. Если интеграция\nбыла настроена пользователем, который сменил пароль или покинул команду —\nинтеграцию нужно переподключить: «Настройки → Интеграции → Slack → Переподключить».",
+    "strategy": "structural",
+    "token_count": 58
+  },
+  {
+    "faiss_id": 22,
+    "chunk_id": "struct_00022",
+    "source": "mcp_servers/support_mcp/faq/faq.md",
+    "title": "TaskFlow — FAQ",
+    "section": "Как удалить аккаунт",
+    "text": "«Настройки → Аккаунт → Удалить аккаунт». Данные удаляются безвозвратно через\n14 дней (период отмены). Владелец команды перед удалением должен передать\nправа владения другому участнику.",
+    "strategy": "structural",
+    "token_count": 46
+  }
+]
