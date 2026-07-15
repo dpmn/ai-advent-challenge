@@ -11,6 +11,7 @@ from docent import llm
 from docent.config import Config, docent_dir
 from docent.rag import store
 from docent.rag.chunker import Chunk, chunk_markdown
+from docent.rag.code import chunk_python
 
 
 @dataclass
@@ -36,20 +37,26 @@ def build(root: Path, config: Config) -> IndexStats:
 
     Требует ключ API (эмбеддинги считаются через провайдера).
     """
-    files = _collect_files(root, config.index_globs)
+    md_files = _collect_files(root, config.index_globs)
+    py_files = _collect_files(root, config.code_globs)
     chunks: list[Chunk] = []
-    for path in files:
+    for path in md_files:
         text = path.read_text(encoding="utf-8", errors="ignore")
         rel = str(path.relative_to(root))
         chunks.extend(chunk_markdown(text, source=rel))
+    for path in py_files:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        rel = str(path.relative_to(root))
+        chunks.extend(chunk_python(text, source=rel))
 
+    files = len(md_files) + len(py_files)
     if not chunks:
         store.save(docent_dir(root), np.zeros((0, 1), dtype=np.float32), [])
-        return IndexStats(files=len(files), chunks=0)
+        return IndexStats(files=files, chunks=0)
 
     vectors = llm.embed([c.text for c in chunks], config)
     store.save(docent_dir(root), np.asarray(vectors, dtype=np.float32), chunks)
-    return IndexStats(files=len(files), chunks=len(chunks))
+    return IndexStats(files=files, chunks=len(chunks))
 
 
 def query(root: Path, config: Config, question: str) -> list[store.Hit]:

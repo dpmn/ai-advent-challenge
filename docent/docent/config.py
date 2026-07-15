@@ -39,13 +39,34 @@ class Config:
     """Настройки индексации и генерации для одного репозитория."""
 
     model: str = DEFAULT_MODEL
+    # Запасная модель для ревью, если основная недоступна (retry/fallback).
+    fallback_model: str = MODELS["base"]["id"]
     embed_model: str = EMBED_MODEL
     base_url: str = BASE_URL
-    # Glob-паттерны (относительно корня репо), которые попадают в индекс.
+    # Glob-паттерны документации (относительно корня репо) для индекса.
     index_globs: list[str] = field(
         default_factory=lambda: ["README*", "docs/**/*.md", "docs/**/*.markdown"]
     )
+    # Glob-паттерны кода: индексируем docstring-и и сигнатуры (см. rag/code.py).
+    code_globs: list[str] = field(
+        default_factory=lambda: [
+            "agents/**/*.py",
+            "ragger/**/*.py",
+            "docent/**/*.py",
+            "mcp_servers/**/*.py",
+            "webui/*.py",
+        ]
+    )
     top_k: int = 5
+    # Лимиты ревью (символы/файлы). Переопределяются через .docent/config.json.
+    max_diff_chars: int = 12000
+    max_file_chars: int = 6000
+    max_context_files: int = 20
+    # Пасс верификации: второй LLM-вызов отсеивает недоказуемые находки.
+    review_verify: bool = True
+    # Файл осознанных решений проекта (в корне репо, коммитится) — гасит
+    # повторные находки по уже принятым решениям.
+    review_notes: str = ".docent-review-notes.md"
 
     def to_dict(self) -> dict:
         """Сериализует конфиг в словарь для записи в JSON."""

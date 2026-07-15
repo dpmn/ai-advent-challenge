@@ -1,9 +1,9 @@
 # docent
 
-Портабельный CLI-ассистент разработчика. Индексирует документацию репозитория
-(README, `docs/`) в лёгкий локальный RAG и отвечает на вопросы о проекте,
-подмешивая git-контекст через MCP. Ставится как pip/uv-пакет, работает в любом
-репозитории.
+Портабельный CLI-ассистент разработчика. Индексирует документацию (README,
+`docs/`) и код (docstring-и и сигнатуры) репозитория в лёгкий локальный RAG:
+отвечает на вопросы о проекте (подмешивая git-контекст через MCP) и делает
+AI-ревью diff. Ставится как pip/uv-пакет, работает в любом репозитории.
 
 ## Установка
 
@@ -24,17 +24,30 @@ export DOCENT_API_KEY=<ваш ключ>
 ## Команды
 
 ```bash
-docent init            # построить индекс .docent/ по документации текущего репо
+docent init            # построить индекс .docent/ по документации и коду репо
 docent ask "вопрос"    # ответить на вопрос о проекте (RAG + git-контекст)
+docent review          # AI-ревью diff (баги/архитектура/рекомендации); из --diff или stdin
 docent help            # список команд
 docent auth            # задел под установку ключа через CLI (пока заглушка)
 ```
 
+Пример ревью текущей ветки:
+
+```bash
+git diff main...HEAD | docent review
+```
+
 ## Как устроено
 
-- **RAG (`docent/rag/`)** — chunking markdown по заголовкам, эмбеддинги Cloud.ru
-  (`openai/text-embedding-3-small`), brute-force косинус на numpy. Индекс лежит
-  в `.docent/` (`index.npy` + `chunks.json`), без FAISS/reranker.
+- **RAG (`docent/rag/`)** — chunking по типу файла: markdown по заголовкам
+  (`chunker.py`), Python — docstring-и и сигнатуры через `ast` (`code.py`).
+  Эмбеддинги Cloud.ru (`openai/text-embedding-3-small`), brute-force косинус на
+  numpy. Индекс в `.docent/` (`index.npy` + `chunks.json`), без FAISS/reranker.
+  Паттерны в конфиге: `index_globs` (доки), `code_globs` (код).
+- **Ревью (`docent/reviewer.py`)** — по diff собирает контекст (полные версии
+  изменённых файлов + соседний RAG-контекст) и просит модель выдать ревью в трёх
+  секциях. Production-ready: retry с backoff, fallback-модель из конфига
+  (`fallback_model`), усечение больших diff, пропуск не-кодовых diff.
 - **MCP (`docent/mcp/`)** — реестр серверов + менеджер, поднимающий каждый
   включённый сервер как stdio-подпроцесс. Сейчас включён сервер `git`
   (`git_current_branch`, `git_head`, `git_list_files`). Структура рассчитана на

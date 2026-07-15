@@ -21,6 +21,7 @@
 ├─ webui/               # Flask + SPA (vanilla JS), Claude-inspired тема + light/dark toggle
 ├─ docs/                # Документация, конспекты лекций (lessions/), прогресс, database-schema
 ├─ week-NN/             # Задания по дням (day-NN/README.md)
+├─ .github/             # GitHub Actions (ai-review.yml — реактивное AI-ревью PR через docent)
 └─ .claude/
    ├─ agents/           # Субагенты: task-initializer, docs-sync
    ├─ skills/           # Модули знаний: backend-rules, webui-rules
