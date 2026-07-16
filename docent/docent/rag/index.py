@@ -22,12 +22,22 @@ class IndexStats:
     chunks: int
 
 
+# Служебные каталоги, которые не индексируем даже при рекурсивных glob-ах.
+_SKIP_DIRS = {".git", ".docent", ".venv", "venv", "node_modules", "__pycache__"}
+
+
+def _skipped(root: Path, path: Path) -> bool:
+    """Проверяет, лежит ли файл в служебном каталоге (не индексируем)."""
+    parts = path.relative_to(root).parts
+    return any(p in _SKIP_DIRS or p.endswith(".egg-info") for p in parts)
+
+
 def _collect_files(root: Path, globs: list[str]) -> list[Path]:
     """Собирает уникальные файлы репозитория по glob-паттернам конфига."""
     seen: set[Path] = set()
     for pattern in globs:
         for path in root.glob(pattern):
-            if path.is_file():
+            if path.is_file() and not _skipped(root, path):
                 seen.add(path)
     return sorted(seen)
 

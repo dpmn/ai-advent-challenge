@@ -25,6 +25,8 @@ class McpManager:
         self._stack = AsyncExitStack()
         # tool_name -> ClientSession, владеющая этим инструментом.
         self._tools: dict[str, ClientSession] = {}
+        # Спецификации инструментов (имя, описание, JSON-схема аргументов).
+        self._specs: list[dict] = []
         # Служебный лог серверов уводим в devnull, чтобы не шуметь в терминале.
         self._errlog = open(os.devnull, "w")
 
@@ -42,6 +44,13 @@ class McpManager:
             listed = await session.list_tools()
             for tool in listed.tools:
                 self._tools[tool.name] = session
+                self._specs.append(
+                    {
+                        "name": tool.name,
+                        "description": tool.description or "",
+                        "input_schema": tool.inputSchema,
+                    }
+                )
         return self
 
     async def __aexit__(self, *exc) -> None:
@@ -53,11 +62,18 @@ class McpManager:
         """Возвращает имена всех доступных инструментов."""
         return list(self._tools)
 
+    def tool_specs(self) -> list[dict]:
+        """Возвращает спецификации инструментов: name, description, input_schema."""
+        return list(self._specs)
+
     async def call(self, name: str, arguments: dict) -> str:
         """Вызывает инструмент по имени, возвращает текстовый результат."""
         session = self._tools.get(name)
         if session is None:
-            return f"[error] неизвестный инструмент: {name}"
+            return (
+                f"[error] неизвестный инструмент: {name}. "
+                f"Доступны только: {', '.join(self._tools)}."
+            )
         result = await session.call_tool(name, arguments)
         parts = [c.text for c in result.content if getattr(c, "text", None)]
         return "\n".join(parts).strip()

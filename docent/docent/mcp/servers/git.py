@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -19,6 +20,14 @@ mcp = FastMCP("docent-git")
 
 # Ограничение размера вывода одного инструмента (защита от гигантских листингов).
 _MAX_OUTPUT_CHARS = 40_000
+
+# Допустимые символы в git-ref (ветки, теги, хэши, диапазоны a..b / a...b).
+_REF_RE = re.compile(r"^[A-Za-z0-9._/^~-]+(\.\.\.?[A-Za-z0-9._/^~-]+)?$")
+
+
+def _valid_ref(ref: str) -> bool:
+    """Проверяет, что ref безопасен: без флагов-опций и посторонних символов."""
+    return bool(ref) and not ref.startswith("-") and bool(_REF_RE.match(ref))
 
 
 def _run_git(repo_path: str, *args: str, timeout: int = 30) -> tuple[bool, str]:
@@ -76,6 +85,44 @@ def git_list_files(repo_path: str) -> str:
     """Возвращает список отслеживаемых файлов (по одному пути на строку)."""
     ok, out = _run_git(repo_path, "ls-files")
     return out.strip() if ok else f"[error] {out}"
+
+
+@mcp.tool(
+    description="Show recent commits of a local git repository, one per line "
+    "('<hash> <date> <subject>'). Args: repo_path; ref_range — optional ref or "
+    "range (e.g. 'main..day-34', default: current branch history); "
+    "max_count — number of commits (default 20)."
+)
+def git_log(repo_path: str, ref_range: str = "", max_count: int = 20) -> str:
+    """Возвращает последние коммиты: хэш, дата, заголовок (по одному на строку)."""
+    args = ["log", f"-{max(1, min(max_count, 100))}", "--format=%h %ad %s", "--date=short"]
+    if ref_range:
+        if not _valid_ref(ref_range):
+            return f"[error] Недопустимый ref: {ref_range}"
+        args.append(ref_range)
+    ok, out = _run_git(repo_path, *args)
+    return out.strip() if ok else f"[error] {out}"
+
+
+@mcp.tool(
+    description="Show unified diff between two refs of a local git repository "
+    "(base...target). Args: repo_path; base — base ref (e.g. 'main'); "
+    "target — target ref (default 'HEAD'); stat_only — if true, show only "
+    "per-file change statistics instead of the full diff."
+)
+def git_diff(repo_path: str, base: str, target: str = "HEAD", stat_only: bool = False) -> str:
+    """Возвращает diff между base и target (unified или --stat)."""
+    if not _valid_ref(base):
+        return f"[error] Недопустимый ref: {base}"
+    if not _valid_ref(target):
+        return f"[error] Недопустимый ref: {target}"
+    args = ["diff", f"{base}...{target}"]
+    if stat_only:
+        args.insert(1, "--stat")
+    ok, out = _run_git(repo_path, *args)
+    if not ok:
+        return f"[error] {out}"
+    return out.strip() or f"(изменений между {base} и {target} нет)"
 
 
 def main() -> None:

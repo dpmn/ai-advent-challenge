@@ -44,8 +44,10 @@ class Config:
     embed_model: str = EMBED_MODEL
     base_url: str = BASE_URL
     # Glob-паттерны документации (относительно корня репо) для индекса.
+    # README-файлы берутся по всему дереву (не только корневой): иначе доки
+    # вложенных пакетов (например docent/README.md) не попадают в индекс.
     index_globs: list[str] = field(
-        default_factory=lambda: ["README*", "docs/**/*.md", "docs/**/*.markdown"]
+        default_factory=lambda: ["**/README*", "docs/**/*.md", "docs/**/*.markdown"]
     )
     # Glob-паттерны кода: индексируем docstring-и и сигнатуры (см. rag/code.py).
     code_globs: list[str] = field(
