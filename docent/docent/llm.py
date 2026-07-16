@@ -68,3 +68,33 @@ def chat(
     if resp.status_code != 200:
         raise LLMError(f"chat {resp.status_code}: {resp.text[:300]}")
     return resp.json()["choices"][0]["message"]["content"]
+
+
+def chat_tools(
+    messages: list[dict],
+    tools: list[dict],
+    config: Config,
+    model: str | None = None,
+    temperature: float = 0.2,
+    timeout: float = 180.0,
+) -> dict:
+    """Чат-запрос с function calling: возвращает message целиком.
+
+    В отличие от chat(), отдаёт весь объект message (content + tool_calls),
+    чтобы агентный цикл мог исполнить запрошенные моделью инструменты.
+    tools — список в OpenAI-формате ({"type": "function", "function": {...}}).
+    """
+    model_id = resolve_model(model or config.model)
+    with _client(config, timeout) as client:
+        resp = client.post(
+            "/chat/completions",
+            json={
+                "model": model_id,
+                "messages": messages,
+                "tools": tools,
+                "temperature": temperature,
+            },
+        )
+    if resp.status_code != 200:
+        raise LLMError(f"chat {resp.status_code}: {resp.text[:300]}")
+    return resp.json()["choices"][0]["message"]

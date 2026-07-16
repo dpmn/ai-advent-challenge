@@ -22,6 +22,7 @@ class ServerSpec:
 # Все известные серверы. Менеджер поднимает только enabled.
 SERVERS: list[ServerSpec] = [
     ServerSpec(name="git", module="docent.mcp.servers.git"),
+    ServerSpec(name="files", module="docent.mcp.servers.files"),
 ]
 
 

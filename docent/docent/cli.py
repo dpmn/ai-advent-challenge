@@ -1,7 +1,9 @@
-"""CLI docent: команды init / ask / help / auth.
+"""CLI docent: команды init / ask / do / review / help / auth.
 
 `docent init`  — построить индекс `.docent/` по документации текущего репо.
 `docent ask "…"` — ответить на вопрос о проекте (RAG + git-контекст).
+`docent do "…"` — агентный режим: задача-цель над файлами репо (MCP-тулзы).
+`docent review` — AI-ревью diff (из --diff или stdin).
 `docent help`  — показать список команд.
 `docent auth`  — задел под установку ключа через CLI (пока заглушка).
 """
@@ -29,6 +31,7 @@ _COMMANDS_HELP = """🎓 docent — ассистент разработчика 
 Команды:
   📚 init            построить индекс по документации и коду текущего репозитория
   💬 ask "вопрос"    ответить на вопрос о проекте (RAG + git-контекст)
+  🤖 do "цель"       агентный режим: работа с файлами репо (поиск, чтение, правка)
   🔍 review          AI-ревью diff: баги, архитектура, рекомендации (diff из --diff/stdin)
   ❓ help            показать этот список команд
   🔑 auth            установить ключ API (задел, пока не реализовано)
@@ -91,6 +94,27 @@ def _cmd_ask(args: argparse.Namespace) -> int:
     render_markdown(answer.text)
     _print_bullets("📄 Источники", answer.sources)
     _print_bullets("🔧 MCP-инструменты", answer.mcp_tools)
+    return 0
+
+
+def _cmd_do(args: argparse.Namespace) -> int:
+    """Агентный режим: выполняет задачу-цель над файлами репозитория.
+
+    Модель сама выбирает MCP-инструменты (search/read/write/git); вызовы
+    печатаются в stderr по ходу работы, изменения файлов видны как diff.
+    """
+    from docent.agent import run
+
+    root = _repo_root()
+    if get_api_key() is None:
+        print(f"[error] не задан {API_KEY_ENV} в окружении.", file=sys.stderr)
+        return 1
+    config = load_config(root)
+    print("🤖 Доцент работает:", file=sys.stderr)
+    result = run(root, config, args.goal)
+    render_markdown(result.text)
+    # Уникальные имена инструментов с сохранением порядка вызова.
+    _print_bullets("🔧 MCP-инструменты", list(dict.fromkeys(result.tool_calls)))
     return 0
 
 
@@ -169,6 +193,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ask = sub.add_parser("ask", help="ответить на вопрос о проекте")
     p_ask.add_argument("question", help="вопрос о проекте")
     p_ask.set_defaults(func=_cmd_ask)
+
+    p_do = sub.add_parser("do", help="агентный режим: задача-цель над файлами репозитория")
+    p_do.add_argument("goal", help="задача на уровне цели (что сделать с файлами)")
+    p_do.set_defaults(func=_cmd_do)
 
     p_review = sub.add_parser("review", help="AI-ревью diff (баги, архитектура, рекомендации)")
     p_review.add_argument("--diff", help="путь к файлу с diff (иначе читается stdin)")

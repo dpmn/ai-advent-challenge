@@ -15,7 +15,7 @@
 ```text
 /
 ├─ agents/              # Ядро агента JarvisAgent и его модули (mixin-файлы, FSM, инварианты, MCP-клиент)
-├─ docent/              # Портабельный CLI-ассистент (pip/uv-пакет): RAG по докам репо + git-контекст через MCP (stdio)
+├─ docent/              # Портабельный CLI-ассистент (pip/uv-пакет): RAG по докам репо, git-контекст и агентная работа с файлами через MCP (stdio)
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http): nasa, space_monitor, composer, ragger, support
 ├─ ragger/              # RAG-пайплайн: chunking, эмбеддинги, FAISS, reranker, answer с цитатами, нативный Ollama-клиент
 ├─ webui/               # Flask + SPA (vanilla JS), Claude-inspired тема + light/dark toggle
@@ -24,7 +24,7 @@
 ├─ .github/             # GitHub Actions (ai-review.yml — реактивное AI-ревью PR через docent)
 └─ .claude/
    ├─ agents/           # Субагенты: task-initializer, docs-sync
-   ├─ skills/           # Модули знаний: backend-rules, webui-rules
+   ├─ skills/           # Модули знаний: backend-rules, webui-rules, docent-rules
    └─ commands/         # Слэш-команды: /day
 ```
 
@@ -51,7 +51,7 @@
       """Принимает запрос пользователя, возвращает ответ агента."""
   ```
 - Внутренние/приватные методы (`_*`) — docstring по необходимости, если логика неочевидна.
-- Детальные конвенции по бэкенду — в skill `backend-rules`, по интерфейсу — в skill `webui-rules`.
+- Детальные конвенции по бэкенду — в skill `backend-rules`, по интерфейсу — в skill `webui-rules`, по docent — в skill `docent-rules`.
 
 ## Git / безопасность
 
