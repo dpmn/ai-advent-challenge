@@ -29,13 +29,25 @@ def _client(config: Config, timeout: float) -> httpx.Client:
     )
 
 
+def _post(client: httpx.Client, path: str, payload: dict) -> httpx.Response:
+    """POST с преобразованием сетевых ошибок httpx в LLMError.
+
+    Без этого таймаут/обрыв сети пролетает мимо retry/fallback-логики
+    вызывающих (они ловят LLMError) и роняет процесс трейсбеком.
+    """
+    try:
+        return client.post(path, json=payload)
+    except httpx.HTTPError as err:
+        raise LLMError(f"{path}: {type(err).__name__}: {err}") from err
+
+
 def embed(texts: list[str], config: Config, timeout: float = 60.0) -> list[list[float]]:
     """Возвращает эмбеддинги для списка текстов (embed-модель из конфига)."""
     if not texts:
         return []
     model = resolve_model(config.embed_model)
     with _client(config, timeout) as client:
-        resp = client.post("/embeddings", json={"model": model, "input": texts})
+        resp = _post(client, "/embeddings", {"model": model, "input": texts})
     if resp.status_code != 200:
         raise LLMError(f"embeddings {resp.status_code}: {resp.text[:300]}")
     data = resp.json()["data"]
@@ -57,9 +69,10 @@ def chat(
     """
     model_id = resolve_model(model or config.model)
     with _client(config, timeout) as client:
-        resp = client.post(
+        resp = _post(
+            client,
             "/chat/completions",
-            json={
+            {
                 "model": model_id,
                 "messages": messages,
                 "temperature": temperature,
@@ -86,9 +99,10 @@ def chat_tools(
     """
     model_id = resolve_model(model or config.model)
     with _client(config, timeout) as client:
-        resp = client.post(
+        resp = _post(
+            client,
             "/chat/completions",
-            json={
+            {
                 "model": model_id,
                 "messages": messages,
                 "tools": tools,

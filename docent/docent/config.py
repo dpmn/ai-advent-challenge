@@ -39,6 +39,8 @@ class Config:
     """Настройки индексации и генерации для одного репозитория."""
 
     model: str = DEFAULT_MODEL
+    # Модель ревью: тяжёлая — ревью гоняется раз на PR, качество важнее цены.
+    review_model: str = MODELS["heavy"]["id"]
     # Запасная модель для ревью, если основная недоступна (retry/fallback).
     fallback_model: str = MODELS["base"]["id"]
     embed_model: str = EMBED_MODEL
@@ -62,7 +64,9 @@ class Config:
     top_k: int = 5
     # Лимиты ревью (символы/файлы). Переопределяются через .docent/config.json.
     max_diff_chars: int = 12000
-    max_file_chars: int = 6000
+    # 12k символов ≈ 300 строк: файлы меньших размеров попадают целиком —
+    # усечённый файл провоцирует фактические ошибки ревьюера (day-34).
+    max_file_chars: int = 12000
     max_context_files: int = 20
     # Пасс верификации: второй LLM-вызов отсеивает недоказуемые находки.
     review_verify: bool = True
