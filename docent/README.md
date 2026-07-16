@@ -53,9 +53,13 @@ git diff main...HEAD | docent review
   numpy. Индекс в `.docent/` (`index.npy` + `chunks.json`), без FAISS/reranker.
   Паттерны в конфиге: `index_globs` (доки), `code_globs` (код).
 - **Ревью (`docent/reviewer.py`)** — по diff собирает контекст (полные версии
-  изменённых файлов + соседний RAG-контекст) и просит модель выдать ревью в трёх
-  секциях. Production-ready: retry с backoff, fallback-модель из конфига
-  (`fallback_model`), усечение больших diff, пропуск не-кодовых diff.
+  изменённых файлов с нумерацией строк + соседний RAG-контекст). Черновик —
+  строгий JSON находок (файл:строка, утверждение, сценарий провала): пункт без
+  сценария отбрасывает парсер; программный фильтр режет самоопровергающиеся
+  находки («бага нет»); verify-пасс выносит вердикт CONFIRMED/REJECTED по
+  каждой находке, финальный markdown собирает код из подтверждённых. Модель —
+  `review_model` из конфига (по умолчанию heavy). Production-ready: retry с
+  backoff, fallback-модель, усечение больших diff, пропуск не-кодовых diff.
 - **MCP (`docent/mcp/`)** — реестр серверов + менеджер, поднимающий каждый
   включённый сервер как stdio-подпроцесс. Серверы: `git` (`git_current_branch`,
   `git_head`, `git_list_files`, `git_log`, `git_diff` — все read-only, ref-ы

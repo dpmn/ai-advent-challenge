@@ -15,7 +15,7 @@ description: |
 - `docent/llm.py` — сырой httpx-клиент: `chat()`, `chat_tools()` (function calling), `embed()`
 - `docent/assistant.py` — `ask`: one-shot RAG + git-контекст (контекст собирает код, не модель)
 - `docent/agent.py` — `do`: tool-calling цикл (модель сама выбирает инструменты), анти-цикл повторов, `_MAX_STEPS`, принудительный финал
-- `docent/reviewer.py` — `review`: ревью diff с retry/fallback-моделью
+- `docent/reviewer.py` — `review`: ревью diff — JSON-находки → фильтр самоопровержений → verify-вердикты → markdown; модель `review_model` (heavy), retry/fallback
 - `docent/rag/` — `index.py` (build/query, `_collect_files` + `_SKIP_DIRS`), `chunker.py` (markdown по заголовкам), `code.py` (python через ast), `store.py` (numpy cosine)
 - `docent/mcp/` — `registry.py` (`SERVERS`), `manager.py` (stdio-сессии, `call()`, `tool_specs()`), `servers/git.py`, `servers/files.py`
 - `tests/` — pytest
@@ -38,6 +38,8 @@ description: |
 - `servers/files.py`: запреты (`.env*`, `*.key`, `*.pem`, `.git/`, `.docent/`, служебные каталоги) действуют и на чтение, и на запись; `write_file` пишет сразу и возвращает unified diff.
 - Установка editable (`uv pip install -e ./docent`): правки кода подхватываются без переустановки, новые entry-points — нет.
 - Портабельность: в коде docent никаких привязок к этому репо (пути, имена) — он работает в любом репозитории.
+- Гарантии качества ревью — структурные и программные (JSON-парсер, фильтр «бага нет», вердикты), НЕ промпт-запреты: модель их нарушает (урок PR #23). Не заменять код-фильтры на «запрещено писать X» в промпте.
+- Сетевые ошибки httpx оборачиваются в `LLMError` в `llm._post()` — вызывающие ловят только `LLMError`. Heavy-модель на ревью думает дольше 120s — таймаут ревью отдельный (`_REVIEW_TIMEOUT`).
 
 ## Конвенции
 

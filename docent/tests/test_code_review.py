@@ -14,9 +14,14 @@ from docent.rag.chunker import Chunk
 from docent.rag.code import _signature, chunk_python
 from docent.rag.store import Hit
 from docent.reviewer import (
+    Finding,
+    _drop_self_refuted,
     _extract_sources,
     _load_review_notes,
+    _parse_findings,
+    _parse_json_block,
     _read_changed_files,
+    _render_findings,
     _truncate_at_line,
 )
 
@@ -130,6 +135,75 @@ def test_read_changed_files_skips_missing() -> None:
         block = _read_changed_files(root, ["a.py", "missing.py"], 6000, 20)
         assert "--- a.py ---" in block and "print('a')" in block, block
         assert "missing.py" not in block, block
+
+
+def test_parse_findings_schema_enforced() -> None:
+    """Парсер выкидывает пункты без file/claim и баги без сценария провала."""
+    raw = (
+        'Вот ревью:\n```json\n{"findings": ['
+        '{"file": "a.py", "line": 5, "section": "bugs", "claim": "IndexError", '
+        '"evidence": "при пустом списке падает"},'
+        '{"file": "", "section": "bugs", "claim": "без файла", "evidence": "x"},'
+        '{"file": "b.py", "section": "bugs", "claim": "баг без сценария", "evidence": ""},'
+        '{"file": "c.py", "section": "неизвестная", "claim": "совет", "evidence": "почему"}'
+        '], "sources": [2, "мусор"]}\n```'
+    )
+    parsed = _parse_findings(raw)
+    assert parsed is not None
+    findings, sources = parsed
+    assert len(findings) == 2, findings  # пункт без file и баг без evidence выкинуты
+    assert findings[0].file == "a.py" and findings[0].line == 5
+    assert findings[1].section == "recommendations"  # неизвестная секция → рекомендации
+    assert sources == [2], sources
+    # Совсем не JSON — None (сигнал отдать сырой текст).
+    assert _parse_findings("просто текст без скобок") is None
+
+
+def test_drop_self_refuted_pr23_regression() -> None:
+    """Регрессия PR #23: самоопровергающиеся находки выкидываются кодом."""
+    real = Finding(file="a.py", claim="выход за границы", evidence="при n=0 KeyError", section="bugs")
+    pr23 = [
+        Finding(
+            file="docent/agent.py",
+            claim="подмена repo_path в аргументах вызова инструмента",
+            evidence="Однако в текущем коде root всегда берётся как _repo_root(). Значит, бага нет — поведение корректно.",
+            section="bugs",
+        ),
+        Finding(
+            file="docent/mcp/servers/files.py",
+            claim="_MAX_LIST = 500 — лимит путей",
+            evidence="Это не баг, а feature.",
+            section="arch",
+        ),
+        Finding(
+            file="docent/agent.py",
+            claim="_MAX_FUTILE_STREAK = 3",
+            evidence="Значит, поведение корректно — бага нет.",
+            section="arch",
+        ),
+    ]
+    kept = _drop_self_refuted([real, *pr23])
+    assert kept == [real], [f.claim for f in kept]
+
+
+def test_render_findings_sections() -> None:
+    """Рендер: три секции, «Замечаний нет» для пустых, файл:строка и сценарий."""
+    out = _render_findings(
+        [Finding(file="a.py", line=7, claim="деление на ноль", evidence="при x=0", section="bugs")]
+    )
+    assert "## Потенциальные баги" in out and "**a.py:7**" in out, out
+    assert "Сценарий: при x=0" in out, out
+    assert out.count("Замечаний нет") == 2, out  # arch и recommendations пусты
+    # Совсем без находок — трижды «Замечаний нет».
+    assert _render_findings([]).count("Замечаний нет") == 3
+
+
+def test_parse_json_block_tolerant() -> None:
+    """JSON достаётся из ограждений/преамбул; мусор — None."""
+    assert _parse_json_block('```json\n{"verdicts": []}\n```') == {"verdicts": []}
+    assert _parse_json_block("Ответ: {\"a\": 1} готово") == {"a": 1}
+    assert _parse_json_block("нет здесь json") is None
+    assert _parse_json_block("[1, 2]") is None  # список, не объект
 
 
 def main() -> int:
