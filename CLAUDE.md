@@ -24,7 +24,7 @@
 ├─ .github/             # GitHub Actions (ai-review.yml — реактивное AI-ревью PR через docent)
 └─ .claude/
    ├─ agents/           # Субагенты: task-initializer, docs-sync
-   ├─ skills/           # Модули знаний: backend-rules, webui-rules
+   ├─ skills/           # Модули знаний: backend-rules, webui-rules, docent-rules
    └─ commands/         # Слэш-команды: /day
 ```
 
@@ -51,7 +51,7 @@
       """Принимает запрос пользователя, возвращает ответ агента."""
   ```
 - Внутренние/приватные методы (`_*`) — docstring по необходимости, если логика неочевидна.
-- Детальные конвенции по бэкенду — в skill `backend-rules`, по интерфейсу — в skill `webui-rules`.
+- Детальные конвенции по бэкенду — в skill `backend-rules`, по интерфейсу — в skill `webui-rules`, по docent — в skill `docent-rules`.
 
 ## Git / безопасность
 

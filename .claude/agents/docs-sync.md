@@ -41,6 +41,7 @@ model: sonnet
    |---|---|
    | `agents/jarvis.py` или `agents/state_machine.py` или `agents/invariants.py` | `.claude/skills/backend-rules/SKILL.md` |
    | `webui/app.py` или `webui/static/script.js` или `webui/static/style.css` или `webui/templates/index.html` | `.claude/skills/webui-rules/SKILL.md` |
+   | что-либо в `docent/` (код `docent/docent/**/*.py` или `docent/README.md`) | `.claude/skills/docent-rules/SKILL.md` |
 
    Для каждого затронутого skill:
    - прочитай его SKILL.md
