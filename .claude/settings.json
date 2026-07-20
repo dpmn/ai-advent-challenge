@@ -11,7 +11,11 @@
       "Bash(python3 -m pytest *)",
       "Bash(python3 ./webui/app.py)",
       "Bash(curl http://127.0.0.1:5000*)",
-      "Bash(curl http://localhost:5000*)"
+      "Bash(curl http://localhost:5000*)",
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(gofmt *)"
     ],
     "deny": [
       "Read(./.env)",
