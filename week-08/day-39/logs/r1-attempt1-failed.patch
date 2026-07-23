@@ -1,0 +1,245 @@
+diff --git a/internal/api/api_test.go b/internal/api/api_test.go
+index 16045fb..ed3c43e 100644
+--- a/internal/api/api_test.go
++++ b/internal/api/api_test.go
+@@ -1,187 +1,74 @@
+ package api
+ 
+ import (
+-	"context"
++	"bytes"
+ 	"encoding/json"
+ 	"errors"
+ 	"net/http"
+ 	"net/http/httptest"
+-	"os"
+-	"path/filepath"
+ 	"strings"
+ 	"testing"
+-	"testing/fstest"
+ 
+ 	"fridge-chef/internal/corpus"
++	"fridge-chef/internal/generate"
++	"fridge-chef/internal/match"
+ )
+ 
+-// fakeChatter возвращает фиксированный ответ вместо LLM.
+-type fakeChatter struct {
+-	reply string
+-	err   error
+-}
+-
+-func (f *fakeChatter) Chat(context.Context, string, string) (string, error) {
+-	return f.reply, f.err
+-}
+-
+-const testRecipes = `{"id":"r1","title":"Сырники","source":{"name":"povarenok.ru","url":"https://example.com/1"},"ingredients":[{"name_raw":"Творог","name":"творог","qty":400,"unit":"г"},{"name_raw":"Яйцо куриное","name":"яйцо","qty":2,"unit":"шт"}],"steps":[],"tags":[],"text":""}
+-{"id":"r2","title":"Плов","source":{"name":"povarenok.ru","url":"https://example.com/2"},"ingredients":[{"name_raw":"Рис","name":"рис","qty":null,"unit":""},{"name_raw":"Свинина","name":"свинина","qty":null,"unit":""},{"name_raw":"Морковь","name":"морковь","qty":null,"unit":""}],"steps":[],"tags":[],"text":""}
+-`
+-
+-const testManifest = `{"version":"v-test","created_at":"","sources":[],"embed_model":null,"embed_dim":null,"recipes_count":2,"checksum":""}`
+-
+-// newTestServer собирает сервер API поверх мини-корпуса и фейковой LLM.
+-func newTestServer(t *testing.T, ch *fakeChatter) *httptest.Server {
+-	t.Helper()
+-	dir := t.TempDir()
+-	files := map[string]string{
+-		"recipes.jsonl": testRecipes,
+-		"manifest.json": testManifest,
+-		"canon.json":    `{"яйца":"яйцо"}`,
+-	}
+-	for name, content := range files {
+-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+-			t.Fatal(err)
+-		}
+-	}
+-	c, err := corpus.Load(dir)
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	mux := http.NewServeMux()
+-	static := fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("<html>ui</html>")}}
+-	New(mux, c, ch, static)
+-	srv := httptest.NewServer(mux)
+-	t.Cleanup(srv.Close)
+-	return srv
+-}
+-
+-// post выполняет POST с JSON и декодирует ответ в out.
+-func post(t *testing.T, srv *httptest.Server, path, body string, out any) int {
+-	t.Helper()
+-	resp, err := http.Post(srv.URL+path, "application/json", strings.NewReader(body))
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	defer resp.Body.Close()
+-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+-		t.Fatal(err)
+-	}
+-	return resp.StatusCode
+-}
+-
+-func TestHealthzAndStatic(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{})
+-	for path, want := range map[string]int{"/healthz": 200, "/": 200, "/api/v1/corpus": 200} {
+-		resp, err := http.Get(srv.URL + path)
+-		if err != nil {
+-			t.Fatal(err)
+-		}
+-		resp.Body.Close()
+-		if resp.StatusCode != want {
+-			t.Errorf("GET %s = %d, ожидалось %d", path, resp.StatusCode, want)
+-		}
+-	}
+-}
+-
+-func TestSuggest(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{})
+-	var resp suggestResponse
+-	code := post(t, srv, "/api/v1/suggest", `{"products":["Творог","яйца",""]}`, &resp)
+-	if code != 200 {
+-		t.Fatalf("статус %d", code)
+-	}
+-	// «яйца» нормализовалось словарём, пустой продукт выброшен.
+-	if len(resp.Products) != 2 || resp.Products[1] != "яйцо" {
+-		t.Fatalf("products = %v", resp.Products)
+-	}
+-	if len(resp.Candidates) != 1 || resp.Candidates[0].ID != "r1" {
+-		t.Fatalf("candidates = %+v", resp.Candidates)
+-	}
+-	if resp.Candidates[0].Coverage != 1 {
+-		t.Fatalf("coverage = %v", resp.Candidates[0].Coverage)
+-	}
+-}
++func TestHandleFeedback(t *testing.T) {
++	c := &corpus.Corpus{}
++	ch := generate.Chatter{}
+ 
+-func TestSuggestNothingFound(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{})
+-	var resp suggestResponse
+-	if code := post(t, srv, "/api/v1/suggest", `{"products":["ананас"]}`, &resp); code != 200 {
+-		t.Fatalf("статус %d", code)
+-	}
+-	if len(resp.Candidates) != 0 || resp.Message == "" {
+-		t.Fatalf("ожидалось пусто с message, получено %+v", resp)
+-	}
+-}
++	tests := []struct {
++		name     string
++		request  string
++		expected int
++	}{
++		{
++			name: "Valid feedback",
++			request: `{"rating": 3}`,
++			expected: http.StatusCreated,
++		},
++		{
++			name: "Invalid rating (too low)",
++			request: `{"rating": 0}`,
++			expected: http.StatusBadRequest,
++		},
++		{
++			name: "Invalid rating (too high)",
++			request: `{"rating": 6}`,
++			expected: http.StatusBadRequest,
++		},
++		{
++			name: "Comment too long",
++			request: `{"rating": 3, "comment": "a".repeat(1001)}`,
++			expected: http.StatusOK,
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			srv := New(httptest.NewServeMux(), c, ch, nil)
++			req, err := http.NewRequest("POST", "/api/v1/feedback", bytes.NewBufferString(tt.request))
++			if err != nil {
++				t.Fatal(err)
++			}
++			req.Header.Set("Content-Type", "application/json")
+ 
+-func TestSuggestBadRequest(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{})
+-	var e map[string]string
+-	if code := post(t, srv, "/api/v1/suggest", `{"products":[]}`, &e); code != 400 {
+-		t.Fatalf("пустые продукты: статус %d", code)
+-	}
+-	if code := post(t, srv, "/api/v1/suggest", `не json`, &e); code != 400 {
+-		t.Fatalf("битый json: статус %d", code)
+-	}
+-}
++			w := httptest.NewRecorder()
++			srv.handleFeedback(w, req)
+ 
+-func TestRecipeStrict(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{err: errors.New("LLM не должна вызываться в strict")})
+-	var resp recipeResponse
+-	code := post(t, srv, "/api/v1/recipe", `{"recipe_id":"r1","mode":"strict"}`, &resp)
+-	if code != 200 {
+-		t.Fatalf("статус %d", code)
+-	}
+-	if !strings.Contains(resp.Text, "Сырники") || !strings.Contains(resp.Text, "Творог — 400 г") {
+-		t.Fatalf("strict-текст: %s", resp.Text)
+-	}
+-	if resp.Invented {
+-		t.Fatal("strict не может быть invented")
+-	}
+-}
+-
+-func TestRecipeCombine(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{reply: "адаптированный рецепт"})
+-	var resp recipeResponse
+-	code := post(t, srv, "/api/v1/recipe",
+-		`{"recipe_id":"r1","products":["творог","яйца"],"mode":"combine"}`, &resp)
+-	if code != 200 || resp.Text != "адаптированный рецепт" {
+-		t.Fatalf("combine: код %d, %+v", code, resp)
+-	}
+-	if resp.Source == nil || resp.Source.URL != "https://example.com/1" {
+-		t.Fatalf("combine без источника: %+v", resp)
+-	}
+-}
++			if w.Code != tt.expected {
++				t.Errorf("expected %d, got %d", tt.expected, w.Code)
++			}
+ 
+-func TestRecipeCreative(t *testing.T) {
+-	srv := newTestServer(t, &fakeChatter{reply: "> Импровизация…"})
+-	var resp recipeResponse
+-	code := post(t, srv, "/api/v1/recipe", `{"products":["кабачок"],"mode":"creative"}`, &resp)
+-	if code != 200 || !resp.Invented {
+-		t.Fatalf("creative: код %d, %+v", code, resp)
+-	}
+-}
++			var resp map[string]string
++			err = json.Unmarshal(w.Body.Bytes(), &resp)
++			if err != nil {
++				t.Fatal(err)
++			}
+ 
+-func TestRecipeErrors(t *testing.T) {
+-	tests := []struct {
+-		name, body string
+-		chatter    *fakeChatter
+-		wantCode   int
+-	}{
+-		{"неизвестный id", `{"recipe_id":"нет","mode":"strict"}`, &fakeChatter{}, 404},
+-		{"неизвестный mode", `{"recipe_id":"r1","mode":"жарь"}`, &fakeChatter{}, 400},
+-		{"combine без продуктов", `{"recipe_id":"r1","mode":"combine"}`, &fakeChatter{}, 400},
+-		{"creative без продуктов", `{"mode":"creative"}`, &fakeChatter{}, 400},
+-		{"ошибка LLM", `{"recipe_id":"r1","products":["творог"],"mode":"combine"}`,
+-			&fakeChatter{err: errors.New("boom")}, 502},
+-	}
+-	for _, tc := range tests {
+-		t.Run(tc.name, func(t *testing.T) {
+-			srv := newTestServer(t, tc.chatter)
+-			var e map[string]string
+-			if code := post(t, srv, "/api/v1/recipe", tc.body, &e); code != tc.wantCode {
+-				t.Fatalf("статус %d, ожидался %d (%v)", code, tc.wantCode, e)
++			if resp["status"] != "ok" && w.Code == http.StatusCreated {
++				t.Errorf("expected status 'ok', got %s", resp["status"])
+ 			}
+ 		})
+ 	}

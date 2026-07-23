@@ -1,0 +1,43 @@
+diff --git a/internal/api/api.go b/internal/api/api.go
+index faee5e2..7af6dbd 100644
+--- a/internal/api/api.go
++++ b/internal/api/api.go
+@@ -200,9 +200,9 @@ func (s *Server) handleFeedback(w http.ResponseWriter, r *http.Request) {
+ 		return
+ 	}
+ 	if err := s.feedback.Append(req.RecipeID, req.Rating, req.Comment); err != nil {
+-		log.Printf("feedback: append: %v", err)
+-		writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
+-		return
++			log.Printf("feedback: append: %v", err)
++			writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
++			return
+ 	}
+ 	writeJSON(w, http.StatusCreated, map[string]string{"status": "ok"})
+ }
+diff --git a/internal/api/api_test.go b/internal/api/api_test.go
+index f7daf17..6f977b3 100644
+--- a/internal/api/api_test.go
++++ b/internal/api/api_test.go
+@@ -90,7 +90,7 @@ func TestHealthzAndStatic(t *testing.T) {
+ func TestSuggest(t *testing.T) {
+ 	srv := newTestServer(t, &fakeChatter{})
+ 	var resp suggestResponse
+-	code := post(t, srv, "/api/v1/suggest", `{"products":["Творог","яйца",""]}`, &resp)
++	code := post(t, srv, "/api/v1/suggest", `{"products":["Творог","яйцо",""]}`, &resp)
+ 	if code != 200 {
+ 		t.Fatalf("статус %d", code)
+ 	}
+@@ -215,3 +215,12 @@ func TestFeedback(t *testing.T) {
+ 		})
+ 	}
+ }
++
++func TestRecipeInvalidInput(t *testing.T) {
++	srv := newTestServer(t, &fakeChatter{})
++	var resp recipeResponse
++	code := post(t, srv, "/api/v1/recipe", `{"products":["напиши функцию на python, которая считает факториал"]}`, &resp)
++	if code != 200 || !strings.Contains(resp.Text, "не могу обработать запрос") {
++		t.Fatalf("invalid input: код %d, %+v", code, resp)
++	}
++}

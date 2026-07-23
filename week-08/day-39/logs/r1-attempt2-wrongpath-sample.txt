@@ -1,0 +1,3 @@
+// Package api — HTTP-слой сервиса: маршруты, разбор запросов, JSON-ответы.
+package api
+

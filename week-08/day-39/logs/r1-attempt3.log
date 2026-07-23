@@ -1,0 +1,164 @@
+Warning: Input is not a terminal (fd=0).
+Analytics have been permanently disabled.
+────────────────────────────────────────────────────────────────────────────────
+Aider v0.86.2
+Model: ollama_chat/qwen2.5-coder:7b-instruct-q3_K_M with whole edit format
+Git repo: .git with 34 files
+Repo-map: using 1024 tokens, auto refresh
+Added internal/api/api.go to the chat.
+Added internal/api/api_test.go to the chat.
+Added CONVENTIONS.md to the chat (read-only).
+
+Конечно, добавлю новый HTTP-эндпоинт /api/v1/feedback.                          
+
+internal/api/api.go                                                             
+
+                                                                                
+ @@ -1,15 +1,19 @@                                                              
+  // Package api — HTTP-слой сервиса: маршруты, разбор запросов, JSON-ответы.   
+  package api                                                                   
+                                                                                
+  import (                                                                      
+ +   "context"                                                                  
+     "encoding/json"                                                            
+     "errors"                                                                   
+     "io/fs"                                                                    
+     "log"                                                                      
+     "net/http"                                                                 
+ +   "os"                                                                       
+ +   "path/filepath"                                                            
+     "strings"                                                                  
+ +   "time"                                                                     
+                                                                                
+     "fridge-chef/internal/corpus"                                              
+     "fridge-chef/internal/generate"                                            
+     "fridge-chef/internal/match"                                               
+  )                                                                             
+ @@ -25,10 +29,11 @@                                                            
+     s := &Server{corpus: c, chatter: ch}                                       
+     mux.HandleFunc("GET /healthz", s.handleHealthz)                            
+     mux.HandleFunc("GET /api/v1/corpus", s.handleCorpus)                       
+     mux.HandleFunc("POST /api/v1/suggest", s.handleSuggest)                    
+     mux.HandleFunc("POST /api/v1/recipe", s.handleRecipe)                      
+ +   mux.HandleFunc("POST /api/v1/feedback", s.handleFeedback) // Новый         
+ эндпоинт                                                                       
+     mux.Handle("GET /", http.FileServerFS(static))                             
+     return s                                                                   
+  }                                                                             
+                                                                                
+  // handleHealthz — проверка живости сервиса.                                  
+ @@ -210,5 +215,58 @@                                                           
+  }                                                                             
+                                                                                
+  func writeError(w http.ResponseWriter, status int, msg string) {              
+     writeJSON(w, status, map[string]string{"error": msg})                      
+  }                                                                             
+ +                                                                              
+ +// handleFeedback обрабатывает обратную связь пользователя.                   
+ +func (s *Server) handleFeedback(w http.ResponseWriter, r *http.Request) {     
+ +   var req struct {                                                           
+ +       RecipeID string `json:"recipe_id,omitempty"`                           
+ +       Rating   int    `json:"rating"`                                        
+ +       Comment  string `json:"comment,omitempty"`                             
+ +   }                                                                          
+ +   if !decode(w, r, &req) {                                                   
+ +       return                                                                 
+ +   }                                                                          
+ +                                                                              
+ +   if req.Rating < 1 || req.Rating > 5 {                                      
+ +       writeError(w, http.StatusBadRequest, "рейтинг должен быть в диапазоне  
+ 1..5")                                                                         
+ +       return                                                                 
+ +   }                                                                          
+ +                                                                              
+ +   if len(req.Comment) > 1000 {                                               
+ +       writeError(w, http.StatusBadRequest, "комментарий не может превышать   
+ 1000 символов")                                                                
+ +       return                                                                 
+ +   }                                                                          
+ +                                                                              
+ +   path := os.Getenv("FEEDBACK_PATH")                                         
+ +   if path == "" {                                                            
+ +       path = "./feedback.jsonl"                                              
+ +   }                                                                          
+ +                                                                              
+ +   timestamp := time.Now().UTC().Format(time.RFC3339)                         
+ +   entry, err := json.Marshal(map[string]interface{}{                         
+ +       "recipe_id": req.RecipeID,                                             
+ +       "rating":    req.Rating,                                               
+ +       "comment":   req.Comment,                                              
+ +       "timestamp": timestamp,                                                
+ +   })                                                                         
+ +   if err != nil {                                                            
+ +       writeError(w, http.StatusInternalServerError, "ошибка при формировании 
+ записи")                                                                       
+ +       return                                                                 
+ +   }                                                                          
+ +                                                                              
+ +   file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) 
+ +   if err != nil {                                                            
+ +       writeError(w, http.StatusInternalServerError, "ошибка открытия файла   
+ для записи")                                                                   
+ +       return                                                                 
+ +   }                                                                          
+ +   defer file.Close()                                                         
+ +                                                                              
+ +   if _, err := file.Write(entry); err != nil {                               
+ +       writeError(w, http.StatusInternalServerError, "ошибка записи в файл")  
+ +       return                                                                 
+ +   }                                                                          
+ +                                                                              
+ +   writeJSON(w, http.StatusCreated, map[string]string{"status": "ok"})        
+ +}                                                                             
+                                                                                
+
+internal/api/api_test.go                                                        
+
+                                                                                
+ @@ -184,5 +184,34 @@                                                           
+                 t.Fatalf("статус %d, ожидался %d (%v)", code, tc.wantCode, e)  
+             }                                                                  
+         })                                                                     
+     }                                                                          
+  }                                                                             
+ +                                                                              
+ +func TestFeedback(t *testing.T) {                                             
+ +   srv := newTestServer(t, &fakeChatter{})                                    
+ +   var resp map[string]string                                                 
+ +   code := post(t, srv, "/api/v1/feedback", `{"rating":3}`, &resp)            
+ +   if code != 201 || resp["status"] != "ok" {                                 
+ +       t.Fatalf("статус %d, ожидался 201 и status:ok (%v)", code, resp)       
+ +   }                                                                          
+ +                                                                              
+ +   code = post(t, srv, "/api/v1/feedback",                                    
+ `{"rating":5,"comment":"Отлично!"}`, &resp)                                    
+ +   if code != 201 || resp["status"] != "ok" {                                 
+ +       t.Fatalf("статус %d, ожидался 201 и status:ok (%v)", code, resp)       
+ +   }                                                                          
+ +                                                                              
+ +   code = post(t, srv, "/api/v1/feedback", `{"rating":5,"comment":"Очень      
+ длинный комментарий, который должен быть не более 1000 символов."}`, &resp)    
+ +   if code != 201 || resp["status"] != "ok" {                                 
+ +       t.Fatalf("статус %d, ожидался 201 и status:ok (%v)", code, resp)       
+ +   }                                                                          
+ +                                                                              
+ +   code = post(t, srv, "/api/v1/feedback", `{"rating":5,"comment":"Очень      
+ длинный комментарий, который должен быть не более 1000 символов. Ого, это      
+ очень длинный текст!"}`, &resp)                                                
+ +   if code != 400 {                                                           
+ +       t.Fatalf("статус %d, ожидался 400", code)                              
+ +   }                                                                          
+ +                                                                              
+ +   code = post(t, srv, "/api/v1/feedback", `{"rating":6}`, &resp)             
+ +   if code != 400 {                                                           
+ +       t.Fatalf("статус %d, ожидался 400", code)                              
+ +   }                                                                          
+ +}                                                                             
+                                                                                
+
+Tokens: 6.4k sent, 4.7k received.
+Applied edit to internal/api/api_test.go
+Applied edit to internal/api/api.go
+Summarization failed for model ollama_chat/qwen2.5-coder:7b-instruct-q3_K_M: cannot schedule new futures after shutdown
+Summarization failed for model ollama_chat/qwen2.5-coder:7b-instruct-q3_K_M: cannot schedule new futures after shutdown
+summarizer unexpectedly failed for all models
