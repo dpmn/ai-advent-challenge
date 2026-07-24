@@ -1,0 +1,248 @@
+
+> build · MiniMaxAI/MiniMax-M2.5
+
+✱ Glob "internal/api/*.go" 2 matches
+→ Read internal/api/api.go
+Теперь посмотрю тесты:
+→ Read internal/api/api_test.go
+Добавлю эндпоинт и тест:
+
+← Edit internal/api/api.go
+Index: /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+===================================================================
+--- /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
++++ /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+@@ -6,9 +6,11 @@
+ "errors"
+ "io/fs"
+ "log"
+ "net/http"
++"os"
+ "strings"
++"time"
+ 
+ "fridge-chef/internal/corpus"
+ "fridge-chef/internal/generate"
+ "fridge-chef/internal/match"
+
+
+← Edit internal/api/api.go
+Index: /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+===================================================================
+--- /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
++++ /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+@@ -28,8 +28,9 @@
+ 	mux.HandleFunc("GET /healthz", s.handleHealthz)
+ 	mux.HandleFunc("GET /api/v1/corpus", s.handleCorpus)
+ 	mux.HandleFunc("POST /api/v1/suggest", s.handleSuggest)
+ 	mux.HandleFunc("POST /api/v1/recipe", s.handleRecipe)
++	mux.HandleFunc("POST /api/v1/feedback", s.handleFeedback)
+ 	mux.Handle("GET /", http.FileServerFS(static))
+ 	return s
+ }
+ 
+
+
+Теперь добавлю типы и handler:
+← Edit internal/api/api.go
+Index: /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+===================================================================
+--- /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
++++ /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api.go
+@@ -177,8 +177,74 @@
+ 		writeError(w, http.StatusBadRequest, "mode должен быть strict, combine или creative")
+ 	}
+ }
+ 
++type feedbackRequest struct {
++	RecipeID *string `json:"recipe_id"`
++	Rating   int     `json:"rating"`
++	Comment  *string `json:"comment"`
++}
++
++type feedbackResponse struct {
++	Status string `json:"status"`
++}
++
++// handleFeedback сохраняет обратную связь в JSONL-файл.
++func (s *Server) handleFeedback(w http.ResponseWriter, r *http.Request) {
++	var req feedbackRequest
++	if !decode(w, r, &req) {
++		return
++	}
++	if req.Rating < 1 || req.Rating > 5 {
++		writeError(w, http.StatusBadRequest, "rating должен быть от 1 до 5")
++		return
++	}
++	if req.Comment != nil && len(*req.Comment) > 1000 {
++		writeError(w, http.StatusBadRequest, "comment не длиннее 1000 символов")
++		return
++	}
++
++	path := os.Getenv("FEEDBACK_PATH")
++	if path == "" {
++		path = "./feedback.jsonl"
++	}
++
++	record := map[string]any{
++		"recipe_id":  req.RecipeID,
++		"rating":     req.Rating,
++		"comment":    req.Comment,
++		"timestamp":  time.Now().UTC().Format(time.RFC3339),
++	}
++	data, err := json.Marshal(record)
++	if err != nil {
++		log.Printf("feedback: маршалинг: %v", err)
++		writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
++		return
++	}
++	data = append(data, '\n')
++
++	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
++	if err != nil {
++		log.Printf("feedback: открытие %s: %v", path, err)
++		writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
++		return
++	}
++	_, err = f.Write(data)
++	closeErr := f.Close()
++	if err != nil {
++		log.Printf("feedback: запись: %v", err)
++		writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
++		return
++	}
++	if closeErr != nil {
++		log.Printf("feedback: закрытие: %v", closeErr)
++		writeError(w, http.StatusInternalServerError, "внутренняя ошибка")
++		return
++	}
++
++	writeJSON(w, http.StatusCreated, feedbackResponse{Status: "ok"})
++}
++
+ // normalize канонизирует имена продуктов и выкидывает пустые и дубли.
+ func normalize(c *corpus.Corpus, products []string) []string {
+ 	seen := make(map[string]bool)
+ 	out := make([]string, 0, len(products))
+
+
+Добавлю тесты:
+← Edit internal/api/api_test.go
+Index: /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api_test.go
+===================================================================
+--- /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api_test.go
++++ /tmp/claude-0/-home-development-personal-ai-advent-challenge/3389550c-7d1a-4ddd-ba61-9596553c4949/scratchpad/wt-cloud/internal/api/api_test.go
+@@ -185,4 +185,86 @@
+ 			}
+ 		})
+ 	}
+ }
++
++func TestFeedback(t *testing.T) {
++	dir := t.TempDir()
++	t.Setenv("FEEDBACK_PATH", filepath.Join(dir, "feedback.jsonl"))
++
++	srv := newTestServer(t, &fakeChatter{})
++	var resp feedbackResponse
++	code := post(t, srv, "/api/v1/feedback", `{"rating":5}`, &resp)
++	if code != http.StatusCreated {
++		t.Fatalf("код %d, ожидался 201", code)
++	}
++	if resp.Status != "ok" {
++		t.Fatalf("status = %q", resp.Status)
++	}
++
++	data, err := os.ReadFile(filepath.Join(dir, "feedback.jsonl"))
++	if err != nil {
++		t.Fatal(err)
++	}
++	var r map[string]any
++	if err := json.Unmarshal(data, &r); err != nil {
++		t.Fatal(err)
++	}
++	if r["rating"] != float64(5) {
++		t.Fatalf("rating = %v", r["rating"])
++	}
++	if r["timestamp"] == nil {
++		t.Fatal("timestamp отсутствует")
++	}
++}
++
++func TestFeedbackValidation(t *testing.T) {
++	dir := t.TempDir()
++	t.Setenv("FEEDBACK_PATH", filepath.Join(dir, "feedback.jsonl"))
++
++	srv := newTestServer(t, &fakeChatter{})
++	tests := []struct {
++		name      string
++		body      string
++		wantCode  int
++	}{
++		{"битый json", `не json`, 400},
++		{"rating 0", `{"rating":0}`, 400},
++		{"rating 6", `{"rating":6}`, 400},
++		{"comment слишком длинный", `{"rating":5,"comment":"` + strings.Repeat("x", 1001) + `"}`, 400},
++	}
++	for _, tc := range tests {
++		t.Run(tc.name, func(t *testing.T) {
++			var e map[string]string
++			code := post(t, srv, "/api/v1/feedback", tc.body, &e)
++			if code != tc.wantCode {
++				t.Fatalf("код %d, ожидался %d (%v)", code, tc.wantCode, e)
++			}
++		})
++	}
++}
++
++func TestFeedbackFull(t *testing.T) {
++	dir := t.TempDir()
++	t.Setenv("FEEDBACK_PATH", filepath.Join(dir, "feedback.jsonl"))
++
++	srv := newTestServer(t, &fakeChatter{})
++	var resp feedbackResponse
++	code := post(t, srv, "/api/v1/feedback",
++		`{"recipe_id":"r1","rating":4,"comment":"вкусно"}`, &resp)
++	if code != http.StatusCreated {
++		t.Fatalf("код %d", code)
++	}
++
++	data, _ := os.ReadFile(filepath.Join(dir, "feedback.jsonl"))
++	var r map[string]any
++	json.Unmarshal(data, &r)
++	if r["recipe_id"] != "r1" {
++		t.Errorf("recipe_id = %v", r["recipe_id"])
++	}
++	if r["rating"] != float64(4) {
++		t.Errorf("rating = %v", r["rating"])
++	}
++	if r["comment"] != "вкусно" {
++		t.Errorf("comment = %v", r["comment"])
++	}
++}
+
+
+Запущу тесты и линтер:
+$ rtk go test ./internal/api/... -v -run Feedback
+Go test: 7 passed in 1 packages
+
+$ rtk go vet ./...
+
+$ gofmt -l .
+internal/api/api.go
+internal/api/api_test.go
+
+$ gofmt -w internal/api/api.go internal/api/api_test.go
+(no output)
+
+$ gofmt -l . && rtk go test ./...
+Go test: 45 passed in 8 packages
+
+Готово. Добавлен эндпоинт `POST /api/v1/feedback`:
+- валидация rating 1..5, comment ≤1000 символов
+- запись в JSONL-файл (FEEDBACK_PATH, по умолчанию `./feedback.jsonl`)
+- ответ `{"status":"ok"}`, код 201
+- 7 тестов: успешная запись, валидация (битый JSON, rating 0/6, длинный comment), полная запись с recipe_id и comment
+
+real	1m3.026s
+user	0m31.181s
+sys	0m4.741s
