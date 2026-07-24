@@ -1,0 +1,137 @@
+
+> build · qwen3:4b-ctx16k-nothink
+
+✱ Grep "handleRecipe|recipe|POST /api/v1/recipe" in internal/api · 47 matches
+Okay, let's break this down. The user is saying that they sent a POST request to /api/v1/recipe with the text "напиши функцию на python, которая считает факториал" (which translates to "write a function in Python that calculates factorial") and the service returned 200 with the model's response instead of rejecting it. They expect that non-cooking input (not related to recipes) shouldn't reach the LLM, but it did. They want me to troubleshoot and fix this.
+
+First, I need to understand the system. The project is a fridge-chef service that uses RAG (Retrieval-Augmented Generation) for recipe generation. The API is supposed to handle user inputs related to recipes, but in this case, it's getting a non-recipe input.
+
+The key points here: the input is in Russian (non-recipe context), and the service is supposed to reject such inputs without sending to the LLM. But it's returning 200 with the model's response, which is a problem.
+
+Looking at the code structure from the project's architecture, the API handles requests through the `api` package. The route in question is `/api/v1/recipe`, which is part of the `api` package. The `generate` package handles recipe generation, and there's a middleware or validation step that should check if the input is valid (i.e., related to recipes).
+
+The user's input is in Russian, but the system might not have proper validation for non-recipe inputs. The service might be treating any input as a recipe request, leading to the LLM being called. 
+
+Possible causes:
+
+1. The input validation layer doesn't check if the input is a recipe-related query.
+2. The `match` package (which handles matching recipes) might not have a filter for non-recipe inputs.
+3. The `generate` package's logic might not distinguish between recipe requests and other inputs.
+
+Since the user expects that non-cooking inputs shouldn't reach the LLM, there's probably a missing validation step. In the code example provided, the `handleSuggest` function has a check for valid products. Maybe a similar check is missing for the recipe route.
+
+The next step is to find where the input is validated. Let's search the codebase for the `/api/v1/recipe` endpoint.
+
+I should use the `grep` tool to look for files containing "recipe" and the endpoint handler. For example, in the `api` package, the `handleRecipe` function might have input validation.
+
+Possible search patterns: `api/v1/recipe`, `handleRecipe`, `recipe request validation`.
+
+Once I find the relevant code, check if there's a validation step that rejects non-recipe inputs. If not, add a check that the input is a recipe-related query (e.g., checking for product names or recipe-specific keywords).
+
+The user mentioned that the input is in Russian and non-cooking. The system might need to handle language-specific checks or content types.
+
+Wait, the user said "не-кулинарный ввод" (non-cooking input). So the system should reject any input that isn't related to recipes. The problem is that it's processing a "write a Python function" request, which is unrelated to recipes.
+
+In the code, the `handleRecipe` function might have a step where it validates the input. If it's not there, we need to add a check.
+
+In the provided example code in the `go-style` skill, the `handleSuggest` function normalizes products and checks if the list is empty. For recipe inputs, maybe the same logic isn't applied.
+
+Let's write a tool call to search for the relevant code.
+
+I'll use `grep` to find the handler for the recipe endpoint. Let me try to query for the path and handler.
+
+Possible pattern: `src/api/handlers/recipe.go` or similar (since the project uses `internal/api` package).
+
+Wait, the project structure is:
+
+- `cmd/fridge-chef/main.go`
+- `internal/` with packages like `api`, `corpus`, `generate`, `match`, `llm`
+
+So the recipe handler is likely in `internal/api/handlers/recipe.go` or similar.
+
+I'll run `grep` on files containing "recipe" and "handle" or "POST /api/v1/recipe".
+
+But to be precise, maybe use `glob` to search for files in the `internal/api` directory.
+
+Alternatively, since the user is in the project root, use `glob` with pattern `internal/api/**/*.go`.
+
+Wait, the user's current project root is `/home/development/personal/fridge-chef`. Let's see.
+
+The tool calls available: `grep`, `glob`, `read`, etc.
+
+I should first check the handler function for the route `/api/v1/recipe` using `grep`.
+
+Let me construct the `grep` command.
+
+The pattern could be: `"POST /api/v1/recipe"` or `"handleRecipe"`.
+
+But the actual code might have the HTTP handler registered with `mux.HandleFunc`.
+
+Looking at the `go-style` skill example, the `handleSuggest` function is in a server struct.
+
+So for the recipe route, there's probably a `handleRecipe` function in the API handler.
+
+Let me create a `grep` search for files containing "handleRecipe" or "recipe" and "POST".
+
+Alternatively, use `task` to explore the codebase.
+
+But the user's problem is a specific issue with the input. Since the user expects non-recipe inputs to be rejected, the fix likely involves adding input validation.
+
+In the current code, the `handleSuggest` function checks for products (non-empty). For the recipe input, maybe there's no check for validity.
+
+So the steps:
+
+1. Locate the recipe handler code.
+2. Add validation to ensure the input is a recipe request (e.g., contains product names or valid recipe terms).
+3. If input is invalid, return 400 with a message that it's not a valid recipe request.
+
+Given the user's message in Russian, maybe the system should check for the presence of product identifiers or recipe-specific keywords.
+
+But the user might not have the code to handle that, so the fix would be to add a validation step in the handler.
+
+Let's proceed to find the relevant code.
+
+First, I'll use `glob` to look for files in `internal/api` that might contain the recipe handler.
+
+Pattern: `internal/api/**/*.go`
+
+Then, from the files, check for functions related to recipe handling.
+
+Alternatively, use `grep` with the regex for the handle function.
+
+But since I need to get the code, I'll use the `grep` tool.
+
+Let's write the tool call.
+</think>
+Okay, let me check the user's problem and the code results.
+
+The user sent a non-recipe input (a Python factorial function request) and the service returned 200 with an LLM response. But they expected that non-cooking inputs shouldn't reach the LLM.
+
+From the grep results, I see that the service has a handler called `handleRecipe` in `internal/api/api.go` that processes POST requests to `/api/v1/recipe`. The issue is that this handler doesn't validate the input, so it's processing non-recipe requests.
+
+The `handleRecipe` function:
+- Decodes the request into `recipeRequest`
+- Does not check if the input has valid recipe-related data (like products)
+- Returns 200 and an LLM response for any input
+
+In the test cases, there are validations for:
+- `recipe_id` format (e.g., `{"recipe_id":"r1"}`)
+- `products` array (e.g., `{"products":["творог","яйца"]}`)
+- `mode` (e.g., `combine`, `creative`)
+- But the input `"напиши функцию на python, которая считает факториал"` is not checked
+
+This input doesn't have a `recipe_id` or `products` field, so it's getting processed as a recipe request.
+
+To fix this:
+1. Add validation for required fields (e.g., `recipe_id` and `products`)
+2. Reject non-recipe inputs with 400
+3. Only process inputs that have valid recipe data
+
+In the code, the `handleRecipe` function should check if `req.Products` is empty or if other fields are missing. The current code doesn't do this, so it's handling any input.
+
+The fix needed is to add validation logic similar to the `handleSuggest` function (which checks for products) to the `handleRecipe` function.
+</think>
+
+real	14m46.610s
+user	3m46.759s
+sys	0m14.228s
