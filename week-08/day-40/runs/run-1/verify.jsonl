@@ -1,0 +1,16 @@
+{"sha":"e8ec3fd","id":"T-01","subject":"T-01: truncate режет по рунам вместо байтов, регрессионный тест","gates":"ok"}
+{"sha":"18d2659","id":"T-02","subject":"T-02: валидация limit снизу (≤0 → дефолт), тесты на -5, 0 и отсутствие","gates":"ok"}
+{"sha":"5ccebd4","id":"T-03","subject":"T-03: суффиксы Canon вынесены в пакетный var, без аллокаций на вызов","gates":"ok"}
+{"sha":"94517c0","id":"T-04","subject":"T-04: тест Chat с контекстом, отменённым до вызова","gates":"ok"}
+{"sha":"2108732","id":"T-05","subject":"T-05: middleware логирования HTTP-запросов (метод, путь, статус, длительность)","gates":"ok"}
+{"sha":"5ab4e5b","id":"T-06","subject":"T-06: handleFeedback проверяет recipe_id на наличие в корпусе, 400 если нет","gates":"ok"}
+{"sha":"53474b3","id":"T-07","subject":"T-07: документация POST /api/v1/feedback и FEEDBACK_PATH в README","gates":"ok"}
+{"sha":"d260c8b","id":"T-08","subject":"T-08: магические числа LLM-клиента вынесены в именованные константы","gates":"ok"}
+{"sha":"1561dc5","id":"T-09","subject":"T-09: прямой table-driven тест normalize (дубли, пробелы, порядок)","gates":"ok"}
+{"sha":"56be9ca","id":"T-10","subject":"T-10: sanitize products — фильтрация инструкций до вызова LLM (≤30 рун, ≤3 слов)","gates":"ok"}
+{"sha":"b559227","id":"T-11","subject":"T-11: тест Canon на пустом и пробельном вводе","gates":"ok"}
+{"sha":"bd87dd6","id":"T-12","subject":"T-12: тестовые хелперы api вынесены в api_helpers_test.go, дубли удалены","gates":"ok"}
+{"sha":"c622f51","id":"T-13","subject":"T-13: таймауты HTTP-сервера (Read/Write/Idle) через env, дефолты не рвут генерацию","gates":"ok"}
+{"sha":"08ac468","id":"T-14","subject":"T-14: architecture.md — нереализованное помечено, feedback добавлен в API","gates":"ok"}
+{"sha":"8e9a058","id":"T-15","subject":"T-15: магические числа HTTP-слоя вынесены в именованные константы","gates":"ok"}
+{"sha":"7342456","id":"T-16","subject":"T-16: фикс безымянных ингредиентов — отсечение в Load, Canon, score","gates":"ok"}

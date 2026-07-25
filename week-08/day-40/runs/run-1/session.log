@@ -1,0 +1,554 @@
+[0m
+> loop-orchestrator · big-pickle
+[0m
+[0m→ [0mRead docs/tasks/pool.md
+[0m
+[0m$ [0mls /home/development/personal/fridge-chef/.opencode/loop/journal.sh
+/home/development/personal/fridge-chef/.opencode/loop/journal.sh
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-01
+журнал: start T-01 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+Хорошо, пул загружен: 16 задач, T-01…T-16. Начинаю прогон сверху вниз.
+
+---
+
+**Задача T-01 · bug · `truncate` в LLM-клиенте режет строку по байтам**
+
+Шаг 1 — отметить старт:
+[0m• [0mbug-fix truncate runes[90m Bug-Fix Agent[0m
+Шаг 3 — делегирую субагенту `bug-fix`:
+[0m✓ [0mbug-fix truncate runes[90m Bug-Fix Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/llm/llm.go             |  5 +++--
+ internal/llm/llm_errors_test.go | 29 +++++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+), 2 deletions(-)
+[0m
+Зелёно. `gofmt -l .` вывел пусто (никаких файлов), `go test` — все пакеты ОК. Теперь коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/llm/llm.go internal/llm/llm_errors_test.go && git commit -m "T-01: truncate режет по рунам вместо байтов, регрессионный тест"
+[loop-run-1 e8ec3fd] T-01: truncate режет по рунам вместо байтов, регрессионный тест
+ 2 files changed, 32 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-01 bug bug-fix 1 e8ec3fd ""
+журнал: done T-01 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-02
+журнал: start T-02 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-02 · bug · `limit` в `/api/v1/suggest` валидируется только сверху**
+[0m• [0mbug-fix suggest limit validation[90m Bug-Fix Agent[0m
+[0m✓ [0mbug-fix suggest limit validation[90m Bug-Fix Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/api/api.go           | 12 ++++++++++--
+ internal/api/api_edge_test.go |  1 +
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/api/api.go internal/api/api_edge_test.go && git commit -m "T-02: валидация limit снизу (≤0 → дефолт), тесты на -5, 0 и отсутствие"
+[loop-run-1 18d2659] T-02: валидация limit снизу (≤0 → дефолт), тесты на -5, 0 и отсутствие
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-02 bug bug-fix 1 18d2659 ""
+журнал: done T-02 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-03
+журнал: start T-03 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-03 · refactor · срез суффиксов в `Canon` создаётся на каждый вызов**
+[0m• [0mrefactor canon suffixes var[90m Refactorer Agent[0m
+[0m✓ [0mrefactor canon suffixes var[90m Refactorer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/corpus/corpus.go | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/corpus/corpus.go && git commit -m "T-03: суффиксы Canon вынесены в пакетный var, без аллокаций на вызов"
+[loop-run-1 5ccebd4] T-03: суффиксы Canon вынесены в пакетный var, без аллокаций на вызов
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-03 refactor refactorer 1 5ccebd4 ""
+журнал: done T-03 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-04
+журнал: start T-04 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-04 · test · нет теста `llm.Chat` с уже отменённым контекстом**
+[0m• [0mtest-writer cancelled context[90m Test-Writer Agent[0m
+[0m✓ [0mtest-writer cancelled context[90m Test-Writer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./internal/llm/...
+ok  	fridge-chef/internal/llm	3.018s
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/llm/llm_errors_test.go | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/llm/llm_errors_test.go && git commit -m "T-04: тест Chat с контекстом, отменённым до вызова"
+[loop-run-1 94517c0] T-04: тест Chat с контекстом, отменённым до вызова
+ 1 file changed, 21 insertions(+)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-04 test test-writer 1 94517c0 ""
+журнал: done T-04 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-05 · feature · нет логов HTTP-запросов**
+[0m$ [0mbash .opencode/loop/journal.sh start T-05
+журнал: start T-05 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mfeature request logging middleware[90m Feature-Builder Agent[0m
+[0m✓ [0mfeature request logging middleware[90m Feature-Builder Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+cmd/fridge-chef/main.go | 4 ++--
+ internal/api/api.go     | 6 +++---
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git status --short
+M cmd/fridge-chef/main.go
+ M internal/api/api.go
+?? internal/api/middleware.go
+?? internal/api/middleware_test.go
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add cmd/fridge-chef/main.go internal/api/api.go internal/api/middleware.go internal/api/middleware_test.go && git commit -m "T-05: middleware логирования HTTP-запросов (метод, путь, статус, длительность)"
+[loop-run-1 2108732] T-05: middleware логирования HTTP-запросов (метод, путь, статус, длительность)
+ 4 files changed, 147 insertions(+), 5 deletions(-)
+ create mode 100644 internal/api/middleware.go
+ create mode 100644 internal/api/middleware_test.go
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-05 feature feature-builder 1 2108732 ""
+журнал: done T-05 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-06 · bug · отзыв принимается на несуществующий `recipe_id`**
+[0m$ [0mbash .opencode/loop/journal.sh start T-06
+журнал: start T-06 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mbug-fix feedback nonexistent recipe[90m Bug-Fix Agent[0m
+[0m✓ [0mbug-fix feedback nonexistent recipe[90m Bug-Fix Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/api/api.go      | 6 ++++++
+ internal/api/api_test.go | 1 +
+ 2 files changed, 7 insertions(+)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/api/api.go internal/api/api_test.go && git commit -m "T-06: handleFeedback проверяет recipe_id на наличие в корпусе, 400 если нет"
+[loop-run-1 5ab4e5b] T-06: handleFeedback проверяет recipe_id на наличие в корпусе, 400 если нет
+ 2 files changed, 7 insertions(+)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-06 bug bug-fix 1 5ab4e5b ""
+журнал: done T-06 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-07
+журнал: start T-07 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-07 · docs · README не описывает `POST /api/v1/feedback`**
+[0m• [0mdocs README feedback endpoint[90m Docs-Writer Agent[0m
+[0m✓ [0mdocs README feedback endpoint[90m Docs-Writer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+README.md | 5 +++++
+ 1 file changed, 5 insertions(+)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add README.md && git commit -m "T-07: документация POST /api/v1/feedback и FEEDBACK_PATH в README"
+[loop-run-1 53474b3] T-07: документация POST /api/v1/feedback и FEEDBACK_PATH в README
+ 1 file changed, 5 insertions(+)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-07 docs docs-writer 1 53474b3 ""
+журнал: done T-07 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-08 · refactor · магические числа в LLM-клиенте**
+[0m$ [0mbash .opencode/loop/journal.sh start T-08
+журнал: start T-08 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mrefactor llm magic constants[90m Refactorer Agent[0m
+[0m✓ [0mrefactor llm magic constants[90m Refactorer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/llm/llm.go | 25 ++++++++++++++++++++-----
+ 1 file changed, 20 insertions(+), 5 deletions(-)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/llm/llm.go && git commit -m "T-08: магические числа LLM-клиента вынесены в именованные константы"
+[loop-run-1 d260c8b] T-08: магические числа LLM-клиента вынесены в именованные константы
+ 1 file changed, 20 insertions(+), 5 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-08 refactor refactorer 1 d260c8b ""
+журнал: done T-08 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-09
+журнал: start T-09 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-09 · test · функция `normalize` не покрыта прямым тестом**
+[0m• [0mtest-writer normalize direct test[90m Test-Writer Agent[0m
+[0m✓ [0mtest-writer normalize direct test[90m Test-Writer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./internal/api/...
+ok  	fridge-chef/internal/api	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git status --short
+?? internal/api/normalize_test.go
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/api/normalize_test.go && git commit -m "T-09: прямой table-driven тест normalize (дубли, пробелы, порядок)"
+[loop-run-1 1561dc5] T-09: прямой table-driven тест normalize (дубли, пробелы, порядок)
+ 1 file changed, 78 insertions(+)
+ create mode 100644 internal/api/normalize_test.go
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-09 test test-writer 1 1561dc5 ""
+журнал: done T-09 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-10 · feature · инструкции в поле продуктов доходят до LLM**
+[0m$ [0mbash .opencode/loop/journal.sh start T-10
+журнал: start T-10 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mfeature sanitize prompt injection[90m Feature-Builder Agent[0m
+[0m✓ [0mfeature sanitize prompt injection[90m Feature-Builder Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git status --short
+M internal/api/api.go
+?? internal/api/sanitize.go
+?? internal/api/sanitize_test.go
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/api/api.go internal/api/sanitize.go internal/api/sanitize_test.go && git commit -m "T-10: sanitize products — фильтрация инструкций до вызова LLM (≤30 рун, ≤3 слов)"
+[loop-run-1 56be9ca] T-10: sanitize products — фильтрация инструкций до вызова LLM (≤30 рун, ≤3 слов)
+ 3 files changed, 112 insertions(+), 1 deletion(-)
+ create mode 100644 internal/api/sanitize.go
+ create mode 100644 internal/api/sanitize_test.go
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-10 feature feature-builder 1 56be9ca ""
+журнал: done T-10 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-11 · test · `Canon` не покрыт на пустом и пробельном вводе**
+[0m$ [0mbash .opencode/loop/journal.sh start T-11
+журнал: start T-11 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mtest-writer Canon edge cases[90m Test-Writer Agent[0m
+[0m✓ [0mtest-writer Canon edge cases[90m Test-Writer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./internal/corpus/...
+ok  	fridge-chef/internal/corpus	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/corpus/corpus_test.go | 2 ++
+ 1 file changed, 2 insertions(+)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/corpus/corpus_test.go && git commit -m "T-11: тест Canon на пустом и пробельном вводе"
+[loop-run-1 b559227] T-11: тест Canon на пустом и пробельном вводе
+ 1 file changed, 2 insertions(+)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-11 test test-writer 1 b559227 ""
+журнал: done T-11 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-12
+журнал: start T-12 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-12 · refactor · дублирование тестовых хелперов в пакете `api`**
+[0m• [0mrefactor test helpers dedup[90m Refactorer Agent[0m
+[0m✓ [0mrefactor test helpers dedup[90m Refactorer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./internal/api/...
+ok  	fridge-chef/internal/api	(cached)
+[0m
+Зелёно. Коммит:
+[0m✗ [0mInvalid Tool
+The arguments provided to the tool are invalid: Invalid input for tool bash: JSON parsing failed: Text: {"command": .
+Error message: JSON Parse error: Unexpected EOF
+[0m
+[0m$ [0mgit status --short
+M internal/api/api_edge_test.go
+ M internal/api/api_test.go
+ M internal/api/normalize_test.go
+?? internal/api/api_helpers_test.go
+[0m
+[0m$ [0mgit add internal/api/api_edge_test.go internal/api/api_test.go internal/api/normalize_test.go internal/api/api_helpers_test.go && git commit -m "T-12: тестовые хелперы api вынесены в api_helpers_test.go, дубли удалены"
+[loop-run-1 bd87dd6] T-12: тестовые хелперы api вынесены в api_helpers_test.go, дубли удалены
+ 4 files changed, 135 insertions(+), 134 deletions(-)
+ create mode 100644 internal/api/api_helpers_test.go
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-12 refactor refactorer 1 bd87dd6 ""
+журнал: done T-12 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-13 · feature · у HTTP-сервера нет таймаутов, кроме `ReadHeaderTimeout`**
+[0m$ [0mbash .opencode/loop/journal.sh start T-13
+журнал: start T-13 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mfeature HTTP server timeouts[90m Feature-Builder Agent[0m
+[0m✓ [0mfeature HTTP server timeouts[90m Feature-Builder Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git status --short
+M .env.example
+ M cmd/fridge-chef/main.go
+ M internal/config/config.go
+ M internal/config/config_env_test.go
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add .env.example cmd/fridge-chef/main.go internal/config/config.go internal/config/config_env_test.go && git commit -m "T-13: таймауты HTTP-сервера (Read/Write/Idle) через env, дефолты не рвут генерацию"
+[loop-run-1 c622f51] T-13: таймауты HTTP-сервера (Read/Write/Idle) через env, дефолты не рвут генерацию
+ 4 files changed, 107 insertions(+), 1 deletion(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-13 feature feature-builder 1 c622f51 ""
+журнал: done T-13 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-14 · docs · `architecture.md` описывает нереализованное как существующее**
+[0m$ [0mbash .opencode/loop/journal.sh start T-14
+журнал: start T-14 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m• [0mdocs architecture unrealized features[90m Docs-Writer Agent[0m
+[0m✓ [0mdocs architecture unrealized features[90m Docs-Writer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+docs/architecture.md | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git add docs/architecture.md && git commit -m "T-14: architecture.md — нереализованное помечено, feedback добавлен в API"
+[loop-run-1 08ac468] T-14: architecture.md — нереализованное помечено, feedback добавлен в API
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-14 docs docs-writer 1 08ac468 ""
+журнал: done T-14 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-15
+журнал: start T-15 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-15 · refactor · магические числа в HTTP-слое**
+[0m• [0mrefactor api magic constants[90m Refactorer Agent[0m
+[0m✓ [0mrefactor api magic constants[90m Refactorer Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./internal/api/...
+ok  	fridge-chef/internal/api	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/api/api.go | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/api/api.go && git commit -m "T-15: магические числа HTTP-слоя вынесены в именованные константы"
+[loop-run-1 8e9a058] T-15: магические числа HTTP-слоя вынесены в именованные константы
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-15 refactor refactorer 1 8e9a058 ""
+журнал: done T-15 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh start T-16
+журнал: start T-16 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+**Задача T-16 · bug · безымянный ингредиент отравляет канонизацию и подбор**
+[0m• [0mbug-fix empty ingredient name[90m Bug-Fix Agent[0m
+[0m✓ [0mbug-fix empty ingredient name[90m Bug-Fix Agent[0m
+Шаг 4 — ворота:
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && go build ./... && go vet ./... && gofmt -l . && go test ./...
+?   	fridge-chef/cmd/fridge-chef	[no test files]
+ok  	fridge-chef/internal/api	(cached)
+ok  	fridge-chef/internal/config	(cached)
+ok  	fridge-chef/internal/corpus	(cached)
+ok  	fridge-chef/internal/feedback	(cached)
+ok  	fridge-chef/internal/generate	(cached)
+ok  	fridge-chef/internal/llm	(cached)
+ok  	fridge-chef/internal/match	(cached)
+ok  	fridge-chef/web	(cached)
+[0m
+Зелёно. Коммит:
+[0m$ [0mcd /home/development/personal/fridge-chef && git diff --stat
+internal/corpus/corpus.go      |  9 +++++++-
+ internal/corpus/corpus_test.go | 45 ++++++++++++++++++++++++++++++++++++++++
+ internal/match/match.go        |  2 +-
+ internal/match/match_test.go   | 47 ++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 101 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mcd /home/development/personal/fridge-chef && git add internal/corpus/corpus.go internal/corpus/corpus_test.go internal/match/match.go internal/match/match_test.go && git commit -m "T-16: фикс безымянных ингредиентов — отсечение в Load, Canon, score"
+[loop-run-1 7342456] T-16: фикс безымянных ингредиентов — отсечение в Load, Canon, score
+ 4 files changed, 101 insertions(+), 2 deletions(-)
+[0m
+[0m$ [0mbash .opencode/loop/journal.sh done T-16 bug bug-fix 1 7342456 ""
+журнал: done T-16 → /home/development/personal/fridge-chef/.opencode/runs/loop/run-1/tasks.jsonl
+[0m
+---
+
+## Прогон завершён. Итоги
+
+**16 задач обработано, 16 выполнено, 0 провалено.**
+
+| Задача | Тип | Что сделано | Прогонов ворот |
+|--------|-----|-------------|----------------|
+| T-01 | bug | truncate режет по рунам | 1 |
+| T-02 | bug | валидация limit снизу (≤0 → дефолт) | 1 |
+| T-03 | refactor | суффиксы Canon в пакетный var | 1 |
+| T-04 | test | тест Chat с отменённым до вызова контекстом | 1 |
+| T-05 | feature | middleware логирования HTTP-запросов | 1 |
+| T-06 | bug | handleFeedback проверяет recipe_id на корпус | 1 |
+| T-07 | docs | документация POST /api/v1/feedback в README | 1 |
+| T-08 | refactor | магические числа LLM-клиента → константы | 1 |
+| T-09 | test | прямой table-driven тест normalize | 1 |
+| T-10 | feature | sanitize products (фильтрация инструкций) | 1 |
+| T-11 | test | тест Canon на пустом и пробельном вводе | 1 |
+| T-12 | refactor | тестовые хелперы вынесены в helpers_test.go | 1 |
+| T-13 | feature | таймауты HTTP-сервера через env | 1 |
+| T-14 | docs | architecture.md — нереализованное помечено | 1 |
+| T-15 | refactor | магические числа HTTP-слоя → константы | 1 |
+| T-16 | bug | фикс безымянных ингредиентов (corpus + match) | 1 |
+
+Все ворота прошли с первого раза. Ни одной задачи не потребовалось повторять.
