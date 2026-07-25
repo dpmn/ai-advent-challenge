@@ -1,0 +1,16 @@
+{"sha":"428e94c","id":"T-01","subject":"T-01: truncate обрезает по рунам вместо байтов, добавлены регрессионные тесты на кириллицу","gates":"ok"}
+{"sha":"5b7f462","id":"T-02","subject":"T-02: limit ≤ 0 в suggest даёт дефолт, добавлены тесты на -5, 0 и отсутствие поля","gates":"ok"}
+{"sha":"87cf68d","id":"T-03","subject":"T-03: вынесен срез суффиксов Canon в пакетный var canonSuffixes","gates":"ok"}
+{"sha":"6088fa9","id":"T-04","subject":"T-04: тест Chat с контекстом, отменённым до вызова — запрос не уходит","gates":"ok"}
+{"sha":"d77e350","id":"T-05","subject":"T-05: middleware логирования HTTP-запросов — метод, путь, статус, длительность","gates":"ok"}
+{"sha":"f3f8175","id":"T-06","subject":"T-06: handleFeedback проверяет recipe_id в корпусе, несуществующий → 400","gates":"ok"}
+{"sha":"04ba8a8","id":"T-07","subject":"T-07: добавлен POST /api/v1/feedback в README, FEEDBACK_PATH в таблицу env","gates":"ok"}
+{"sha":"6bbbde7","id":"T-08","subject":"T-08: магические числа в LLM-клиенте заменены на именованные константы","gates":"ok"}
+{"sha":"4e04237","id":"T-09","subject":"T-09: прямой table-driven тест на normalize — 12 кейсов","gates":"ok"}
+{"sha":"28c9e22","id":"T-10","subject":"T-10: sanitizeProducts отсекает инструкции в поле продуктов (>30 рун или >4 слов)","gates":"ok"}
+{"sha":"5731a80","id":"T-11","subject":"T-11: тест Canon на пустой и пробельный ввод","gates":"ok"}
+{"sha":"0fd7f89","id":"T-12","subject":"T-12: тестовые хелперы вынесены в api_helpers_test.go, дубли удалены","gates":"ok"}
+{"sha":"0d72013","id":"T-13","subject":"T-13: ReadTimeout/WriteTimeout/IdleTimeout из конфига, дефолты 10s/90s/120s","gates":"ok"}
+{"sha":"aa004e8","id":"T-14","subject":"T-14: architecture.md — помечены нереализованные части, добавлен feedback, синхронизация с кодом","gates":"ok"}
+{"sha":"8d58b88","id":"T-15","subject":"T-15: магические числа в HTTP-слое заменены на именованные константы","gates":"ok"}
+{"sha":"4bcf0f8","id":"T-16","subject":"T-16: безымянные ингредиенты отсекаются — в canon, в known и в score","gates":"ok"}
