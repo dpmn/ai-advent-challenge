@@ -1,0 +1,22 @@
+{
+  "model": "/home/ubuntu/qwen3-14b",
+  "picks": 50,
+  "batch_size": 8,
+  "max_new_tokens": 1024,
+  "temperature": 0.8,
+  "samples_per_item": 2,
+  "calls": {
+    "base": 50,
+    "samples": 92,
+    "selfcheck": 13,
+    "total": 155
+  },
+  "gpu_seconds": {
+    "base": 65.2,
+    "samples": 114.5,
+    "selfcheck": 8.2,
+    "total": 187.9
+  },
+  "rub_per_hour": 86.74,
+  "rub_total": 4.53
+}

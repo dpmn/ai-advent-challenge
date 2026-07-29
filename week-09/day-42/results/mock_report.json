@@ -1,0 +1,744 @@
+{
+  "modes": {
+    "A": {
+      "mode": "A",
+      "total": 10,
+      "accepted": 10,
+      "unsure": 0,
+      "rejected": 0,
+      "accepted_correct": 2,
+      "false_accept": 8,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 0,
+      "latency_s": 478.59,
+      "by_stage": {
+        "none": 10
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 7,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 2,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {},
+      "fixed_by_vote": 0,
+      "accept_rate": 1.0,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.0,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.2,
+      "false_accept_rate": 0.8,
+      "false_reject_rate": 0.0,
+      "rub": 11.531360166666666,
+      "rub_per_accepted": 1.1531360166666667,
+      "latency_per_item": 47.858999999999995
+    },
+    "B": {
+      "mode": "B",
+      "total": 10,
+      "accepted": 5,
+      "unsure": 0,
+      "rejected": 5,
+      "accepted_correct": 2,
+      "false_accept": 3,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 0,
+      "latency_s": 478.59,
+      "by_stage": {
+        "constraint": 10
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 3,
+          "accepted_correct": 1,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 2,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.5,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.5,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.4,
+      "false_accept_rate": 0.3,
+      "false_reject_rate": 0.0,
+      "rub": 11.531360166666666,
+      "rub_per_accepted": 2.3062720333333333,
+      "latency_per_item": 47.858999999999995
+    },
+    "C": {
+      "mode": "C",
+      "total": 10,
+      "accepted": 5,
+      "unsure": 0,
+      "rejected": 5,
+      "accepted_correct": 2,
+      "false_accept": 3,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 0,
+      "latency_s": 478.59,
+      "by_stage": {
+        "constraint": 5,
+        "scoring": 5
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 3,
+          "accepted_correct": 1,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 2,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.5,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.5,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.4,
+      "false_accept_rate": 0.3,
+      "false_reject_rate": 0.0,
+      "rub": 11.531360166666666,
+      "rub_per_accepted": 2.3062720333333333,
+      "latency_per_item": 47.858999999999995,
+      "threshold": 0.0
+    }
+  },
+  "curve": [
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 5,
+      "unsure": 0,
+      "rejected": 5,
+      "accepted_correct": 2,
+      "false_accept": 3,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 0,
+      "latency_s": 478.59,
+      "by_stage": {
+        "constraint": 5,
+        "scoring": 5
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 3,
+          "accepted_correct": 1,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 2,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.5,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.5,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.4,
+      "false_accept_rate": 0.3,
+      "false_reject_rate": 0.0,
+      "rub": 11.531360166666666,
+      "rub_per_accepted": 2.3062720333333333,
+      "latency_per_item": 47.858999999999995,
+      "threshold": 0.0
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 5,
+      "unsure": 0,
+      "rejected": 5,
+      "accepted_correct": 2,
+      "false_accept": 3,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 0,
+      "latency_s": 478.59,
+      "by_stage": {
+        "constraint": 5,
+        "scoring": 5
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 3,
+          "accepted_correct": 1,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 2,
+          "accepted_correct": 1,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.5,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.5,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.4,
+      "false_accept_rate": 0.3,
+      "false_reject_rate": 0.0,
+      "rub": 11.531360166666666,
+      "rub_per_accepted": 2.3062720333333333,
+      "latency_per_item": 47.858999999999995,
+      "threshold": 0.5
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.7
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.8
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.9
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.95
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.98
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.99
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 0.995
+    },
+    {
+      "mode": "C",
+      "total": 10,
+      "accepted": 1,
+      "unsure": 3,
+      "rejected": 6,
+      "accepted_correct": 0,
+      "false_accept": 1,
+      "false_reject": 0,
+      "overall_correct": 2,
+      "extra_calls": 14,
+      "latency_s": 642.5899999999999,
+      "by_stage": {
+        "constraint": 5,
+        "selfcheck": 4,
+        "redundancy": 1
+      },
+      "by_level": {
+        "шумные": {
+          "n": 7,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 5,
+          "unsure": 2
+        },
+        "пограничные": {
+          "n": 2,
+          "accepted": 1,
+          "accepted_correct": 0,
+          "rejected": 0,
+          "unsure": 1
+        },
+        "корректные": {
+          "n": 1,
+          "accepted": 0,
+          "accepted_correct": 0,
+          "rejected": 1,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "ответ не разобран как JSON": 4,
+        "разошлись поля": 1,
+        "form вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.1,
+      "unsure_rate": 0.3,
+      "reject_rate": 0.6,
+      "accuracy_overall": 0.2,
+      "accuracy_accepted": 0.0,
+      "false_accept_rate": 0.1,
+      "false_reject_rate": 0.0,
+      "rub": 15.482849055555553,
+      "rub_per_accepted": 15.482849055555553,
+      "latency_per_item": 64.25899999999999,
+      "threshold": 1.01
+    }
+  ],
+  "meta": {}
+}
