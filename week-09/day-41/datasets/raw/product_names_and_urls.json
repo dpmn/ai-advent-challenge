@@ -1,0 +1,803 @@
+﻿{
+"product_names": [
+	{
+		"name" : "Салфетки для стирки против окрашивание белья 5 пачек",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558652108\/detail.aspx?root=571673656"
+	},
+	{
+		"name" : "Мусс сильной фиксации для волос 350 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558685682\/detail.aspx?root=571711266"
+	},
+	{
+		"name" : "Средства для снятия макияжа",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558693757\/detail.aspx"
+	},
+	{
+		"name" : "Спрей для волос многофункциональный",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558698091\/detail.aspx?root=571725778"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558712727\/detail.aspx?root=571739936"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558720359\/detail.aspx?root=867555127"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558723199\/detail.aspx?root=945411891"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558731881\/detail.aspx?root=571762422"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558734216\/detail.aspx"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558745639\/detail.aspx"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558748815\/detail.aspx?root=571778960"
+	},
+	{
+		"name" : "Для снятия макияжа средство стик ремувер",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558770337\/detail.aspx"
+	},
+	{
+		"name" : "BL Бальзам для поврежденных и секущихся волос,300 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558827833\/detail.aspx"
+	},
+	{
+		"name" : "Парфюмированный спрей-мист для тела и волос",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558868984\/detail.aspx"
+	},
+	{
+		"name" : "Салфетки для стирки от окрашивания, ловушка цвета",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558879103\/detail.aspx?root=571921802"
+	},
+	{
+		"name" : "Набор для губ 2в1 бальзам и блеск",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558886838\/detail.aspx?root=571937730"
+	},
+	{
+		"name" : "Бальзам для губ увлажняющий питательный прозрачный",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558887595\/detail.aspx?root=571938290"
+	},
+	{
+		"name" : "Маска для волос",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558887607\/detail.aspx?root=571938314"
+	},
+	{
+		"name" : "Маска для волос с кератином увлажняющая восстанавливающая",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558888340\/detail.aspx?root=571938693"
+	},
+	{
+		"name" : "Тоник для лица увлажняющий",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558910163\/detail.aspx?root=571964179"
+	},
+	{
+		"name" : "Крем для лица",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558958524\/detail.aspx"
+	},
+	{
+		"name" : "Средство от грибка ногтей , устраняет потемнение и зуд 1шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558969640\/detail.aspx?root=572041700"
+	},
+	{
+		"name" : "Китайская мазь от сухости, трещин и ран и покраснений кожи",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558969776\/detail.aspx?root=572041825"
+	},
+	{
+		"name" : "Крем от зуда и запаха для интимной гигиены",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558969806\/detail.aspx"
+	},
+	{
+		"name" : "Сыворотка крем вокруг глаз от морщин увлажняющая",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558969884\/detail.aspx?root=572041926"
+	},
+	{
+		"name" : "Восковый стик для укладки волос 2 шт.",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558988075\/detail.aspx?root=569218008"
+	},
+	{
+		"name" : "Подарочный набор Объем для волос и сияние для кожи",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/558991559\/detail.aspx"
+	},
+	{
+		"name" : "Водонепроницаемый невидимый пластырь от прыщей",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559027234\/detail.aspx?root=572108124"
+	},
+	{
+		"name" : "Шампунь Dark Oil для всех типов волос 50 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559044487\/detail.aspx?root=571200903"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559044652\/detail.aspx?root=572127113"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559046862\/detail.aspx"
+	},
+	{
+		"name" : "Спрей для волос детский 5в1 для девочек Царевны 150мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559047340\/detail.aspx?root=572129106"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559054230\/detail.aspx?root=572135080"
+	},
+	{
+		"name" : "Мазь от витилиго, средство от белых пятен на коже",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559054231\/detail.aspx?root=572135080"
+	},
+	{
+		"name" : "Шампунь против перхоти для жирной кожи головы, 420 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559055543\/detail.aspx?root=572136313"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559056398\/detail.aspx"
+	},
+	{
+		"name" : "Гель для укладки вьющихся волос LockOn, 300 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559059375\/detail.aspx"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559059757\/detail.aspx"
+	},
+	{
+		"name" : "Крем от витилиго, средство от белых пятен на лице и теле",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559063156\/detail.aspx?root=572142577"
+	},
+	{
+		"name" : "Гель-воск для укладки волос Цитрусовый микс 75мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559065495\/detail.aspx?root=792431203"
+	},
+	{
+		"name" : "сыворотка для волос",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559069619\/detail.aspx?root=572148510"
+	},
+	{
+		"name" : "Мазь от витилиго, средство от белых пятен на коже",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559070205\/detail.aspx?root=572148936"
+	},
+	{
+		"name" : "Мазь от витилиго, средство от белых пятен на коже",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559070747\/detail.aspx?root=572149397"
+	},
+	{
+		"name" : "Подарочный набор Эликсир ухода и сияния",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559070896\/detail.aspx?root=572040325"
+	},
+	{
+		"name" : "Спрей для депиляции и удаления волос Silky Beauty Spray",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559079961\/detail.aspx?root=572156978"
+	},
+	{
+		"name" : "Шампунь \"Детокс\" для всех типов волос 1000 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559088393\/detail.aspx?root=590300016"
+	},
+	{
+		"name" : "Mask with Vibrachrom 3,51 краска для волос, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559091194\/detail.aspx?root=559989731"
+	},
+	{
+		"name" : "Шампунь Укрепление от корней до кончиков , 1000мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559095781\/detail.aspx"
+	},
+	{
+		"name" : "Шампунь для сухих волос, склонных к жирности волос, 580мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559095821\/detail.aspx"
+	},
+	{
+		"name" : "Стойкая крем-краска для волос профессиональная 9.21, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559123785\/detail.aspx"
+	},
+	{
+		"name" : "Mask with Vibrachrom 4,35 краска для волос, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559128821\/detail.aspx?root=559989731"
+	},
+	{
+		"name" : "Жидкость для волос Объем 3, 150 мл 3 шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559152840\/detail.aspx?root=123985349"
+	},
+	{
+		"name" : "Стойкая краска-мусс для волос 2-00 Черный",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559162335\/detail.aspx"
+	},
+	{
+		"name" : "Стойкая краска-мусс 3-00 для волос Черный каштан",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559162346\/detail.aspx"
+	},
+	{
+		"name" : "Стойкая крем краска для волос профессиональная 9.22, 100мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559170674\/detail.aspx"
+	},
+	{
+		"name" : "Шампунь детский витаминный 200 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559184750\/detail.aspx?root=572272561"
+	},
+	{
+		"name" : "Масло от растяжек Восстановление & питание, 200 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559200007\/detail.aspx?root=572289388"
+	},
+	{
+		"name" : "Гель-эксфолиант для лица Молодость & красота, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559200093\/detail.aspx"
+	},
+	{
+		"name" : "Дневной крем для лица Молодость & красота spf15, 50 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559200339\/detail.aspx"
+	},
+	{
+		"name" : "Бальзам для тела упругость & релаксация, 250 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559201803\/detail.aspx"
+	},
+	{
+		"name" : "Краска для волос временная безаммиачная",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559202897\/detail.aspx?root=572292146"
+	},
+	{
+		"name" : "A New Color 6,4 краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559203544\/detail.aspx?root=572294107"
+	},
+	{
+		"name" : "A New Color 9,0 краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559203549\/detail.aspx?root=572294107"
+	},
+	{
+		"name" : "A New Color Orange краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559203557\/detail.aspx?root=572294107"
+	},
+	{
+		"name" : "A New Color Violet краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559203559\/detail.aspx?root=572294107"
+	},
+	{
+		"name" : "Гель-краска для волос Quality Color жемчужный блондин",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559206966\/detail.aspx?root=572281125"
+	},
+	{
+		"name" : "Спрей - краска для волос детская временная набор",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559215871\/detail.aspx?root=624186243"
+	},
+	{
+		"name" : "Спрей краска для волос временная детская набор",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559216045\/detail.aspx?root=624147417"
+	},
+	{
+		"name" : "Очищающая антивозрастная сыворотка для кожи головы Scalp Clarifying Cleansing Serum, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559237714\/detail.aspx?root=572351323"
+	},
+	{
+		"name" : "Маска тканевая для лица Питание для упругости",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559239253\/detail.aspx?root=572279413"
+	},
+	{
+		"name" : "Краска для волос стойкая 7.00 средне-русый для седых 100 мл + оксид 6% 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559242933\/detail.aspx"
+	},
+	{
+		"name" : "Краска для волос 7.10 средне-русый пепельный + оксид 6%",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559249495\/detail.aspx"
+	},
+	{
+		"name" : "Маска для лица тканевая антивозрастная с драгонфрутом, 20 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559259683\/detail.aspx"
+	},
+	{
+		"name" : "Расческа БИО лепестковая, коричневая",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559261406\/detail.aspx"
+	},
+	{
+		"name" : "Repair Shampoo Шампунь, 70 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559266702\/detail.aspx?root=572385627"
+	},
+	{
+		"name" : "Набор косметики уходовой подарочный бьюти бокс",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559289238\/detail.aspx"
+	},
+	{
+		"name" : "Травяная маска для волос с аминокислотами",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559297102\/detail.aspx?root=572405327"
+	},
+	{
+		"name" : "ECL Тоник для лица Серия Organic Cannabis 250 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323577\/detail.aspx?root=572424258"
+	},
+	{
+		"name" : "Шампунь-скраб для волос",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323692\/detail.aspx"
+	},
+	{
+		"name" : "Маска-патчи тканевые",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323770\/detail.aspx"
+	},
+	{
+		"name" : "Маска-патчи тканевые",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323780\/detail.aspx"
+	},
+	{
+		"name" : "Масло для душа питательное",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323866\/detail.aspx"
+	},
+	{
+		"name" : "Экспресс маска для лица увлажняющая",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559323897\/detail.aspx"
+	},
+	{
+		"name" : "View 6,62 краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559343147\/detail.aspx?root=572439035"
+	},
+	{
+		"name" : "Органический бальзам-маска для губ с кофе",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559346370\/detail.aspx?root=572440893"
+	},
+	{
+		"name" : "Шампунь для волос BOND PRO, 250 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559361918\/detail.aspx?root=572451616"
+	},
+	{
+		"name" : "View Bronze краска для волос, 60 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559371534\/detail.aspx?root=572458289"
+	},
+	{
+		"name" : "Укрепляющий шампунь для тонких волос DENSIFYING 250 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559378360\/detail.aspx?root=572464569"
+	},
+	{
+		"name" : "Бальзам-ополаскиватель Яркий цвет 500 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559379146\/detail.aspx?root=572464203"
+	},
+	{
+		"name" : "Укрепляющий шампунь для ломких женских волос с маслами",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559384311\/detail.aspx?root=572468059"
+	},
+	{
+		"name" : "Средство для снятия макияжа Атоми",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559400455\/detail.aspx?root=572481136"
+	},
+	{
+		"name" : "Гель для волос сильной фиксации-Styling Gel Strong 150 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559442438\/detail.aspx"
+	},
+	{
+		"name" : "Крем-краска Color Touch 66\/07",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559467071\/detail.aspx"
+	},
+	{
+		"name" : "Краска Koleston Perfect 9\/81",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559467094\/detail.aspx"
+	},
+	{
+		"name" : "Крем-краска Illumina Color 7\/",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559467098\/detail.aspx"
+	},
+	{
+		"name" : "Краска Koleston Perfect 7\/71",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559467160\/detail.aspx"
+	},
+	{
+		"name" : "Краска Koleston Perfect 10\/16",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559467497\/detail.aspx"
+	},
+	{
+		"name" : "Стойкая крем краска для волос профессиональная 6.11, 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559478628\/detail.aspx?root=568354412"
+	},
+	{
+		"name" : "Шампунь для волос Dual Just Smooth 1000 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559483574\/detail.aspx?root=572544792"
+	},
+	{
+		"name" : "Себонормализующий шампунь для жирной кожи головы и ослабленных волос, 1000 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559485738\/detail.aspx"
+	},
+	{
+		"name" : "Мыло хозяйственное с глицерином 72%, в плёнке, 140 г",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559498542\/detail.aspx"
+	},
+	{
+		"name" : "Блок для унитаза Power 5 Duo экзотический букет, 2 шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559498663\/detail.aspx?root=572555227"
+	},
+	{
+		"name" : "Спрей Ультра гигиена универсальный 500мл 2 штуки",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559498788\/detail.aspx?root=572555295"
+	},
+	{
+		"name" : "Чистящий крем Актив Лимон, 440 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559498799\/detail.aspx"
+	},
+	{
+		"name" : "Набор масло и крем микозофаг от грибка ногтей на ногах",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559536033\/detail.aspx?root=572578565"
+	},
+	{
+		"name" : "Набор масло и крем микозофаг от грибка ногтей на ногах",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559536981\/detail.aspx?root=572579286"
+	},
+	{
+		"name" : "Оксигент 12% COUTURE 1000 мл.",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559540085\/detail.aspx?root=572580857"
+	},
+	{
+		"name" : "Оттеночный бальзам-маска для волос тон 23 темно-русый",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559542965\/detail.aspx"
+	},
+	{
+		"name" : "Оттеночный бальзам-маска для волос тон 28 шоколадно-коричневый",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559542971\/detail.aspx"
+	},
+	{
+		"name" : "Набор масло и крем микозофаг от грибка ногтей на ногах",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559551499\/detail.aspx?root=572588442"
+	},
+	{
+		"name" : "Отбеливающий крем против пигментации и веснушек",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559561251\/detail.aspx?root=572596220"
+	},
+	{
+		"name" : "Спрей-мусс для придания объема волосам",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559567596\/detail.aspx"
+	},
+	{
+		"name" : "BOUTICLE COLOR Бальзам-маска для окрашенных волос , 1000 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559569418\/detail.aspx"
+	},
+	{
+		"name" : "Полуперманентный краситель GLAZE оттенок океан",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559573115\/detail.aspx"
+	},
+	{
+		"name" : "Маска для волос укрепляющая с розмарином и мятой ROSE BERRY Rosemary Mint, 473 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559580387\/detail.aspx?root=458574656"
+	},
+	{
+		"name" : "лечебная мазь от витилиго для чувствительной кожи",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559583951\/detail.aspx?root=572613050"
+	},
+	{
+		"name" : "Расческа лепестковая малая, зеленая",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559594428\/detail.aspx"
+	},
+	{
+		"name" : "Мыло от перхоти: эффективное средство против шелушения",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559604666\/detail.aspx?root=572185318"
+	},
+	{
+		"name" : "Гель для душа с янтарной кислотой Амберпрофи AK3.33",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559647023\/detail.aspx"
+	},
+	{
+		"name" : "Gloss Absolu Шампунь для блеска волос 1000мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559648302\/detail.aspx?root=161724351"
+	},
+	{
+		"name" : "Karseell Collagen Маска для волос, 500 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559657130\/detail.aspx?root=572664749"
+	},
+	{
+		"name" : "Краска для волос Kapous 10.1 платиновый блондин пепельный 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559672061\/detail.aspx"
+	},
+	{
+		"name" : "Профессиональный шампунь против перхоти 200 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559684601\/detail.aspx?root=572701561"
+	},
+	{
+		"name" : "Краска для волос Kapous 10.012 платиновый блондин прозрачный табачный",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559698528\/detail.aspx"
+	},
+	{
+		"name" : "Набор Шампунь+Бальзам для волос Репейный 2 шт*500 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559700300\/detail.aspx"
+	},
+	{
+		"name" : "Порошок для осветления волос Supra 30 г, 2 шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559700419\/detail.aspx"
+	},
+	{
+		"name" : "Маска Pro-Tox увлажняющая для волос 1 л",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559700694\/detail.aspx"
+	},
+	{
+		"name" : "Волшебный спрей для волос с блестками несмываемый 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559700892\/detail.aspx?root=572717059"
+	},
+	{
+		"name" : "Набор Tomy Cherry шампунь 250 мл и гель д\/душа 250 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559701047\/detail.aspx"
+	},
+	{
+		"name" : "Бальзам Максимальный объем Oblepikha Siberica Professional",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559705052\/detail.aspx"
+	},
+	{
+		"name" : "Бальзам для волос Сьёсс Repair, 450 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559705063\/detail.aspx?root=572720335"
+	},
+	{
+		"name" : "Оттеночный шампунь для волос против желтизны, 300 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559726989\/detail.aspx?root=572744297"
+	},
+	{
+		"name" : "Маска для волос моментального увлажнения Instant",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559744657\/detail.aspx?root=572657144"
+	},
+	{
+		"name" : "Арабские духи Yara 100 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559763358\/detail.aspx"
+	},
+	{
+		"name" : "Сухой шампунь для объема 75 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559764205\/detail.aspx?root=572784336"
+	},
+	{
+		"name" : "Набор Acne Control 4в1: крем дневной, ночной, гель, лосьон",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559791186\/detail.aspx?root=354923619"
+	},
+	{
+		"name" : "Бальзам универсальный для укладки Prof Form THE HERO 75 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559833393\/detail.aspx?root=572816810"
+	},
+	{
+		"name" : "100 мл масло авокадо органическое масло ши",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559839521\/detail.aspx?root=572877848"
+	},
+	{
+		"name" : "Шампунь для волос NUAR кератиновое восстановление 1л",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559842372\/detail.aspx"
+	},
+	{
+		"name" : "Гель-шампунь аква марин, 700 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559846492\/detail.aspx?root=572886494"
+	},
+	{
+		"name" : "Крем для удаления волос в интимной зоне, ногах, руках для женщин",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559871475\/detail.aspx?root=572918087"
+	},
+	{
+		"name" : "Маска для волос увлажняющая питательная с черным рисом",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559871507\/detail.aspx?root=556466237"
+	},
+	{
+		"name" : "Расческа для мелирования профессиональная набор 3 шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559874878\/detail.aspx?root=242414306"
+	},
+	{
+		"name" : "Revlonissimo Color Sublime Color & Care 66.66",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559886755\/detail.aspx?root=572941929"
+	},
+	{
+		"name" : "Мазь от грибка между пальцев ног и неприятного запаха",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559896845\/detail.aspx?root=572954664"
+	},
+	{
+		"name" : "Мицеллярная вода 2 в 1 с микро водорослями, 50 мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559897888\/detail.aspx?root=572955882"
+	},
+	{
+		"name" : "Крем от акне и прыщей антибактериальный 1 шт.",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559901328\/detail.aspx?root=572960255"
+	},
+	{
+		"name" : "крем от прыщей на лице,акне,угрей",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559901675\/detail.aspx?root=572960843"
+	},
+	{
+		"name" : "Расческа для мелирования профессиональная набор 3 шт",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559919210\/detail.aspx?root=572939509"
+	},
+	{
+		"name" : "Крем-гель корректирующий для проблемной кожи дуо 40мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559938662\/detail.aspx"
+	},
+	{
+		"name" : "Крем rosacellin успокаивающий дневной spf 30 50мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559938957\/detail.aspx"
+	},
+	{
+		"name" : "Фитол-1 крем для области молочных желез косметический 75,0",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939122\/detail.aspx"
+	},
+	{
+		"name" : "Крем с коллагеном для рук 75мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939133\/detail.aspx"
+	},
+	{
+		"name" : "Концентрат-активатор пробуждение спящих луковиц 100мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939325\/detail.aspx"
+	},
+	{
+		"name" : "Шампунь 75мл+маска 75мл+сыворотка 50мл от выпадения волос",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939357\/detail.aspx"
+	},
+	{
+		"name" : "Масло косметическое календулы 30мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939592\/detail.aspx?root=573002441"
+	},
+	{
+		"name" : "Масло касторовое косметическое 100мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939648\/detail.aspx?root=573002501"
+	},
+	{
+		"name" : "Масло косметическое зверобой 10мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559939652\/detail.aspx"
+	},
+	{
+		"name" : "Лосьон-спрей для роста волос 150мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559942011\/detail.aspx?root=573005119"
+	},
+	{
+		"name" : "Спрей-кондиционер для волос детский 140мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559942035\/detail.aspx?root=573005144"
+	},
+	{
+		"name" : "Сыворотка-концентрат активатор роста волос 30мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559943980\/detail.aspx"
+	},
+	{
+		"name" : "Сыворотка для лица с витамином C 5% 25мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559943981\/detail.aspx?root=573014495"
+	},
+	{
+		"name" : "Сыворотка-реаниматор восстанавливающая для лица 25мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559943985\/detail.aspx"
+	},
+	{
+		"name" : "Сыворотка увлажняющая для сухой кожи вербена+эвкалипт 30мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559943989\/detail.aspx?root=573014503"
+	},
+	{
+		"name" : "Шампунь с кератином и никотиновой кислотой 1% 150мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559949540\/detail.aspx?root=573018674"
+	},
+	{
+		"name" : "Шампунь с витамином F 250мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559949558\/detail.aspx?root=573018692"
+	},
+	{
+		"name" : "Шампунь filler керапластика гиалурон+коллаген 250мл",
+		"url" : "https:\/\/www.wildberries.ru\/catalog\/559949592\/detail.aspx"
+	},
+	{
+		"name" : "Набор для косметических масок Защита Для проблемной кожи",
+		"url" : "https:\/\/www.ozon.ru\/products\/5210705061\/?at=LZtlWVzp9hYQm3V9FJRpp3pUqPV85lhpL2zGQFvM8Mlx"
+	},
+	{
+		"name" : "Чистящее средство гель Доместос лимонная свежесть против бактерий и запахов универсальный 500 мл, набор: 7 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119704355\/?at=99trqmQRghPy85o0fpYZ6BmC5q8OPlIpE879XIJKoQ3x"
+	},
+	{
+		"name" : "Чистящее средство Доместос свежесть атлантики универсальное 500 мл, набор: 8 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119704580\/?at=ywtA5w9P3In85O2GHE2NNpMiNo3EQ3Imy1ZDQCzA14Qg"
+	},
+	{
+		"name" : "Крем-спрей TRESemme Термозащитный 16 в 1 для всех типов волос 190 мл",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119704931\/?at=w0tgjzEmJh3DMWxNHK5wJGYHvR7y4lFkX5MyzFoY0nop"
+	},
+	{
+		"name" : "Чистящее средство Доместос свежесть атлантики универсальное 500 мл, набор: 7 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119705300\/?at=ywtA51pwquP6W7LKs16Gon3cZ03DE9FzvqknkHx6oPyZ"
+	},
+	{
+		"name" : "Чистящее средство гель Доместос лимонная свежесть против бактерий и запахов универсальный 500 мл, набор: 8 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119706032\/?at=A6tGAQgkQcP7xNO3FMKARn2hwgoV0KfwxRLDYFnqRY8Y"
+	},
+	{
+		"name" : "Чистящее средство Доместос свежесть атлантики универсальное 500 мл, набор: 9 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119707051\/?at=r2t4lqWYPfxJARBXfMvlnYMhmrYQ2Xto82J63HR3lGg1"
+	},
+	{
+		"name" : "Набор Kevin.Murphy HIGH EXPECTATIONS, шампунь + кондиционер + пудра для объема",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119710465\/?at=28t0zpRWPiZr3zZ8hLn832Atk1z57s32B8ZNcWL3LWR"
+	},
+	{
+		"name" : "Гель Domestos Зеленая свежесть с активными пробиотиками универсальный 750 мл, набор: 2 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119713185\/?at=VvtzoJY6NTrKr46vTOAVzEMswV6nmJhRL2LD6hAkJZDQ"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 2 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119713251\/?at=Y7tjl3MkJtWRgoPqiGX3ygQi6q2nZjfAVrvvMSvNMnvm"
+	},
+	{
+		"name" : "Спрей Cif Professional Чистящее средство для стекол и блестящих поверхностей 500 мл, набор: 2 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119713683\/?at=Z8tXgPvwYH6qVZnvIMkgqQ5Uo3O7v6TGERYjYtPlo9Y8"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 3 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119714409\/?at=w0tg3j2mJc459r6gC7MpmLsxz1L5xtW96gngSYwRX4G"
+	},
+	{
+		"name" : "Жидкость Cif Professional без запаха 500 мл, набор: 2 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119715017\/?at=LZtl9Nqg2hXADV01SGQErBMUJ5O4DATPolRMAT6PmwzN"
+	},
+	{
+		"name" : "Гель Domestos Зеленая свежесть с активными пробиотиками универсальный 750 мл, набор: 3 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119715128\/?at=lRt6Nrj80FwqBRkzSYXxw8ghOA7jDgTolyyPmTLBOxzx"
+	},
+	{
+		"name" : "Пятновыводитель Cif Professional 500 мл, набор: 2 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119715444\/?at=99trqkm3yCq21jvyfwMlxKzTxWwmqDs9JqvjwUQ8lnwz"
+	},
+	{
+		"name" : "Спрей Cif Professional Чистящее средство для стекол и блестящих поверхностей 500 мл, набор: 3 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119715448\/?at=pZtpoQkJZuW3KpgRTLxv34GUNXxvPrtD1WmQvtprv0Lo"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 4 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119716489\/?at=NOtwmWz8Dcv2x7VBIW0vlZWiGG8JEJt4Nz2mpirYEqBR"
+	},
+	{
+		"name" : "Гель Domestos Зеленая свежесть с активными пробиотиками универсальный 750 мл, набор: 4 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119717271\/?at=QktJjQ80QcNOMlvS7L44qjhqnz4l1tDkLZj3FrNkNjP"
+	},
+	{
+		"name" : "Пятновыводитель Cif Professional 500 мл, набор: 3 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119717434\/?at=NOtw3VLQpcX7QzKBILJwxVmTj2lw4xIODMQyECB2yJrG"
+	},
+	{
+		"name" : "Жидкость Cif Professional без запаха 500 мл, набор: 4 штуки",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119717659\/?at=08tYB2m9McPyoMB6UpzAAkwSqXL9wPhQNrKMmi1E0VWq"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 5 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119718989\/?at=ywtA51gx1FxQWQPmcNVj7mJT52L3WoHY3NWOzcNG93O8"
+	},
+	{
+		"name" : "Гель Domestos Зеленая свежесть с активными пробиотиками универсальный 750 мл, набор: 5 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119719242\/?at=z6tOo17ZQcp8zkXWF5Enpn1IjmBRNqI8NvB1rHzq0Zlq"
+	},
+	{
+		"name" : "Спрей Cif Professional для сантехники для удаления налета и ржавчины 500 мл",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119719641\/?at=36tWK73PvIWDGG7OCvk8qwRCQOvMP3UQEWj3pCZn9ny3"
+	},
+	{
+		"name" : "Гель Domestos Зеленая свежесть с активными пробиотиками универсальный 750 мл, набор: 6 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119720353\/?at=lRt6Nrj80Fk3mpRKCmBVz27CO6yAy1cYJoqq1fW6wVrA"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 6 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119721020\/?at=r2t4lqWYPfQR091NTlYj9w8fwpkLnMfzQWqnOUgAJKyk"
+	},
+	{
+		"name" : "Пятновыводитель Cif Professional 500 мл, набор: 5 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119721129\/?at=z6tOo17ZQcxw2ZgMTokm79Zig7X4qpfyA1XQZTEQ607r"
+	},
+	{
+		"name" : "Жидкость Cif Professional без запаха 500 мл, набор: 6 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119721585\/?at=mqtkNx93Bhrv0r3ESnGr5wPhDRnO9KHP834vwHLEmlRX"
+	},
+	{
+		"name" : "Пятновыводитель Cif Professional 500 мл, набор: 6 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119722534\/?at=jYtZQr2WrcW1GlmNIAoEDX0Sw0P4njcMyl1DQSkWJgQW"
+	},
+	{
+		"name" : "Жидкость Cif Professional без запаха 500 мл, набор: 7 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119724138\/?at=EqtkxWL1JhwNk6jqFApLXNZu8gR02vTkQ9mAJsq7QNWV"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 8 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119724338\/?at=OgtEm8JW8cmMkk3NTYPN4ZRt6Az441fGglzLxF6zKvrn"
+	},
+	{
+		"name" : "Пятновыводитель Cif Professional 500 мл, набор: 7 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119724681\/?at=83tBp0n5gFnNQrD2UJpgkrmcZK06X5hpvOxo5HBAO34O"
+	},
+	{
+		"name" : "Жидкость Cif Professional без запаха 500 мл, набор: 8 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119725189\/?at=w0tg3j7BjT4gBRWEIDkzKA4SxwK1NqfX9jzJ6HNRo2MQ"
+	},
+	{
+		"name" : "Крем-спрей Сиф чистящий 500 мл, набор: 9 штук",
+		"url" : "https:\/\/www.ozon.ru\/products\/3119725611\/?at=46tRKVqOMfPzEZ0tAQKnyDS45OkAotKXk8mqiKKX9KO"
+	}
+]}
