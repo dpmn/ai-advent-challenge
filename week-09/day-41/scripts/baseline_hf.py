@@ -37,7 +37,7 @@ def read_jsonl(path: Path) -> list[dict]:
 def main() -> None:
     """Точка входа: грузит модель в 4 битах и прогоняет отобранные примеры."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", default="Qwen/Qwen3-14B")
+    parser.add_argument("--model", default="Qwen/Qwen3-4B")
     parser.add_argument("--picks", type=Path, required=True,
                         help="JSONL с отобранной десяткой (id/name/expected/hard_flags)")
     parser.add_argument("--out", type=Path, default=Path("responses.jsonl"))

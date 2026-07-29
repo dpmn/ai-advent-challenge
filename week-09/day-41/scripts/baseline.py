@@ -32,7 +32,9 @@ DAY_DIR = Path(__file__).resolve().parent.parent
 EVAL_PATH = DAY_DIR / "datasets" / "eval.jsonl"
 OUT_PATH = DAY_DIR / "baseline" / "responses.jsonl"
 
-DEFAULT_MODEL = "Qwen/Qwen3-14B"
+# Цель тюна — Qwen3-4B, выбрана замером 29.07.2026 (см. baseline/model_sweep.md).
+# Qwen3-14B снята там же и остаётся точкой отсчёта «сколько даёт размер».
+DEFAULT_MODEL = "Qwen/Qwen3-4B"
 DEFAULT_BASE_URL = "http://127.0.0.1:8000/v1"
 
 # По одному представителю на класс ловушки — в порядке важности для задачи.
