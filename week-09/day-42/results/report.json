@@ -1,0 +1,777 @@
+{
+  "modes": {
+    "A": {
+      "mode": "A",
+      "total": 50,
+      "accepted": 50,
+      "unsure": 0,
+      "rejected": 0,
+      "accepted_correct": 13,
+      "false_accept": 37,
+      "false_reject": 0,
+      "overall_correct": 13,
+      "extra_calls": 0,
+      "latency_s": 65.19999999999997,
+      "by_stage": {
+        "none": 50
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 22,
+          "accepted_correct": 3,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 15,
+          "accepted_correct": 3,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 13,
+          "accepted_correct": 7,
+          "rejected": 0,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {},
+      "fixed_by_vote": 0,
+      "accept_rate": 1.0,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.0,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.26,
+      "false_accept_rate": 0.74,
+      "false_reject_rate": 0.0,
+      "rub": 1.5709577777777772,
+      "rub_per_accepted": 0.03141915555555554,
+      "latency_per_item": 1.3039999999999994
+    },
+    "B": {
+      "mode": "B",
+      "total": 50,
+      "accepted": 46,
+      "unsure": 0,
+      "rejected": 4,
+      "accepted_correct": 13,
+      "false_accept": 33,
+      "false_reject": 0,
+      "overall_correct": 13,
+      "extra_calls": 0,
+      "latency_s": 65.19999999999997,
+      "by_stage": {
+        "constraint": 50
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 22,
+          "accepted_correct": 3,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 14,
+          "accepted_correct": 3,
+          "rejected": 1,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 10,
+          "accepted_correct": 7,
+          "rejected": 3,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.92,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.08,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.2826086956521739,
+      "false_accept_rate": 0.66,
+      "false_reject_rate": 0.0,
+      "rub": 1.5709577777777772,
+      "rub_per_accepted": 0.03415125603864733,
+      "latency_per_item": 1.3039999999999994
+    },
+    "C": {
+      "mode": "C",
+      "total": 50,
+      "accepted": 35,
+      "unsure": 0,
+      "rejected": 15,
+      "accepted_correct": 11,
+      "false_accept": 24,
+      "false_reject": 2,
+      "overall_correct": 13,
+      "extra_calls": 49,
+      "latency_s": 119.97,
+      "by_stage": {
+        "selfcheck": 11,
+        "scoring": 27,
+        "redundancy": 8,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 8,
+          "accepted_correct": 6,
+          "rejected": 5,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 11,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.7,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.3,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.3142857142857143,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.04,
+      "rub": 2.8906104999999997,
+      "rub_per_accepted": 0.08258887142857142,
+      "latency_per_item": 2.3994,
+      "threshold": 0.9
+    }
+  },
+  "curve": [
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 46,
+      "unsure": 0,
+      "rejected": 4,
+      "accepted_correct": 13,
+      "false_accept": 33,
+      "false_reject": 0,
+      "overall_correct": 13,
+      "extra_calls": 0,
+      "latency_s": 65.19999999999997,
+      "by_stage": {
+        "scoring": 46,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 22,
+          "accepted_correct": 3,
+          "rejected": 0,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 14,
+          "accepted_correct": 3,
+          "rejected": 1,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 10,
+          "accepted_correct": 7,
+          "rejected": 3,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.92,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.08,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.2826086956521739,
+      "false_accept_rate": 0.66,
+      "false_reject_rate": 0.0,
+      "rub": 1.5709577777777772,
+      "rub_per_accepted": 0.03415125603864733,
+      "latency_per_item": 1.3039999999999994,
+      "threshold": 0.0
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 43,
+      "unsure": 0,
+      "rejected": 7,
+      "accepted_correct": 13,
+      "false_accept": 30,
+      "false_reject": 0,
+      "overall_correct": 13,
+      "extra_calls": 9,
+      "latency_s": 74.51999999999997,
+      "by_stage": {
+        "scoring": 43,
+        "selfcheck": 3,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 20,
+          "accepted_correct": 3,
+          "rejected": 2,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 13,
+          "accepted_correct": 3,
+          "rejected": 2,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 10,
+          "accepted_correct": 7,
+          "rejected": 3,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 3,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.86,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.14,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.3023255813953488,
+      "false_accept_rate": 0.6,
+      "false_reject_rate": 0.0,
+      "rub": 1.7955179999999993,
+      "rub_per_accepted": 0.04175623255813952,
+      "latency_per_item": 1.4903999999999993,
+      "threshold": 0.5
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 38,
+      "unsure": 0,
+      "rejected": 12,
+      "accepted_correct": 12,
+      "false_accept": 26,
+      "false_reject": 1,
+      "overall_correct": 13,
+      "extra_calls": 28,
+      "latency_s": 95.26999999999998,
+      "by_stage": {
+        "selfcheck": 8,
+        "scoring": 36,
+        "redundancy": 2,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 18,
+          "accepted_correct": 3,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 9,
+          "accepted_correct": 7,
+          "rejected": 4,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 8,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.76,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.24,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.3157894736842105,
+      "false_accept_rate": 0.52,
+      "false_reject_rate": 0.02,
+      "rub": 2.2954777222222216,
+      "rub_per_accepted": 0.06040730847953215,
+      "latency_per_item": 1.9053999999999995,
+      "threshold": 0.7
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 37,
+      "unsure": 0,
+      "rejected": 13,
+      "accepted_correct": 11,
+      "false_accept": 26,
+      "false_reject": 2,
+      "overall_correct": 13,
+      "extra_calls": 37,
+      "latency_s": 106.16999999999997,
+      "by_stage": {
+        "selfcheck": 9,
+        "scoring": 32,
+        "redundancy": 5,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 18,
+          "accepted_correct": 3,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 8,
+          "accepted_correct": 6,
+          "rejected": 5,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 9,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.74,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.26,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.2972972972972973,
+      "false_accept_rate": 0.52,
+      "false_reject_rate": 0.04,
+      "rub": 2.558107166666666,
+      "rub_per_accepted": 0.06913803153153152,
+      "latency_per_item": 2.1233999999999993,
+      "threshold": 0.8
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 35,
+      "unsure": 0,
+      "rejected": 15,
+      "accepted_correct": 11,
+      "false_accept": 24,
+      "false_reject": 2,
+      "overall_correct": 13,
+      "extra_calls": 49,
+      "latency_s": 119.97,
+      "by_stage": {
+        "selfcheck": 11,
+        "scoring": 27,
+        "redundancy": 8,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 8,
+          "accepted_correct": 6,
+          "rejected": 5,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 11,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.7,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.3,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.3142857142857143,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.04,
+      "rub": 2.8906104999999997,
+      "rub_per_accepted": 0.08258887142857142,
+      "latency_per_item": 2.3994,
+      "threshold": 0.9
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 35,
+      "unsure": 0,
+      "rejected": 15,
+      "accepted_correct": 11,
+      "false_accept": 24,
+      "false_reject": 2,
+      "overall_correct": 13,
+      "extra_calls": 55,
+      "latency_s": 127.27,
+      "by_stage": {
+        "selfcheck": 11,
+        "scoring": 24,
+        "redundancy": 11,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 8,
+          "accepted_correct": 6,
+          "rejected": 5,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 11,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.7,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.3,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.3142857142857143,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.04,
+      "rub": 3.066499944444444,
+      "rub_per_accepted": 0.0876142841269841,
+      "latency_per_item": 2.5454,
+      "threshold": 0.95
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 34,
+      "unsure": 0,
+      "rejected": 16,
+      "accepted_correct": 10,
+      "false_accept": 24,
+      "false_reject": 3,
+      "overall_correct": 13,
+      "extra_calls": 70,
+      "latency_s": 145.25000000000003,
+      "by_stage": {
+        "selfcheck": 12,
+        "scoring": 17,
+        "redundancy": 17,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 7,
+          "accepted_correct": 5,
+          "rejected": 6,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 12,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.68,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.32,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.29411764705882354,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.06,
+      "rub": 3.499718055555556,
+      "rub_per_accepted": 0.10293288398692811,
+      "latency_per_item": 2.9050000000000007,
+      "threshold": 0.98
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 34,
+      "unsure": 0,
+      "rejected": 16,
+      "accepted_correct": 10,
+      "false_accept": 24,
+      "false_reject": 3,
+      "overall_correct": 13,
+      "extra_calls": 74,
+      "latency_s": 150.11000000000004,
+      "by_stage": {
+        "selfcheck": 12,
+        "scoring": 15,
+        "redundancy": 19,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 7,
+          "accepted_correct": 5,
+          "rejected": 6,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 12,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.68,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.32,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.29411764705882354,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.06,
+      "rub": 3.6168170555555563,
+      "rub_per_accepted": 0.10637697222222224,
+      "latency_per_item": 3.0022000000000006,
+      "threshold": 0.99
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 34,
+      "unsure": 0,
+      "rejected": 16,
+      "accepted_correct": 10,
+      "false_accept": 24,
+      "false_reject": 3,
+      "overall_correct": 13,
+      "extra_calls": 80,
+      "latency_s": 157.65000000000003,
+      "by_stage": {
+        "selfcheck": 12,
+        "scoring": 12,
+        "redundancy": 22,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 11,
+          "accepted_correct": 2,
+          "rejected": 4,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 7,
+          "accepted_correct": 5,
+          "rejected": 6,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 12,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.68,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.32,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.29411764705882354,
+      "false_accept_rate": 0.48,
+      "false_reject_rate": 0.06,
+      "rub": 3.798489166666667,
+      "rub_per_accepted": 0.11172026960784315,
+      "latency_per_item": 3.1530000000000005,
+      "threshold": 0.995
+    },
+    {
+      "mode": "C",
+      "total": 50,
+      "accepted": 33,
+      "unsure": 0,
+      "rejected": 17,
+      "accepted_correct": 10,
+      "false_accept": 23,
+      "false_reject": 3,
+      "overall_correct": 13,
+      "extra_calls": 105,
+      "latency_s": 188.06000000000006,
+      "by_stage": {
+        "selfcheck": 13,
+        "redundancy": 33,
+        "constraint": 4
+      },
+      "by_level": {
+        "шумные": {
+          "n": 22,
+          "accepted": 16,
+          "accepted_correct": 3,
+          "rejected": 6,
+          "unsure": 0
+        },
+        "пограничные": {
+          "n": 15,
+          "accepted": 10,
+          "accepted_correct": 2,
+          "rejected": 5,
+          "unsure": 0
+        },
+        "корректные": {
+          "n": 13,
+          "accepted": 7,
+          "accepted_correct": 5,
+          "rejected": 6,
+          "unsure": 0
+        }
+      },
+      "rejected_reasons": {
+        "разошлись поля": 13,
+        "form вне словаря": 3,
+        "purpose вне словаря": 1
+      },
+      "fixed_by_vote": 0,
+      "accept_rate": 0.66,
+      "unsure_rate": 0.0,
+      "reject_rate": 0.34,
+      "accuracy_overall": 0.26,
+      "accuracy_accepted": 0.30303030303030304,
+      "false_accept_rate": 0.46,
+      "false_reject_rate": 0.06,
+      "rub": 4.531201222222223,
+      "rub_per_accepted": 0.13730912794612798,
+      "latency_per_item": 3.761200000000001,
+      "threshold": 1.01
+    }
+  ],
+  "meta": {
+    "model": "/home/ubuntu/qwen3-14b",
+    "picks": 50,
+    "batch_size": 8,
+    "max_new_tokens": 1024,
+    "temperature": 0.8,
+    "samples_per_item": 2,
+    "calls": {
+      "base": 50,
+      "samples": 92,
+      "selfcheck": 13,
+      "total": 155
+    },
+    "gpu_seconds": {
+      "base": 65.2,
+      "samples": 114.5,
+      "selfcheck": 8.2,
+      "total": 187.9
+    },
+    "rub_per_hour": 86.74,
+    "rub_total": 4.53
+  }
+}

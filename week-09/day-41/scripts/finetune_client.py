@@ -155,7 +155,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default=os.getenv("FT_BASE_URL", "https://api.openai.com/v1"))
     parser.add_argument("--api-key-env", default="FT_API_KEY")
-    parser.add_argument("--model", default="Qwen/Qwen3-14B", help="базовая модель для дообучения")
+    parser.add_argument("--model", default="Qwen/Qwen3-4B", help="базовая модель для дообучения")
     parser.add_argument("--suffix", default="mp-attrs", help="метка в имени дообученной модели")
     parser.add_argument("--train", type=Path, default=DATASETS / "train.jsonl")
     parser.add_argument("--eval", type=Path, default=DATASETS / "eval.jsonl")

@@ -1,0 +1,33 @@
+{
+  "total": 100,
+  "json_valid_clean": 1.0,
+  "json_valid_any": 1.0,
+  "schema_compliance": 1.0,
+  "vocab_compliance": 0.85,
+  "hallucination_rate": 0.0,
+  "avg_output_chars": 161.54,
+  "field_exact": {
+    "category": 0.85,
+    "brand": 0.83,
+    "line": 0.8,
+    "volume": 0.97,
+    "pack_count": 0.96,
+    "form": 0.67,
+    "purpose": 0.71,
+    "shade": 0.91,
+    "is_set": 0.94
+  },
+  "field_exact_mean": 0.8488888888888888,
+  "unit_normalization": 0.95,
+  "unit_sample": 20,
+  "volume_by_class": {
+    "dirty_unit": 1.0,
+    "multi_volume": 0.9090909090909091,
+    "pack": 1.0,
+    "quoted": 1.0,
+    "set_like": 0.85,
+    "shade_code": 0.8333333333333334,
+    "simple": 1.0,
+    "truncated": 0.75
+  }
+}
