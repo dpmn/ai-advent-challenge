@@ -1,0 +1,521 @@
+{
+  "meta": {
+    "items": 22,
+    "small_model": "qwen3:0.6b",
+    "small_quant": "Q4_K_M",
+    "big_model": "qwen3-14b",
+    "threshold": 0.5,
+    "metric": "min",
+    "simulated": false,
+    "local_seconds": 79.17,
+    "gpu_seconds": 47.47,
+    "anchor_gpu_seconds": 27.73
+  },
+  "policies": {
+    "small": {
+      "items": 22,
+      "fields_total": 198,
+      "fields_correct": 110,
+      "field_accuracy": 0.5555555555555556,
+      "exact": 0,
+      "exact_accuracy": 0.0,
+      "calls": 0,
+      "escalated_fields": 0,
+      "escalated_share": 0.0,
+      "gpu_seconds": 0.0,
+      "gpu_measured": true,
+      "rub": 0.0,
+      "by_level": {
+        "корректные": {
+          "n": 8,
+          "correct": 40,
+          "fields": 72,
+          "calls": 0,
+          "escalated": 0
+        },
+        "шумные": {
+          "n": 8,
+          "correct": 35,
+          "fields": 72,
+          "calls": 0,
+          "escalated": 0
+        },
+        "пограничные": {
+          "n": 6,
+          "correct": 35,
+          "fields": 54,
+          "calls": 0,
+          "escalated": 0
+        }
+      },
+      "by_field": {
+        "category": {
+          "correct": 5,
+          "escalated": 0
+        },
+        "brand": {
+          "correct": 7,
+          "escalated": 0
+        },
+        "line": {
+          "correct": 14,
+          "escalated": 0
+        },
+        "volume": {
+          "correct": 12,
+          "escalated": 0
+        },
+        "pack_count": {
+          "correct": 10,
+          "escalated": 0
+        },
+        "form": {
+          "correct": 12,
+          "escalated": 0
+        },
+        "purpose": {
+          "correct": 9,
+          "escalated": 0
+        },
+        "shade": {
+          "correct": 20,
+          "escalated": 0
+        },
+        "is_set": {
+          "correct": 21,
+          "escalated": 0
+        }
+      }
+    },
+    "routing_fields": {
+      "items": 22,
+      "fields_total": 198,
+      "fields_correct": 139,
+      "field_accuracy": 0.702020202020202,
+      "exact": 0,
+      "exact_accuracy": 0.0,
+      "calls": 19,
+      "escalated_fields": 38,
+      "escalated_share": 0.1919191919191919,
+      "gpu_seconds": 47.47,
+      "gpu_measured": true,
+      "rub": 1.144,
+      "by_level": {
+        "корректные": {
+          "n": 8,
+          "correct": 49,
+          "fields": 72,
+          "calls": 7,
+          "escalated": 14
+        },
+        "шумные": {
+          "n": 8,
+          "correct": 45,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 12
+        },
+        "пограничные": {
+          "n": 6,
+          "correct": 45,
+          "fields": 54,
+          "calls": 4,
+          "escalated": 12
+        }
+      },
+      "by_field": {
+        "category": {
+          "correct": 11,
+          "escalated": 8
+        },
+        "brand": {
+          "correct": 10,
+          "escalated": 3
+        },
+        "line": {
+          "correct": 15,
+          "escalated": 1
+        },
+        "volume": {
+          "correct": 22,
+          "escalated": 10
+        },
+        "pack_count": {
+          "correct": 10,
+          "escalated": 0
+        },
+        "form": {
+          "correct": 15,
+          "escalated": 6
+        },
+        "purpose": {
+          "correct": 14,
+          "escalated": 9
+        },
+        "shade": {
+          "correct": 21,
+          "escalated": 1
+        },
+        "is_set": {
+          "correct": 21,
+          "escalated": 0
+        }
+      }
+    },
+    "routing_item": {
+      "items": 22,
+      "fields_total": 198,
+      "fields_correct": 167,
+      "field_accuracy": 0.8434343434343434,
+      "exact": 4,
+      "exact_accuracy": 0.18181818181818182,
+      "calls": 19,
+      "escalated_fields": 171,
+      "escalated_share": 0.8636363636363636,
+      "gpu_seconds": 47.47,
+      "gpu_measured": false,
+      "rub": 1.144,
+      "by_level": {
+        "корректные": {
+          "n": 8,
+          "correct": 63,
+          "fields": 72,
+          "calls": 7,
+          "escalated": 63
+        },
+        "шумные": {
+          "n": 8,
+          "correct": 61,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 72
+        },
+        "пограничные": {
+          "n": 6,
+          "correct": 43,
+          "fields": 54,
+          "calls": 4,
+          "escalated": 36
+        }
+      },
+      "by_field": {
+        "category": {
+          "correct": 18,
+          "escalated": 19
+        },
+        "brand": {
+          "correct": 15,
+          "escalated": 19
+        },
+        "line": {
+          "correct": 17,
+          "escalated": 19
+        },
+        "volume": {
+          "correct": 22,
+          "escalated": 19
+        },
+        "pack_count": {
+          "correct": 20,
+          "escalated": 19
+        },
+        "form": {
+          "correct": 16,
+          "escalated": 19
+        },
+        "purpose": {
+          "correct": 17,
+          "escalated": 19
+        },
+        "shade": {
+          "correct": 22,
+          "escalated": 19
+        },
+        "is_set": {
+          "correct": 20,
+          "escalated": 19
+        }
+      }
+    },
+    "big": {
+      "items": 22,
+      "fields_total": 198,
+      "fields_correct": 168,
+      "field_accuracy": 0.8484848484848485,
+      "exact": 4,
+      "exact_accuracy": 0.18181818181818182,
+      "calls": 22,
+      "escalated_fields": 198,
+      "escalated_share": 1.0,
+      "gpu_seconds": 27.73,
+      "gpu_measured": true,
+      "rub": 0.668,
+      "by_level": {
+        "корректные": {
+          "n": 8,
+          "correct": 64,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 72
+        },
+        "шумные": {
+          "n": 8,
+          "correct": 61,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 72
+        },
+        "пограничные": {
+          "n": 6,
+          "correct": 43,
+          "fields": 54,
+          "calls": 6,
+          "escalated": 54
+        }
+      },
+      "by_field": {
+        "category": {
+          "correct": 18,
+          "escalated": 22
+        },
+        "brand": {
+          "correct": 17,
+          "escalated": 22
+        },
+        "line": {
+          "correct": 17,
+          "escalated": 22
+        },
+        "volume": {
+          "correct": 22,
+          "escalated": 22
+        },
+        "pack_count": {
+          "correct": 21,
+          "escalated": 22
+        },
+        "form": {
+          "correct": 15,
+          "escalated": 22
+        },
+        "purpose": {
+          "correct": 17,
+          "escalated": 22
+        },
+        "shade": {
+          "correct": 21,
+          "escalated": 22
+        },
+        "is_set": {
+          "correct": 20,
+          "escalated": 22
+        }
+      }
+    },
+    "static": {
+      "items": 22,
+      "fields_total": 198,
+      "fields_correct": 145,
+      "field_accuracy": 0.7323232323232324,
+      "exact": 0,
+      "exact_accuracy": 0.0,
+      "calls": 22,
+      "escalated_fields": 88,
+      "escalated_share": 0.4444444444444444,
+      "gpu_seconds": 54.96,
+      "gpu_measured": false,
+      "rub": 1.324,
+      "by_level": {
+        "корректные": {
+          "n": 8,
+          "correct": 57,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 32
+        },
+        "шумные": {
+          "n": 8,
+          "correct": 50,
+          "fields": 72,
+          "calls": 8,
+          "escalated": 32
+        },
+        "пограничные": {
+          "n": 6,
+          "correct": 38,
+          "fields": 54,
+          "calls": 6,
+          "escalated": 24
+        }
+      },
+      "by_field": {
+        "category": {
+          "correct": 18,
+          "escalated": 22
+        },
+        "brand": {
+          "correct": 7,
+          "escalated": 0
+        },
+        "line": {
+          "correct": 14,
+          "escalated": 0
+        },
+        "volume": {
+          "correct": 12,
+          "escalated": 0
+        },
+        "pack_count": {
+          "correct": 21,
+          "escalated": 22
+        },
+        "form": {
+          "correct": 15,
+          "escalated": 22
+        },
+        "purpose": {
+          "correct": 17,
+          "escalated": 22
+        },
+        "shade": {
+          "correct": 20,
+          "escalated": 0
+        },
+        "is_set": {
+          "correct": 21,
+          "escalated": 0
+        }
+      }
+    }
+  },
+  "random": {
+    "trials": 200,
+    "escalated_fields": 38,
+    "field_accuracy": 0.6111111111111112,
+    "p05": 0.5858585858585859,
+    "p95": 0.6363636363636364,
+    "calls": 19.0,
+    "gpu_seconds": 47.47,
+    "rub": 1.144
+  },
+  "breakdown": {
+    "by_heuristic": {
+      "#1 constraint": {
+        "полей": 29,
+        "исправлено": 22,
+        "испорчено": 0,
+        "оба верны": 0,
+        "оба неверны": 7
+      },
+      "#2 confidence": {
+        "полей": 14,
+        "исправлено": 11,
+        "испорчено": 0,
+        "оба верны": 2,
+        "оба неверны": 1
+      }
+    },
+    "missed": {
+      "fields": 38,
+      "items": 17
+    }
+  },
+  "sweep": [
+    {
+      "threshold": 0.0,
+      "escalated_fields": 29,
+      "escalated_share": 0.14646464646464646,
+      "calls": 18,
+      "field_accuracy": 0.6666666666666666,
+      "exact_accuracy": 0.0,
+      "rub": 1.083
+    },
+    {
+      "threshold": 0.3,
+      "escalated_fields": 31,
+      "escalated_share": 0.15656565656565657,
+      "calls": 18,
+      "field_accuracy": 0.6767676767676768,
+      "exact_accuracy": 0.0,
+      "rub": 1.083
+    },
+    {
+      "threshold": 0.5,
+      "escalated_fields": 38,
+      "escalated_share": 0.1919191919191919,
+      "calls": 19,
+      "field_accuracy": 0.702020202020202,
+      "exact_accuracy": 0.0,
+      "rub": 1.144
+    },
+    {
+      "threshold": 0.6,
+      "escalated_fields": 54,
+      "escalated_share": 0.2727272727272727,
+      "calls": 21,
+      "field_accuracy": 0.7626262626262627,
+      "exact_accuracy": 0.09090909090909091,
+      "rub": 1.264
+    },
+    {
+      "threshold": 0.7,
+      "escalated_fields": 69,
+      "escalated_share": 0.3484848484848485,
+      "calls": 22,
+      "field_accuracy": 0.7929292929292929,
+      "exact_accuracy": 0.09090909090909091,
+      "rub": 1.324
+    },
+    {
+      "threshold": 0.75,
+      "escalated_fields": 75,
+      "escalated_share": 0.3787878787878788,
+      "calls": 22,
+      "field_accuracy": 0.803030303030303,
+      "exact_accuracy": 0.09090909090909091,
+      "rub": 1.324
+    },
+    {
+      "threshold": 0.8,
+      "escalated_fields": 82,
+      "escalated_share": 0.41414141414141414,
+      "calls": 22,
+      "field_accuracy": 0.7929292929292929,
+      "exact_accuracy": 0.09090909090909091,
+      "rub": 1.324
+    },
+    {
+      "threshold": 0.9,
+      "escalated_fields": 94,
+      "escalated_share": 0.47474747474747475,
+      "calls": 22,
+      "field_accuracy": 0.8181818181818182,
+      "exact_accuracy": 0.18181818181818182,
+      "rub": 1.324
+    },
+    {
+      "threshold": 0.95,
+      "escalated_fields": 100,
+      "escalated_share": 0.5050505050505051,
+      "calls": 22,
+      "field_accuracy": 0.8282828282828283,
+      "exact_accuracy": 0.18181818181818182,
+      "rub": 1.324
+    },
+    {
+      "threshold": 0.99,
+      "escalated_fields": 103,
+      "escalated_share": 0.5202020202020202,
+      "calls": 22,
+      "field_accuracy": 0.8282828282828283,
+      "exact_accuracy": 0.18181818181818182,
+      "rub": 1.324
+    }
+  ],
+  "crosscheck": {
+    "fields": 198,
+    "agreement": 1.0,
+    "dump_accuracy": 0.8484848484848485,
+    "anchor_accuracy": 0.8484848484848485
+  }
+}

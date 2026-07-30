@@ -1,0 +1,8 @@
+{
+  "date": "mock",
+  "model": "mock-qwen3-14b",
+  "quantization": "mock",
+  "items": 22,
+  "gpu_seconds": 19.8,
+  "mock": true
+}

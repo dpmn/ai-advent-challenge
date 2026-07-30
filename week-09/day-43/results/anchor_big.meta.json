@@ -1,0 +1,10 @@
+{
+  "date": "2026-07-30T04:50:13",
+  "model": "/home/ubuntu/qwen3-14b",
+  "quantization": "nf4",
+  "items": 22,
+  "parsed": 22,
+  "gpu_seconds": 27.73,
+  "rub": 0.668,
+  "batch_size": 8
+}
