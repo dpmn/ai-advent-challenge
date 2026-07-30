@@ -1,0 +1,28 @@
+{
+  "date": "2026-07-30T05:18:28",
+  "small": {
+    "model": "qwen3:0.6b",
+    "quantization": "Q4_K_M",
+    "local_seconds": 79.17
+  },
+  "big": {
+    "model": "qwen3-14b",
+    "gpu_seconds": 47.47,
+    "calls": 19,
+    "rub": 1.144
+  },
+  "thresholds": {
+    "confidence": 0.5,
+    "metric": "min",
+    "max_chars": 650
+  },
+  "items": 22,
+  "items_escalated": 19,
+  "fields_total": 198,
+  "fields_escalated": 38,
+  "by_heuristic": {
+    "#1 constraint": 29,
+    "#2 confidence": 14
+  },
+  "dry_run": false
+}

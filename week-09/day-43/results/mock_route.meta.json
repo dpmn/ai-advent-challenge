@@ -1,0 +1,23 @@
+{
+  "date": "mock",
+  "small": {
+    "model": "mock-qwen3:0.6b",
+    "quantization": "mock",
+    "local_seconds": 44.0
+  },
+  "big": {
+    "model": "mock-qwen3-14b",
+    "gpu_seconds": 28.6,
+    "calls": 22
+  },
+  "thresholds": {
+    "confidence": 0.5,
+    "metric": "min",
+    "max_chars": 650
+  },
+  "items": 22,
+  "items_escalated": 22,
+  "fields_total": 198,
+  "fields_escalated": 107,
+  "mock": true
+}
