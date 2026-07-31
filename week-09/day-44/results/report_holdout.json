@@ -1,0 +1,225 @@
+{
+  "items": 20,
+  "model": "qwen3:0.6b",
+  "arms": {
+    "mono": {
+      "items": 20,
+      "field_accuracy": 0.5,
+      "full_ok": 0,
+      "parsed": 19,
+      "invariant_clean": 1,
+      "per_field": {
+        "category": 0.15,
+        "brand": 0.45,
+        "line": 0.8,
+        "volume": 0.5,
+        "pack_count": 0.35,
+        "form": 0.4,
+        "purpose": 0.25,
+        "shade": 0.75,
+        "is_set": 0.85
+      },
+      "per_level": {
+        "корректные": 0.5555555555555556,
+        "пограничные": 0.47619047619047616,
+        "шумные": 0.46296296296296297
+      },
+      "violations": {
+        "category": 1,
+        "brand": 1,
+        "line": 1,
+        "volume": 1,
+        "pack_count": 1,
+        "form": 1,
+        "purpose": 1,
+        "shade": 1,
+        "is_set": 1
+      },
+      "usage": {
+        "calls": 20,
+        "prompt_tokens": 50273,
+        "gen_tokens": 1510,
+        "seconds": 33.6
+      },
+      "by_stage": {
+        "mono": {
+          "calls": 20,
+          "prompt_tokens": 50273,
+          "gen_tokens": 1510,
+          "seconds": 33.4
+        }
+      },
+      "acc_per_1k_gen": 59.602649006622514,
+      "fields_per_second": 2.6785714285714284
+    },
+    "multi": {
+      "items": 20,
+      "field_accuracy": 0.6277777777777778,
+      "full_ok": 1,
+      "parsed": 20,
+      "invariant_clean": 12,
+      "per_field": {
+        "category": 0.2,
+        "brand": 0.55,
+        "line": 0.85,
+        "volume": 0.75,
+        "pack_count": 0.75,
+        "form": 0.55,
+        "purpose": 0.4,
+        "shade": 0.7,
+        "is_set": 0.9
+      },
+      "per_level": {
+        "корректные": 0.746031746031746,
+        "пограничные": 0.6507936507936508,
+        "шумные": 0.46296296296296297
+      },
+      "violations": {
+        "purpose": 14,
+        "category": 5,
+        "form": 1,
+        "volume": 1
+      },
+      "usage": {
+        "calls": 200,
+        "prompt_tokens": 90849,
+        "gen_tokens": 1785,
+        "seconds": 196.7
+      },
+      "by_stage": {
+        "normalize": {
+          "calls": 20,
+          "prompt_tokens": 9213,
+          "gen_tokens": 1032,
+          "seconds": 19.7
+        },
+        "category": {
+          "calls": 20,
+          "prompt_tokens": 22604,
+          "gen_tokens": 182,
+          "seconds": 89.6
+        },
+        "form": {
+          "calls": 20,
+          "prompt_tokens": 7304,
+          "gen_tokens": 63,
+          "seconds": 11.8
+        },
+        "purpose": {
+          "calls": 20,
+          "prompt_tokens": 8204,
+          "gen_tokens": 192,
+          "seconds": 11.2
+        },
+        "is_set": {
+          "calls": 20,
+          "prompt_tokens": 6364,
+          "gen_tokens": 59,
+          "seconds": 10.3
+        },
+        "brand": {
+          "calls": 20,
+          "prompt_tokens": 7524,
+          "gen_tokens": 40,
+          "seconds": 10.0
+        },
+        "line": {
+          "calls": 20,
+          "prompt_tokens": 7184,
+          "gen_tokens": 40,
+          "seconds": 11.0
+        },
+        "shade": {
+          "calls": 20,
+          "prompt_tokens": 8384,
+          "gen_tokens": 40,
+          "seconds": 11.5
+        },
+        "volume": {
+          "calls": 20,
+          "prompt_tokens": 7904,
+          "gen_tokens": 95,
+          "seconds": 12.1
+        },
+        "pack_count": {
+          "calls": 20,
+          "prompt_tokens": 6164,
+          "gen_tokens": 42,
+          "seconds": 11.1
+        }
+      },
+      "acc_per_1k_gen": 63.305322128851536,
+      "fields_per_second": 0.5744789018810371
+    },
+    "multi-lite": {
+      "items": 20,
+      "field_accuracy": 0.5777777777777777,
+      "full_ok": 0,
+      "parsed": 20,
+      "invariant_clean": 11,
+      "per_field": {
+        "category": 0.1,
+        "brand": 0.35,
+        "line": 0.55,
+        "volume": 0.6,
+        "pack_count": 0.9,
+        "form": 0.8,
+        "purpose": 0.55,
+        "shade": 0.4,
+        "is_set": 0.95
+      },
+      "per_level": {
+        "корректные": 0.6349206349206349,
+        "пограничные": 0.5873015873015873,
+        "шумные": 0.5
+      },
+      "violations": {
+        "purpose": 13,
+        "volume": 11,
+        "category": 7,
+        "form": 7
+      },
+      "usage": {
+        "calls": 60,
+        "prompt_tokens": 50981,
+        "gen_tokens": 2935,
+        "seconds": 59.8
+      },
+      "by_stage": {
+        "normalize": {
+          "calls": 20,
+          "prompt_tokens": 9213,
+          "gen_tokens": 1032,
+          "seconds": 19.7
+        },
+        "classify_all": {
+          "calls": 20,
+          "prompt_tokens": 28824,
+          "gen_tokens": 899,
+          "seconds": 19.3
+        },
+        "extract_all": {
+          "calls": 20,
+          "prompt_tokens": 12944,
+          "gen_tokens": 1004,
+          "seconds": 20.8
+        }
+      },
+      "acc_per_1k_gen": 35.43441226575809,
+      "fields_per_second": 1.7391304347826089
+    }
+  },
+  "anchor": null,
+  "cascade": {
+    "multi": {
+      "checked": 20,
+      "items_damaged": 0,
+      "fields_lost": 0
+    },
+    "multi-lite": {
+      "checked": 20,
+      "items_damaged": 0,
+      "fields_lost": 0
+    }
+  }
+}

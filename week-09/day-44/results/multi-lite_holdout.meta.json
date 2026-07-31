@@ -1,0 +1,21 @@
+{
+  "arm": "multi-lite",
+  "split": "train",
+  "models": {
+    "mono": "qwen3:0.6b",
+    "normalize": "qwen3:0.6b",
+    "classify": "qwen3:0.6b",
+    "extract": "qwen3:0.6b"
+  },
+  "quantization": {
+    "qwen3:0.6b": "Q4_K_M"
+  },
+  "thinking": false,
+  "temperature": 0.0,
+  "items": 20,
+  "calls": 60,
+  "prompt_tokens": 50981,
+  "gen_tokens": 2935,
+  "model_seconds": 59.77,
+  "wall_seconds": 59.79
+}
