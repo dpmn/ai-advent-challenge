@@ -1,0 +1,21 @@
+{
+  "arm": "mono",
+  "split": "train",
+  "models": {
+    "mono": "qwen3:0.6b",
+    "normalize": "qwen3:0.6b",
+    "classify": "qwen3:0.6b",
+    "extract": "qwen3:0.6b"
+  },
+  "quantization": {
+    "qwen3:0.6b": "Q4_K_M"
+  },
+  "thinking": false,
+  "temperature": 0.0,
+  "items": 20,
+  "calls": 20,
+  "prompt_tokens": 50273,
+  "gen_tokens": 1510,
+  "model_seconds": 33.58,
+  "wall_seconds": 33.58
+}
