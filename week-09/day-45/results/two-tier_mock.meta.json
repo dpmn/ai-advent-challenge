@@ -1,0 +1,28 @@
+{
+  "policy": "two-tier",
+  "threshold": 0.2,
+  "items": 100,
+  "mock": true,
+  "demo": false,
+  "big_model": "qwen3-14b",
+  "gpu_seconds": 24.7,
+  "summary": {
+    "policy": "two-tier",
+    "threshold": 0.2,
+    "total": 100,
+    "kept_by_classifier": 81,
+    "escalated": 19,
+    "big_calls": 19,
+    "accuracy": 0.79,
+    "accuracy_small_only": 0.71,
+    "accuracy_kept": 0.8024691358024691,
+    "accuracy_escalated": 0.7368421052631579,
+    "fixed_by_big": 9,
+    "broken_by_big": 1,
+    "avg_latency_small_ms": 1.087,
+    "avg_latency_big_s": 1.3,
+    "avg_latency_total_s": 0.24808699999999997,
+    "small_seconds": 0.1087,
+    "big_seconds": 24.7
+  }
+}
