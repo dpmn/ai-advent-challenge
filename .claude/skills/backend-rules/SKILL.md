@@ -10,12 +10,14 @@ description: |
 
 ## Карта файлов (детали — в docstring-ах самих файлов)
 
-- `agents/jarvis.py` — ядро: `chat()`, `_call_api()`, `_build_messages()`, RAG-поля `rag_*`, `model_provider` ("cloud"/"local", ставит webui), `_rag_provider_kwargs()`, `_local_llm_profile()`, `last_rag_debug`
+- `agents/jarvis.py` — ядро: `chat()`, `_call_api()`, `_build_messages()`, RAG-поля `rag_*`, `model_provider` ("cloud"/"local", ставит webui), `_rag_provider_kwargs()`, `_local_llm_profile()`, `last_rag_debug`, `self.persona` (имя активного системного промпта), `_log_exchange()` (пишет в JSONL через `JarvisLogger`)
 - `agents/jarvis_memory.py` — `TaskContext` (working memory), `Profile` (long-term, Markdown в `agents/memory/profiles/`)
 - `agents/jarvis_session.py` — `SessionMixin`: SQLite `_init_db`, CRUD сессий и сообщений
 - `agents/jarvis_context.py` — `ContextStrategyMixin`: стратегии контекста (sliding_window / sticky_facts / branching), инварианты, memory state
 - `agents/jarvis_compression.py` — `CompressionMixin`: сжатие истории
-- `agents/jarvis_commands.py` — `CommandMixin`: `_handle_command()` — все /команды (синтаксис и список смотри там)
+- `agents/jarvis_commands.py` — `CommandMixin`: `_handle_command()` — все /команды (синтаксис и список смотри там), включая `/persona`
+- `agents/personas.py` — системные промпты агента (`default`/`vuln`/`safe`) + `resolve_persona_name()`; `vuln`/`safe` введены для day-46 (prompt injection)
+- `agents/jarvis_logger.py` — `JarvisLogger`: JSONL-лог обменов (`logs/jarvis-YYYY-MM-DD.jsonl`, вне `_init_db`/SQLite, каталог в `.gitignore`)
 - `agents/state_machine.py` — FSM: `AgentState`, `StageAgent`, `PipelineAgent`
 - `agents/invariants.py` — `Invariant` (ABC), `AgentValidator`, `InvariantManager`
 - `agents/mcp_manager.py` — MCP-клиент: JSON-RPC 2.0 через urllib, SSE-ответы; конфиг серверов `agents/mcp/servers.json`

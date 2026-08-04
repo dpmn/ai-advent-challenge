@@ -1,5 +1,6 @@
 from agents.invariants import AgentValidator
 from agents.jarvis_memory import Profile
+from agents.personas import PERSONAS, PERSONA_DESCRIPTIONS
 
 
 class CommandMixin:
@@ -20,6 +21,7 @@ class CommandMixin:
                 "  /new [name]   — создать новую сессию (/new sm — с SM)\n"
                 "  /clear        — очистить историю\n"
                 "  /model [name] — показать/сменить модель\n"
+                "  /persona [name] — показать/сменить системный промпт (default|vuln|safe)\n"
                 "  /temp [value] — показать/сменить температуру\n"
                 "  /strategy [type] — показать/сменить стратегию\n"
                 "  /compression [on|off|toggle] — управление сжатием\n"
@@ -104,6 +106,28 @@ class CommandMixin:
             new_model = arg.strip()
             self.model = new_model
             return f"✅ Модель изменена: {new_model}"
+
+        if cmd == "/persona":
+            if not arg:
+                lines = [f"🎭 Текущая персона: {self.persona}", "", "Доступные:"]
+                for name, desc in PERSONA_DESCRIPTIONS.items():
+                    marker = " 👈" if name == self.persona else ""
+                    lines.append(f"  {name} — {desc}{marker}")
+                lines.append("")
+                lines.append("Смена: /persona <name> (создаётся новая сессия)")
+                return "\n".join(lines)
+            name = arg.strip().lower()
+            if name not in PERSONAS:
+                return f"❌ Неизвестная персона: {name}. Доступные: {', '.join(PERSONAS)}"
+            self.system_prompt = PERSONAS[name]
+            self.persona = name
+            # Новая сессия, а не правка истории: иначе в контексте остаются
+            # прошлые атаки и старый системный промпт — сравнение будет нечестным.
+            self.create_session(f"persona: {name}")
+            return (
+                f"✅ Персона: {name} — {PERSONA_DESCRIPTIONS[name]}\n"
+                f"Создана новая сессия: {self.current_session['name']}"
+            )
 
         if cmd == "/temp":
             if not arg:
