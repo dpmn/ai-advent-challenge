@@ -222,6 +222,9 @@ __marimo__/
 *.db
 /mcp_servers/composer_mcp/output
 
+# JSONL-логи диалогов Jarvis (day-46): содержат системный промпт и «секреты» персон
+/logs/
+
 # Индексы подключённых проектов (day-31)
 /ragger/data_projects/
 

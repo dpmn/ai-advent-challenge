@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import urllib.request
 import urllib.error
 from typing import Optional
@@ -9,6 +10,8 @@ from dotenv import load_dotenv
 
 from agents.state_machine import PipelineAgent
 from agents.mcp_manager import McpServerManager
+from agents.jarvis_logger import JarvisLogger
+from agents.personas import resolve_persona_name
 from agents.jarvis_memory import TaskContext, Profile
 from agents.jarvis_session import SessionMixin
 from agents.jarvis_context import ContextStrategyMixin
@@ -64,6 +67,10 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
+        # Имя активной персоны (день 46): нужно в логе, чтобы отличать прогоны
+        # атак на промпт-жертву от прогонов на защищённом промпте.
+        self.persona = resolve_persona_name(system_prompt)
+        self.logger = JarvisLogger()
         self.db_path = db_path or _DEFAULT_DB_PATH
         self.context_limit = context_limit
 
@@ -308,6 +315,9 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.conversation_history.append({"role": "user", "content": user_input})
         self._save_message("user", user_input)
 
+        _t0 = time.monotonic()
+        tool_records = []
+
         # State Machine routing
         if self.pipeline is not None:
             result = self.pipeline.chat(user_input)
@@ -429,6 +439,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
             self._save_message("assistant", assistant_message)
             self._update_task_state(user_input, assistant_message)
+            self._log_exchange(user_input, assistant_message, [], _t0, extra={"path": "rag"})
             return assistant_message
 
         # Инжектируем трёхуровневую модель памяти
@@ -481,6 +492,9 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     tresult = self.mcp_manager.execute_tool(tname, targs)
                     print(f"[JARVIS][MCP] result: {tresult[:200]}")
                     tool_trace_lines.append(f"\U0001f527 {tname}: {tresult[:300]}")
+                    # Полный результат, без обрезки: по нему видно, что именно
+                    # прочитал агент (например, инъекцию внутри тикета).
+                    tool_records.append({"name": tname, "args": targs, "result": tresult})
                     messages.append({
                         "role": "tool",
                         "tool_call_id": call_id,
@@ -586,11 +600,40 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             if user_input and assistant_message and not user_input.startswith("/"):
                 self._update_task_state(user_input, assistant_message)
 
+            self._log_exchange(user_input, assistant_message, tool_records, _t0)
             return assistant_message
         else:
             if self.conversation_history and self.conversation_history[-1]["role"] == "user":
                 self.conversation_history.pop()
-            return f"❌ Ошибка: {response.get('error', 'Неизвестная ошибка')}\n{response.get('details', '')}"
+            error_message = (
+                f"❌ Ошибка: {response.get('error', 'Неизвестная ошибка')}\n{response.get('details', '')}"
+            )
+            self._log_exchange(
+                user_input, "", tool_records, _t0, error=response.get("error", "unknown")
+            )
+            return error_message
+
+    def _log_exchange(
+            self,
+            user_input: str,
+            assistant_message: str,
+            tool_records: list,
+            started_at: float,
+            error: Optional[str] = None,
+            extra: Optional[dict] = None
+    ) -> None:
+        """Пишет обмен в JSONL-лог (logs/). Ошибки логирования чат не ломают."""
+        self.logger.log_exchange(
+            session_id=self.current_session["id"] if self.current_session else None,
+            model=self.model,
+            persona=self.persona,
+            user_input=user_input,
+            response=assistant_message,
+            tool_calls=tool_records,
+            duration_ms=int((time.monotonic() - started_at) * 1000),
+            error=error,
+            extra=extra,
+        )
 
     # ─────────────── Память задачи (авто-extraction) ─────────────
 
