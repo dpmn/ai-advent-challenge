@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadModels();
   loadSettings();
   loadMcp();
+  loadGuard();
 
   // Restore theme
   const saved = localStorage.getItem("jarvis-theme");
@@ -44,6 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // MCP wiring
   document.getElementById("mcp-enabled-checkbox").onchange = toggleMcp;
   document.getElementById("mcp-add-btn").onclick = addMcpServer;
+
+  // Guard wiring
+  document.getElementById("guard-enabled-checkbox").onchange = toggleGuard;
 });
 
 // ──── Sidebar ──────────────────────────────────────────────────
@@ -110,6 +114,7 @@ async function switchSession(id) {
   currentSessionId = id;
   loadSessions();
   loadMcp();
+  loadGuard();
   scrollToBottom();
 }
 
@@ -128,12 +133,16 @@ async function createSession() {
     body: JSON.stringify({ name: cleanName || undefined, sm_enabled: smEnabled }),
   });
   loadSessions();
+  // Панель MCP отражает состояние агента, а не сессии — после смены сессии
+  // её надо перечитать, иначе галка показывает прошлое состояние.
+  loadMcp();
 }
 
 async function deleteSession(id) {
   if (!confirm("Delete this session?")) return;
   await fetch(`/api/sessions/${id}`, { method: "DELETE" });
   loadSessions();
+  loadMcp();
 }
 
 // ──── Messages ─────────────────────────────────────────────────
@@ -240,6 +249,7 @@ async function sendMessage() {
     loadSettings(); // Refresh SM/AI settings
     loadSessions(); // Refresh session list
     loadMcp(); // Refresh MCP status (may have changed via slash commands)
+    loadGuard(); // Refresh guard status and last output-validation report
   } catch (err) {
     inner.appendChild(
       createBubble("system", "Error: " + err.message)
@@ -398,6 +408,55 @@ async function toggleMcp(e) {
   const data = await res.json();
   console.log("MCP toggle:", data.message);
   await loadMcp();
+}
+
+// ──── Guard ────────────────────────────────────────────────────
+
+async function loadGuard() {
+  try {
+    const res = await fetch("/api/guard");
+    renderGuard(await res.json());
+  } catch (e) {
+    console.error("Guard load failed:", e);
+  }
+}
+
+function renderGuard(data) {
+  document.getElementById("guard-enabled-checkbox").checked = !!data.enabled;
+  document.getElementById("guard-enabled-label").textContent = data.enabled
+    ? "on"
+    : "off";
+
+  const info = document.getElementById("guard-info");
+  info.innerHTML = "";
+  if (!data.enabled) {
+    info.textContent = "Данные инструментов идут в модель без обработки.";
+    return;
+  }
+  const report = data.last_report;
+  if (!report) {
+    info.textContent = "sanitize → boundary markers → output validation";
+    return;
+  }
+  if (report.ok) {
+    info.textContent = "Последний ответ: проверка пройдена.";
+    return;
+  }
+  const lines = (report.findings || []).map((f) => `${f.rule}: ${f.detail}`);
+  info.textContent = "Последний ответ помечен — " + lines.join("; ");
+}
+
+async function toggleGuard(e) {
+  const enabled = e.target.checked;
+  document.getElementById("guard-enabled-label").textContent = enabled
+    ? "on"
+    : "off";
+  await fetch("/api/guard/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  await loadGuard();
 }
 
 async function addMcpServer() {

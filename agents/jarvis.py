@@ -8,6 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from agents import guard
 from agents.state_machine import PipelineAgent
 from agents.mcp_manager import McpServerManager
 from agents.jarvis_logger import JarvisLogger
@@ -168,8 +169,17 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
         # MCP
         self.mcp_manager = McpServerManager()
+        # Флаг MCP — уровня процесса, а не сессии: подключения живут в
+        # mcp_manager, общем на весь агент, и при переключении сессий не рвутся.
+        # Здесь он только восстанавливается при старте из последней сессии.
         self.mcp_enabled = bool(self.current_session.get("mcp_enabled", False))
         self.mcp_max_iterations = 10
+
+        # Защита от непрямой инъекции (день 47). Тоже уровня процесса: слои
+        # применяются к результатам инструментов, а инструменты общие.
+        # По умолчанию включена — небезопасное состояние должно требовать действия.
+        self.guard_enabled = True
+        self.last_guard_report: Optional[dict] = None
 
         # RAG
         self.rag_enabled = bool(self.current_session.get("rag_enabled", False))
@@ -466,6 +476,11 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             mcp_tools = self.mcp_manager.get_openai_tools()
 
         tool_trace_lines = []
+        # Слои защиты (день 47): что вырезано санитайзером и что агент имел право
+        # использовать. guard_sources — тексты ПОСЛЕ санитизации: сравнивать ответ
+        # с сырым текстом нельзя, иначе спрятанная инструкция считается легальной.
+        guard_hits = []
+        guard_sources = []
         usage_pt = 0
         usage_ct = 0
         usage_tt = 0
@@ -495,10 +510,21 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     # Полный результат, без обрезки: по нему видно, что именно
                     # прочитал агент (например, инъекцию внутри тикета).
                     tool_records.append({"name": tname, "args": targs, "result": tresult})
+
+                    tool_content = tresult
+                    if self.guard_enabled:
+                        cleaned, hits = guard.sanitize(tresult)
+                        for h in hits:
+                            print(f"[JARVIS][GUARD] вырезано ({tname}): "
+                                  f"{h['rule']} ×{h['count']} {h['sample']}")
+                            guard_hits.append({"tool": tname, **h})
+                        guard_sources.append(cleaned)
+                        tool_content = guard.wrap(cleaned, tname)
+
                     messages.append({
                         "role": "tool",
                         "tool_call_id": call_id,
-                        "content": tresult,
+                        "content": tool_content,
                     })
                 u = response.get("usage", {}) or {}
                 usage_pt += u.get("prompt_tokens", 0)
@@ -539,6 +565,18 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                 else:
                     assistant_message += (
                         f"\n\n\u26a0\ufe0f Инвариант нарушен. Не удалось исправить: {violation}"
+                    )
+
+            # Слой 3: проверка ответа на следы исполненной инъекции.
+            # Работает только когда агент реально читал внешние данные.
+            self.last_guard_report = None
+            if self.guard_enabled and guard_sources:
+                report = guard.validate_output(assistant_message, guard_sources, self.persona)
+                self.last_guard_report = report
+                if not report["ok"]:
+                    print(f"[JARVIS][GUARD] выход: {report['findings']}")
+                    assistant_message = (
+                        guard.format_warning(report) + "\n\n" + assistant_message
                     )
 
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
@@ -600,7 +638,17 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             if user_input and assistant_message and not user_input.startswith("/"):
                 self._update_task_state(user_input, assistant_message)
 
-            self._log_exchange(user_input, assistant_message, tool_records, _t0)
+            # В лог кладём и состояние защиты: без него по записи не отличить
+            # «инъекция не сработала» от «слой её снял».
+            guard_extra = {
+                "guard": {
+                    "enabled": self.guard_enabled,
+                    "sanitized": guard_hits,
+                    "output": self.last_guard_report,
+                }
+            } if tool_records else None
+            self._log_exchange(user_input, assistant_message, tool_records, _t0,
+                               extra=guard_extra)
             return assistant_message
         else:
             if self.conversation_history and self.conversation_history[-1]["role"] == "user":
