@@ -48,6 +48,13 @@
       "url": "http://127.0.0.1:8770/mcp",
       "headers": {},
       "enabled": true
+    },
+    {
+      "name": "sources",
+      "transport": "http",
+      "url": "http://127.0.0.1:8771/mcp",
+      "headers": {},
+      "enabled": true
     }
   ]
 }

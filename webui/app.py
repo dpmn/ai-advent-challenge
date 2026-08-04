@@ -273,6 +273,27 @@ def mcp_disconnect(name):
     return jsonify({"error": "not connected"}), 404
 
 
+# ──────── Guard (защита от непрямой инъекции) ───────────────────
+
+
+@app.route("/api/guard", methods=["GET"])
+def guard_status():
+    """Возвращает состояние защиты и отчёт по последнему проверенному ответу."""
+    return jsonify({
+        "enabled": bool(agent.guard_enabled),
+        "last_report": agent.last_guard_report,
+    })
+
+
+@app.route("/api/guard/toggle", methods=["POST"])
+def guard_toggle():
+    """Включает/выключает три слоя защиты (флаг уровня процесса, не сессии)."""
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled", not agent.guard_enabled))
+    message = agent._handle_command("/guard on" if enabled else "/guard off")
+    return jsonify({"enabled": agent.guard_enabled, "message": message})
+
+
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug, threaded=True)

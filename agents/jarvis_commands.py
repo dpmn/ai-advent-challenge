@@ -1,3 +1,4 @@
+from agents import guard
 from agents.invariants import AgentValidator
 from agents.jarvis_memory import Profile
 from agents.personas import PERSONAS, PERSONA_DESCRIPTIONS
@@ -21,7 +22,10 @@ class CommandMixin:
                 "  /new [name]   — создать новую сессию (/new sm — с SM)\n"
                 "  /clear        — очистить историю\n"
                 "  /model [name] — показать/сменить модель\n"
-                "  /persona [name] — показать/сменить системный промпт (default|vuln|safe)\n"
+                "  /persona [name] — показать/сменить системный промпт\n"
+                "                  (default|vuln|safe|summarizer|analyst|searcher)\n"
+                "  /guard [on|off] — защита от непрямой инъекции: санитизация входа,\n"
+                "                  маркеры границ источника, проверка ответа\n"
                 "  /temp [value] — показать/сменить температуру\n"
                 "  /strategy [type] — показать/сменить стратегию\n"
                 "  /compression [on|off|toggle] — управление сжатием\n"
@@ -128,6 +132,23 @@ class CommandMixin:
                 f"✅ Персона: {name} — {PERSONA_DESCRIPTIONS[name]}\n"
                 f"Создана новая сессия: {self.current_session['name']}"
             )
+
+        if cmd == "/guard":
+            if not arg:
+                return guard.describe_layers(
+                    self.guard_enabled, "Переключение: /guard on|off|toggle"
+                )
+            val = arg.strip().lower()
+            if val == "toggle":
+                self.guard_enabled = not self.guard_enabled
+            elif val == "on":
+                self.guard_enabled = True
+            elif val == "off":
+                self.guard_enabled = False
+            else:
+                return "❌ Использование: /guard [on|off|toggle]"
+            state = "включена" if self.guard_enabled else "выключена"
+            return f"🛡 Защита от инъекций {state}."
 
         if cmd == "/temp":
             if not arg:

@@ -274,7 +274,12 @@ class SessionMixin:
         self.profile = Profile("default")
         self.invariants_enabled = bool(self.current_session.get("invariants_enabled", True))
         self._load_invariants()
-        self.mcp_enabled = False
+        # MCP не выключаем: флаг уровня процесса, а подключения живут в общем
+        # mcp_manager и смену сессии переживают. Раньше здесь стоял сброс в False —
+        # из-за него /new и /persona тихо отключали инструменты при живых серверах.
+        # Новую запись сессии просто приводим в соответствие с текущим флагом.
+        if hasattr(self, "mcp_enabled"):
+            self._save_mcp_state()
         self.rag_enabled = False
         self.rag_top_k_before = 15
         self.rag_top_k_after = 8
@@ -334,7 +339,9 @@ class SessionMixin:
         self.profile = Profile(profile_name)
         self.invariants_enabled = bool(session.get("invariants_enabled", True))
         self._load_invariants()
-        self.mcp_enabled = bool(session.get("mcp_enabled", False))
+        # Флаг MCP из сессии не читаем — он уровня процесса (см. create_session).
+        # Записываем текущее состояние в новую сессию, чтобы БД не расходилась с ним.
+        self._save_mcp_state()
         self.rag_enabled = bool(session.get("rag_enabled", False))
         self.rag_top_k_before = session.get("rag_top_k_before", 10) or 10
         self.rag_top_k_after = session.get("rag_top_k_after", 5) or 5
