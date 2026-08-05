@@ -10,13 +10,14 @@ description: |
 
 ## Карта файлов (детали — в docstring-ах самих файлов)
 
-- `agents/jarvis.py` — ядро: `chat()`, `_call_api()`, `_build_messages()`, RAG-поля `rag_*`, `model_provider` ("cloud"/"local", ставит webui), `_rag_provider_kwargs()`, `_local_llm_profile()`, `last_rag_debug`, `self.persona` (имя активного системного промпта), `guard_enabled`/`last_guard_report` (защита от непрямой инъекции, day-47), `_log_exchange()` (пишет в JSONL через `JarvisLogger`)
+- `agents/jarvis.py` — ядро: `chat()`, `_call_api()`, `_build_messages()`, RAG-поля `rag_*`, `model_provider` ("cloud"/"local", ставит webui), `_rag_provider_kwargs()`, `_local_llm_profile()`, `last_rag_debug`, `self.persona` (имя активного системного промпта), `guard_enabled`/`last_guard_report` (защита от непрямой инъекции, day-47), `gateway_enabled`/`gateway_url`/`last_gateway_report` (LLM Gateway, day-48), `_api_base()` (возвращает `gateway_url`, если гейтвей включён, иначе `base_url`), `_log_exchange()` (пишет в JSONL через `JarvisLogger`)
 - `agents/guard.py` — три слоя защиты от indirect prompt injection: `sanitize()` (вырезает HTML-комментарии/невидимый текст/zero-width из результатов инструментов), `wrap()` (оборачивает данные инструмента в `<untrusted_data>` с пометкой «не инструкции»), `validate_output()` (проверяет ответ модели на следы исполнения инъекции)
+- `gateway/` — отдельный процесс-прокси перед LLM (`gateway/app.py`, порт 5001, Flask): `detectors.py` (regex-правила ключей → блок, персданных → маскирование, Луна для карт), `policy.py` (`scan_input()`/`scan_output()`/`redact_for_log()`), `audit.py` (JSONL-аудит без секретов), `cost.py` (прайс живьём из `GET /v1/models` Cloud.ru, кеш `gateway/pricing.json`); `jarvis.py` — только клиент, ходит на `gateway_url` как на обычный `base_url`
 - `agents/jarvis_memory.py` — `TaskContext` (working memory), `Profile` (long-term, Markdown в `agents/memory/profiles/`)
-- `agents/jarvis_session.py` — `SessionMixin`: SQLite `_init_db`, CRUD сессий и сообщений
+- `agents/jarvis_session.py` — `SessionMixin`: SQLite `_init_db`, CRUD сессий и сообщений, `_delete_last_message(role)` (вырезает последнее сообщение роли из истории и БД — нужно, когда гейтвей блокирует запрос и его нельзя оставлять в контексте)
 - `agents/jarvis_context.py` — `ContextStrategyMixin`: стратегии контекста (sliding_window / sticky_facts / branching), инварианты, memory state
 - `agents/jarvis_compression.py` — `CompressionMixin`: сжатие истории
-- `agents/jarvis_commands.py` — `CommandMixin`: `_handle_command()` — все /команды (синтаксис и список смотри там), включая `/persona`, `/guard`
+- `agents/jarvis_commands.py` — `CommandMixin`: `_handle_command()` — все /команды (синтаксис и список смотри там), включая `/persona`, `/guard`, `/gateway`
 - `agents/personas.py` — системные промпты агента (`default`/`vuln`/`safe`/`summarizer`/`analyst`/`searcher`) + `resolve_persona_name()`; `vuln`/`safe` — day-46 (prompt injection в промпте), `summarizer`/`analyst`/`searcher` — day-47 (indirect injection, без защитных инструкций в промпте — вся защита в `guard.py`)
 - `agents/jarvis_logger.py` — `JarvisLogger`: JSONL-лог обменов (`logs/jarvis-YYYY-MM-DD.jsonl`, вне `_init_db`/SQLite, каталог в `.gitignore`), поле `guard` (enabled/sanitized/output)
 - `agents/state_machine.py` — FSM: `AgentState`, `StageAgent`, `PipelineAgent`
@@ -31,7 +32,7 @@ description: |
 1. БД/сессии/сообщения → `jarvis_session.py`; стратегии/ветвление/инварианты → `jarvis_context.py`; сжатие → `jarvis_compression.py`; новая /команда → `elif` в `_handle_command()`.
 2. Новая колонка БД → `ALTER TABLE ADD COLUMN` в `_init_db()` в `try/except sqlite3.OperationalError`; синхронизируй `docs/database-schema.md`.
 3. Новый параметр настройки → чтение/запись в `/api/settings` (`webui/app.py`).
-4. Режим, влияющий на `chat()` (как RAG/MCP/SM) → правь `chat()` в `jarvis.py`; флаг режима храни в сессии (`_save_*_state` + чтение в `_load_session`). Исключение — флаги уровня процесса, а не сессии (`mcp_enabled`, `guard_enabled`): их нельзя сбрасывать при смене/создании сессии, иначе тумблер в панели врёт про реальное состояние (баг дня 46/фикс дня 47).
+4. Режим, влияющий на `chat()` (как RAG/MCP/SM) → правь `chat()` в `jarvis.py`; флаг режима храни в сессии (`_save_*_state` + чтение в `_load_session`). Исключение — флаги уровня процесса, а не сессии (`mcp_enabled`, `guard_enabled`, `gateway_enabled`): их нельзя сбрасывать при смене/создании сессии, иначе тумблер в панели врёт про реальное состояние (баг дня 46/фикс дня 47).
 
 **MRO:** `JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandMixin)`; cross-mixin вызовы через `self.*`.
 
@@ -47,6 +48,7 @@ description: |
 - SM: если `agent.pipeline` не None, `chat()` маршрутизирует в него; у каждого этапа изолированная история, артефакты инжектятся соседним этапам; переходы — по `ALLOWED_TRANSITIONS`. Новый этап = enum + ALLOWED_TRANSITIONS + STAGE_SYSTEM_PROMPTS + STAGE_DEFAULT_MODELS + StageAgent + сохранение состояния.
 - Инварианты: prompt-block в system prompt до вызова, `validate()` после; при нарушении до 2 ретраев, затем warning в конце ответа.
 - Guard (day-47): слои 1 (`sanitize`) и 3 (`validate_output`) детерминированы (regex, без вызова модели), не зависят от модели/промпта. Слой 2 (`wrap`) — просьба к модели в тексте обёртки, не гарантия; не держит инъекции, лежащие в видимом тексте источника. Сравнение в слое 3 идёт с **очищенным** (после `sanitize`) текстом источника, не с сырым.
+- Gateway (day-48): `gateway/` — отдельный процесс, `python3 gateway/app.py` должен быть поднят до включения тумблера, иначе `_call_api` вернёт внятную ошибку с подсказкой команды. Через гейтвей идёт только `_call_api` (основной чат) — служебные вызовы (память, заголовки сессий, reranker RAG, этапы SM) конструируют собственный `base_url` и гейтвей не проходят. При `verdict=blocked` пользовательское сообщение обязано быть вырезано из истории и БД (`_delete_last_message`) — иначе секрет уезжает в модель с каждым следующим запросом сессии.
 
 ## Конвенции
 

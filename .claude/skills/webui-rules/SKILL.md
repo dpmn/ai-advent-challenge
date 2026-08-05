@@ -9,10 +9,10 @@ description: |
 
 ## Карта файлов (роуты и функции смотри в самих файлах — они короткие)
 
-- `webui/app.py` — Flask-сервер, все роуты (`/api/sessions`, `/api/chat`, `/api/models`, `/api/settings`, `/api/stats`, `/api/mcp/*`, `/api/guard`, `/api/guard/toggle`); один глобальный `JarvisAgent`, сессии живут внутри агента
+- `webui/app.py` — Flask-сервер, все роуты (`/api/sessions`, `/api/chat`, `/api/models`, `/api/settings`, `/api/stats`, `/api/mcp/*`, `/api/guard`, `/api/guard/toggle`, `/api/gateway`, `/api/gateway/toggle`); один глобальный `JarvisAgent`, сессии живут внутри агента
 - `webui/static/script.js` — фронтенд: vanilla JS, `fetch()` + async/await, без фреймворков, сборщиков и зависимостей
 - `webui/static/style.css` — тема через CSS custom properties: тёмная в `:root`, светлая — переопределения в `body.light`; все цвета только через переменные
-- `webui/templates/index.html` — статический SPA-шаблон без Jinja-логики: `#sidebar` (сессии, MCP, settings) + `#chat-area` (topbar, messages, input)
+- `webui/templates/index.html` — статический SPA-шаблон без Jinja-логики: `#sidebar` (список сессий в прокручиваемом блоке сверху + свёрнутые `<details>`-панели MCP/Guard/Gateway/settings снизу) + `#chat-area` (topbar, messages, input)
 
 ## Модели и провайдеры
 
@@ -33,6 +33,8 @@ description: |
 - Рендер-функции очищают контейнер (`innerHTML = ""`) перед заполнением
 - Пользовательский текст — только через `textContent` или `escHtml()` (защита от XSS)
 - Динамические элементы — `document.createElement()`; статические — в `index.html`; новый блок в sidebar — реши, прятать ли по умолчанию (`display:none`, как `#sm-section`)
-- Guard — процессный флаг (не сессионный, day-47): `loadGuard`/`renderGuard`/`toggleGuard` в `script.js` не привязаны к смене сессии. Флаги уровня процесса (Guard, MCP) обязаны перечитываться в `createSession()`/`deleteSession()` (`loadMcp()`), иначе панель показывает состояние прошлой сессии вместо реального
+- Guard/Gateway — процессные флаги (не сессионные, day-47/48): `loadGuard`/`renderGuard`/`toggleGuard` и `loadGateway`/`renderGateway`/`toggleGateway` в `script.js` не привязаны к смене сессии. Флаги уровня процесса (Guard, Gateway, MCP) обязаны перечитываться в `createSession()`/`deleteSession()` (`loadMcp()` и т.п.), иначе панель показывает состояние прошлой сессии вместо реального
 - Тема: `body.light` + `localStorage('jarvis-theme')`, переключатель ☾/☀ в topbar
 - Техстрока RAG (`.rag-debug`): `buildRagDebugDiv()` строит её из `rag_debug` ответа `/api/chat` (тайминги, chunks, confidence; на локальном пути ещё tok/s и load). Хранится в `lastRagDebug`/`lastRagDebugSessionId` и дорисовывается в `renderMessages()` — так она переживает перерисовки; не персистится (сбрасывается перезагрузкой и следующим сообщением)
+- Сообщение, которого нет в истории сервера (отказ гейтвея, вывод слэш-команды) — тот же приём, что у техстроки RAG: хранится в переменной до следующего сообщения и дорисовывается в `renderMessages()`. Дорисовки один раз в `sendMessage()` недостаточно — следующая цепочка `loadSessions → loadMessages → renderMessages` стирает её
+- Список сессий в сайдбаре — фиксированные `min-height`/`max-height` со своей прокруткой (не `flex: 1`): свёрнутые панели растут по контенту и иначе схлопывают список в полоску

@@ -181,6 +181,14 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.guard_enabled = True
         self.last_guard_report: Optional[dict] = None
 
+        # LLM Gateway (день 48): прокси с input/output guard, аудитом и учётом
+        # стоимости. Флаг уровня процесса, как guard и mcp. По умолчанию выключен:
+        # гейтвей — отдельный процесс (python3 gateway/app.py), и молча ломать
+        # чат из-за того, что его не подняли, нельзя.
+        self.gateway_url = os.getenv("GATEWAY_URL", "http://127.0.0.1:5001/v1")
+        self.gateway_enabled = False
+        self.last_gateway_report: Optional[dict] = None
+
         # RAG
         self.rag_enabled = bool(self.current_session.get("rag_enabled", False))
         self.rag_top_k_before = self.current_session.get("rag_top_k_before", 15) or 15
@@ -205,8 +213,12 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         self.conversation_history.append({"role": "user", "content": user_input})
         return self.conversation_history
 
+    def _api_base(self) -> str:
+        """Возвращает адрес, куда уходит запрос: гейтвей или провайдер напрямую."""
+        return self.gateway_url if self.gateway_enabled else self.base_url
+
     def _call_api(self, messages: list, tools: Optional[list] = None) -> dict:
-        """Прямой вызов Cloud.ru FM /chat/completions."""
+        """Прямой вызов /chat/completions — у провайдера или через LLM Gateway."""
         payload = {
             "model": self.model,
             "max_tokens": self.max_tokens,
@@ -216,14 +228,20 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         if tools:
             payload["tools"] = tools
 
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        if self.gateway_enabled:
+            # Гейтвей сам выбирает апстрим по этому заголовку: принимать от
+            # клиента произвольный URL нельзя, иначе он станет открытым релеем.
+            headers["X-Upstream"] = "local" if self.model_provider == "local" else "cloud"
+
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
-            f"{self.base_url}/chat/completions",
+            f"{self._api_base()}/chat/completions",
             data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
+            headers=headers,
             method="POST",
         )
 
@@ -236,6 +254,9 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                 tool_calls = message.get("tool_calls") or []
                 usage = result.get("usage", {})
 
+                # Отчёт гейтвея приходит отдельным полем; на прямом пути его нет.
+                self.last_gateway_report = result.get("gateway")
+
                 self.total_requests += 1
                 self.total_tokens_used += usage.get("total_tokens", 0)
 
@@ -244,6 +265,7 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
                     "content": content,
                     "tool_calls": tool_calls,
                     "usage": usage,
+                    "gateway": result.get("gateway"),
                     "finish_reason": choice.get("finish_reason", "unknown")
                 }
 
@@ -251,6 +273,12 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
             error_body = e.read().decode("utf-8") if e.fp else "No error body"
             return {"success": False, "error": f"HTTP {e.code}: {e.reason}", "details": error_body}
         except urllib.error.URLError as e:
+            if self.gateway_enabled:
+                return {
+                    "success": False,
+                    "error": f"LLM Gateway недоступен ({self.gateway_url}): {e.reason}. "
+                             f"Запусти его: python3 gateway/app.py — или выключи /gateway off",
+                }
             return {"success": False, "error": f"URL Error: {e.reason}"}
         except Exception as e:
             return {"success": False, "error": f"Unexpected error: {str(e)}"}
@@ -537,6 +565,26 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
         if response["success"]:
             assistant_message = response["content"] or ""
 
+            # Гейтвей заблокировал запрос — секрет остался в тексте пользователя.
+            # Оставить его в истории значит отправлять его в модель при каждом
+            # следующем сообщении сессии (и хранить в SQLite). Поэтому сообщение
+            # выкидывается из контекста, а в чат уходит объяснение гейтвея.
+            gateway_report = response.get("gateway") or {}
+            if gateway_report.get("action") == "blocked":
+                if self.conversation_history and self.conversation_history[-1]["role"] == "user":
+                    self.conversation_history.pop()
+                self._delete_last_message("user")
+                # Предупреждение сохраняется как служебное сообщение: история в
+                # UI перерисовывается из базы, и без этого ответ гейтвея пропал
+                # бы с экрана сразу после отправки.
+                self._save_message("command", assistant_message)
+                # В лог агента текст запроса не пишется: в нём секрет. Разбор
+                # инцидента идёт по аудиту гейтвея — там маски и отпечатки.
+                self._log_exchange("(заблокировано гейтвеем, текст не сохранён)",
+                                   assistant_message, [], _t0,
+                                   extra={"gateway": gateway_report})
+                return assistant_message
+
             if not assistant_message and response.get("tool_calls"):
                 assistant_message = (
                     f"\u26a0\ufe0f Превышен лимит итераций tool-calling ({self.mcp_max_iterations}). "
@@ -640,15 +688,19 @@ class JarvisAgent(SessionMixin, ContextStrategyMixin, CompressionMixin, CommandM
 
             # В лог кладём и состояние защиты: без него по записи не отличить
             # «инъекция не сработала» от «слой её снял».
-            guard_extra = {
-                "guard": {
+            log_extra = {}
+            if tool_records:
+                log_extra["guard"] = {
                     "enabled": self.guard_enabled,
                     "sanitized": guard_hits,
                     "output": self.last_guard_report,
                 }
-            } if tool_records else None
+            # Вердикт гейтвея — в тот же лог: у гейтвея свой аудит, но по логу
+            # агента должно быть видно, ушёл запрос наружу или его срезали.
+            if self.gateway_enabled:
+                log_extra["gateway"] = self.last_gateway_report or {"action": "нет отчёта"}
             self._log_exchange(user_input, assistant_message, tool_records, _t0,
-                               extra=guard_extra)
+                               extra=log_extra or None)
             return assistant_message
         else:
             if self.conversation_history and self.conversation_history[-1]["role"] == "user":
