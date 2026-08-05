@@ -1,3 +1,7 @@
+import json
+import urllib.error
+import urllib.request
+
 from agents import guard
 from agents.invariants import AgentValidator
 from agents.jarvis_memory import Profile
@@ -26,6 +30,8 @@ class CommandMixin:
                 "                  (default|vuln|safe|summarizer|analyst|searcher)\n"
                 "  /guard [on|off] — защита от непрямой инъекции: санитизация входа,\n"
                 "                  маркеры границ источника, проверка ответа\n"
+                "  /gateway [on|off|status] — прокси перед LLM: блок секретов,\n"
+                "                  маскирование персданных, аудит и учёт стоимости\n"
                 "  /temp [value] — показать/сменить температуру\n"
                 "  /strategy [type] — показать/сменить стратегию\n"
                 "  /compression [on|off|toggle] — управление сжатием\n"
@@ -149,6 +155,18 @@ class CommandMixin:
                 return "❌ Использование: /guard [on|off|toggle]"
             state = "включена" if self.guard_enabled else "выключена"
             return f"🛡 Защита от инъекций {state}."
+
+        if cmd == "/gateway":
+            val = arg.strip().lower()
+            if val == "toggle":
+                self.gateway_enabled = not self.gateway_enabled
+            elif val == "on":
+                self.gateway_enabled = True
+            elif val == "off":
+                self.gateway_enabled = False
+            elif val and val != "status":
+                return "❌ Использование: /gateway [on|off|toggle|status]"
+            return self._describe_gateway()
 
         if cmd == "/temp":
             if not arg:
@@ -621,3 +639,50 @@ class CommandMixin:
                 f"{r['avg_score']:<10.4f} {r['sources']:<20}"
             )
         return header + "\n" + "\n".join(body_lines)
+
+    def gateway_health(self) -> dict:
+        """Опрашивает /health гейтвея. Возвращает dict с ключом ok."""
+        url = self.gateway_url.rstrip("/")
+        if url.endswith("/v1"):
+            url = url[:-3]
+        try:
+            with urllib.request.urlopen(f"{url}/health", timeout=3) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return {"ok": True, **data}
+        except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
+            return {"ok": False, "error": str(e)}
+
+    def _describe_gateway(self) -> str:
+        """Возвращает статус LLM Gateway для команды /gateway."""
+        state = "вкл" if self.gateway_enabled else "выкл"
+        lines = [
+            f"🚪 LLM Gateway: {state}",
+            f"Адрес: {self.gateway_url}",
+            "",
+            "Что делает:",
+            "  • input guard — ключи (sk-, ghp_, AKIA, PEM) блокируются,",
+            "    персданные (email, телефон, карта) маскируются",
+            "  • output guard — ключи в ответе модели, следы системного промпта,",
+            "    опасные команды и подозрительные ссылки",
+            "  • аудит в logs/gateway-YYYY-MM-DD.jsonl (без самих секретов)",
+            "  • учёт токенов и стоимости по прайсу Cloud.ru",
+        ]
+
+        health = self.gateway_health()
+        if health.get("ok"):
+            pricing = health.get("pricing", {})
+            lines.append(
+                f"\nПроцесс отвечает. Прайс: {pricing.get('source')} "
+                f"({pricing.get('models')} моделей)"
+            )
+        else:
+            lines.append(
+                f"\n⚠ Процесс не отвечает: {health.get('error')}\n"
+                f"Запусти в отдельном терминале: python3 gateway/app.py"
+            )
+
+        if self.last_gateway_report:
+            lines.append(f"\nПоследний вердикт: {self.last_gateway_report.get('action')}")
+
+        lines.append("\nПереключение: /gateway on|off|toggle")
+        return "\n".join(lines)

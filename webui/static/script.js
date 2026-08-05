@@ -48,6 +48,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Guard wiring
   document.getElementById("guard-enabled-checkbox").onchange = toggleGuard;
+
+  // Gateway wiring
+  document.getElementById("gateway-enabled-checkbox").onchange = toggleGateway;
+  loadGateway();
+
+  // Тумблеры живут внутри <summary>: без остановки всплытия клик по
+  // переключателю ещё и сворачивал бы панель.
+  document.querySelectorAll(".settings-section > summary .mcp-toggle").forEach(
+    (el) => el.addEventListener("click", (e) => e.stopPropagation())
+  );
 });
 
 // ──── Sidebar ──────────────────────────────────────────────────
@@ -115,6 +125,7 @@ async function switchSession(id) {
   loadSessions();
   loadMcp();
   loadGuard();
+  loadGateway();
   scrollToBottom();
 }
 
@@ -136,6 +147,7 @@ async function createSession() {
   // Панель MCP отражает состояние агента, а не сессии — после смены сессии
   // её надо перечитать, иначе галка показывает прошлое состояние.
   loadMcp();
+  loadGateway();
 }
 
 async function deleteSession(id) {
@@ -143,6 +155,7 @@ async function deleteSession(id) {
   await fetch(`/api/sessions/${id}`, { method: "DELETE" });
   loadSessions();
   loadMcp();
+  loadGateway();
 }
 
 // ──── Messages ─────────────────────────────────────────────────
@@ -162,7 +175,10 @@ async function loadMessages() {
 function renderMessages(messages) {
   const inner = getMsgContainer();
   inner.innerHTML = "";
-  if (messages.length === 0) {
+  const notice =
+    lastNotice && currentSessionId === lastNoticeSessionId ? lastNotice : null;
+
+  if (messages.length === 0 && !notice) {
     inner.innerHTML = `
       <div class="empty-chat">
         <div class="emoji">💬</div>
@@ -173,6 +189,12 @@ function renderMessages(messages) {
   }
   for (const m of messages) {
     inner.appendChild(createBubble(m.role, m.content));
+  }
+  // Служебный ответ вне истории диалога (отказ гейтвея, вывод слэш-команды):
+  // его нет в conversation_history, поэтому дорисовываем здесь — при отказе
+  // гейтвея история вообще пуста, и без этого экран остался бы чистым.
+  if (notice) {
+    inner.appendChild(createBubble("command", notice));
   }
   // Техстрока RAG последнего ответа: история перерисовывается из БД целиком
   // (в т.ч. из loadSessions после отправки), поэтому дорисовываем её здесь,
@@ -194,6 +216,11 @@ function createBubble(role, content) {
 // Живёт до следующего сообщения; привязана к сессии, в которой получен ответ.
 let lastRagDebug = null;
 let lastRagDebugSessionId = null;
+
+// Служебный ответ, которого нет в истории диалога (отказ LLM Gateway, вывод
+// слэш-команды). Живёт до следующего сообщения, привязан к своей сессии.
+let lastNotice = null;
+let lastNoticeSessionId = null;
 
 function buildRagDebugDiv(ragDebug) {
   const t = ragDebug.timings || {};
@@ -227,6 +254,7 @@ async function sendMessage() {
   btn.textContent = "···";
 
   // Optimistically add user bubble
+  lastNotice = null; // прошлое служебное сообщение к новому запросу не относится
   const inner = getMsgContainer();
   const emptyChat = inner.querySelector(".empty-chat");
   if (emptyChat) emptyChat.remove();
@@ -245,11 +273,22 @@ async function sendMessage() {
     // Replace all messages with server state (ensures consistency)
     lastRagDebug = data.rag_debug || null;
     lastRagDebugSessionId = currentSessionId;
+    // Ответ, которого нет в истории диалога: вывод слэш-команды или отказ
+    // гейтвея (там сообщение пользователя выброшено из истории вместе с
+    // секретом). Запоминаем его до следующего сообщения — renderMessages
+    // дорисует его сам, иначе следующая же перерисовка (loadSessions →
+    // loadMessages) сотрёт его с экрана через секунду после появления.
+    const last = data.messages[data.messages.length - 1];
+    if (data.response && (!last || last.content !== data.response)) {
+      lastNotice = data.response;
+      lastNoticeSessionId = currentSessionId;
+    }
     renderMessages(data.messages);
     loadSettings(); // Refresh SM/AI settings
     loadSessions(); // Refresh session list
     loadMcp(); // Refresh MCP status (may have changed via slash commands)
     loadGuard(); // Refresh guard status and last output-validation report
+    loadGateway(); // Refresh gateway verdict and cost of the last request
   } catch (err) {
     inner.appendChild(
       createBubble("system", "Error: " + err.message)
@@ -457,6 +496,76 @@ async function toggleGuard(e) {
     body: JSON.stringify({ enabled }),
   });
   await loadGuard();
+}
+
+// ──── LLM Gateway ──────────────────────────────────────────────
+
+async function loadGateway() {
+  try {
+    const res = await fetch("/api/gateway");
+    renderGateway(await res.json());
+  } catch (e) {
+    console.error("Gateway load failed:", e);
+  }
+}
+
+function renderGateway(data) {
+  document.getElementById("gateway-enabled-checkbox").checked = !!data.enabled;
+  document.getElementById("gateway-enabled-label").textContent = data.enabled
+    ? "on"
+    : "off";
+
+  const info = document.getElementById("gateway-info");
+  info.innerHTML = "";
+
+  const alive = data.health && data.health.ok;
+  const lines = [];
+  if (!alive) {
+    lines.push("⚠ процесс не отвечает — запусти: python3 gateway/app.py");
+  } else if (!data.enabled) {
+    lines.push("Процесс поднят, но запросы идут в модель напрямую.");
+  } else {
+    lines.push(`Запросы идут через ${data.url}`);
+  }
+
+  const report = data.last_report;
+  if (data.enabled && report) {
+    lines.push(`Последний запрос: ${report.action}`);
+    const findings = [
+      ...((report.input && report.input.findings) || []),
+      ...((report.output && report.output.findings) || []),
+    ];
+    findings.forEach((f) => {
+      const tail = f.detail || `${f.count}× → ${f.mask || "flag"}`;
+      lines.push(`• ${f.label}: ${tail}`);
+    });
+    if (report.cost) {
+      const c = report.cost;
+      lines.push(
+        `Токены: ${c.prompt_tokens}+${c.completion_tokens}, ` +
+          `стоимость: ${(c.cost_rub || 0).toFixed(4)} ₽ (${c.price_source})`
+      );
+    }
+  }
+
+  lines.forEach((text) => {
+    const div = document.createElement("div");
+    div.textContent = text;
+    info.appendChild(div);
+  });
+}
+
+async function toggleGateway(e) {
+  const enabled = e.target.checked;
+  document.getElementById("gateway-enabled-label").textContent = enabled
+    ? "on"
+    : "off";
+  await fetch("/api/gateway/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  await loadGateway();
 }
 
 async function addMcpServer() {

@@ -294,6 +294,29 @@ def guard_toggle():
     return jsonify({"enabled": agent.guard_enabled, "message": message})
 
 
+# ──────── LLM Gateway (прокси перед моделью) ────────────────────
+
+
+@app.route("/api/gateway", methods=["GET"])
+def gateway_status():
+    """Возвращает состояние гейтвея, его живость и вердикт по последнему запросу."""
+    return jsonify({
+        "enabled": bool(agent.gateway_enabled),
+        "url": agent.gateway_url,
+        "health": agent.gateway_health(),
+        "last_report": agent.last_gateway_report,
+    })
+
+
+@app.route("/api/gateway/toggle", methods=["POST"])
+def gateway_toggle():
+    """Переключает маршрутизацию запросов через гейтвей (флаг уровня процесса)."""
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled", not agent.gateway_enabled))
+    message = agent._handle_command("/gateway on" if enabled else "/gateway off")
+    return jsonify({"enabled": agent.gateway_enabled, "message": message})
+
+
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug, threaded=True)

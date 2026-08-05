@@ -208,6 +208,23 @@ class SessionMixin:
             )
             conn.commit()
 
+    def _delete_last_message(self, role: str) -> None:
+        """Удаляет последнее сообщение указанной роли в текущей сессии.
+
+        Нужно, когда сообщение сохранять нельзя постфактум: например, LLM
+        Gateway заблокировал запрос из-за секрета в тексте — держать этот текст
+        в базе так же плохо, как отправить его наружу.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                DELETE FROM messages WHERE id = (
+                    SELECT id FROM messages
+                    WHERE session_id = ? AND role = ?
+                    ORDER BY id DESC LIMIT 1
+                )
+            """, (self.current_session["id"], role))
+            conn.commit()
+
     def _delete_old_messages(self, keep_count: int):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
