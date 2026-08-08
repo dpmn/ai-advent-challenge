@@ -2,20 +2,22 @@
 name: docent-rules
 description: |
   Архитектура docent/: портабельный CLI-ассистент (pip/uv-пакет) —
-  cli.py (подкоманды), assistant.py (ask), agent.py (do, агентный цикл),
-  reviewer.py (review), rag/, mcp/ (stdio-серверы git и files).
+  cli.py (подкоманды), assistant.py (ask), agent.py (do, агентный цикл,
+  --commit включает security-ворота из security.py), reviewer.py (review),
+  rag/, mcp/ (stdio-серверы git и files).
   Используй когда нужно добавить CLI-команду, MCP-инструмент/сервер,
-  поменять RAG-индексацию или агентный цикл docent
+  поменять RAG-индексацию, агентный цикл или security-ворота docent
 ---
 
 ## Карта файлов (детали — в docstring-ах и docent/README.md)
 
 - `docent/cli.py` — argparse-подкоманды: `_cmd_*()` + `_build_parser()` + `_COMMANDS_HELP`
 - `docent/config.py` — `Config` (dataclass), реестр `MODELS`, `resolve_model()`, `.docent/config.json`
-- `docent/llm.py` — сырой httpx-клиент: `chat()`, `chat_tools()` (function calling), `embed()`
+- `docent/llm.py` — сырой httpx-клиент: `chat()`, `chat_full()` (то же, но отдаёт всё тело ответа — `finish_reason` и служебное поле `gateway`), `chat_tools()` (function calling), `embed()`
 - `docent/assistant.py` — `ask`: one-shot RAG + git-контекст (контекст собирает код, не модель)
-- `docent/agent.py` — `do`: tool-calling цикл (модель сама выбирает инструменты), анти-цикл повторов, `_MAX_STEPS`, принудительный финал
-- `docent/reviewer.py` — `review`: ревью diff — JSON-находки → фильтр самоопровержений → verify-вердикты → markdown; модель `review_model` (heavy), retry/fallback
+- `docent/agent.py` — `do`: tool-calling цикл (модель сама выбирает инструменты), анти-цикл повторов, `_MAX_STEPS`, принудительный финал; `--commit` оборачивает цикл генерации (`_generate()`) внешним циклом ворот из `security.py` (до `_MAX_FIX_ROUNDS` доработок), коммит делает сам через `subprocess` по pathspec файлов прогона (`written`), не через MCP-инструмент
+- `docent/security.py` — security-ворота: `scan()` (второй вызов LLM с отдельным промптом под стек проекта) → `Verdict` (уровень + находки + флаг блокировки гейтвеем), `feedback()` (текст возврата в генерацию), `summary()`, `log_round()` (jsonl в `.docent/security-loop.jsonl`); fail closed на любой нештатной ветке
+- `docent/reviewer.py` — `review`: ревью diff — JSON-находки → фильтр самоопровержений → verify-вердикты → markdown; модель `review_model` (heavy), retry/fallback; `parse_json_block()` публичный, переиспользуется `security.py`
 - `docent/rag/` — `index.py` (build/query, `_collect_files` + `_SKIP_DIRS`), `chunker.py` (markdown по заголовкам), `code.py` (python через ast), `store.py` (numpy cosine)
 - `docent/mcp/` — `registry.py` (`SERVERS`), `manager.py` (stdio-сессии, `call()`, `tool_specs()`), `servers/git.py`, `servers/files.py`
 - `tests/` — pytest
@@ -40,6 +42,10 @@ description: |
 - Портабельность: в коде docent никаких привязок к этому репо (пути, имена) — он работает в любом репозитории.
 - Гарантии качества ревью — структурные и программные (JSON-парсер, фильтр «бага нет», вердикты), НЕ промпт-запреты: модель их нарушает (урок PR #23). Не заменять код-фильтры на «запрещено писать X» в промпте.
 - Сетевые ошибки httpx оборачиваются в `LLMError` в `llm._post()` — вызывающие ловят только `LLMError`. Heavy-модель на ревью думает дольше 120s — таймаут ревью отдельный (`_REVIEW_TIMEOUT`).
+- Коммит в `agent.py` **не** MCP-инструмент, а прямой `subprocess` внутри `_run()`: если бы модель видела инструмент коммита, она могла бы вызвать его в обход security-ворот.
+- Ворота смотрят только на файлы прогона (`written`, собирается по `write_file`), не на весь working tree — иначе чужие незакоммиченные изменения (например, отвергнутые прошлой задачей) попадают в чужой diff и чужой коммит. `.docent/` исключён из pathspec отдельно, иначе лог ворот попадает в проверяемый diff.
+- Отклонённые ворота изменения уходят в `git stash`, а не остаются в working tree: иначе следующая задача читает файл с секретом, тащит его в свой контекст, и LLM Gateway блокирует уже её — одна проваленная задача глушит весь прогон.
+- Если гейтвей блокирует не только скан, но и саму генерацию — секрет уже в истории сообщений агента, доработка через фидбэк не поможет (следующий вызов тоже будет заблокирован); `_run()` в этом случае выходит сразу, без холостых заходов.
 
 ## Конвенции
 

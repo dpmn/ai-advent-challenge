@@ -138,7 +138,7 @@ class Finding:
     line: int | None = None
 
 
-def _parse_json_block(raw: str) -> dict | None:
+def parse_json_block(raw: str) -> dict | None:
     """Достаёт JSON-объект из ответа модели (терпит ```-ограждения и преамбулы).
 
     Возвращает dict или None, если распарсить не удалось.
@@ -161,7 +161,7 @@ def _parse_findings(raw: str) -> tuple[list[Finding], list[int]] | None:
     claim отбрасывается; баг без evidence (сценария провала) отбрасывается.
     None — только если JSON не распарсился вовсе.
     """
-    data = _parse_json_block(raw)
+    data = parse_json_block(raw)
     if data is None or not isinstance(data.get("findings"), list):
         return None
     findings: list[Finding] = []
@@ -356,7 +356,7 @@ def _verify_findings(
         {"role": "user", "content": user_content},
     ]
     raw, _ = _chat_with_retry(messages, config)
-    data = _parse_json_block(raw)
+    data = parse_json_block(raw)
     if data is None or not isinstance(data.get("verdicts"), list):
         return findings
     confirmed: set[int] = set()

@@ -19,7 +19,7 @@ from docent.reviewer import (
     _extract_sources,
     _load_review_notes,
     _parse_findings,
-    _parse_json_block,
+    parse_json_block,
     _read_changed_files,
     _render_findings,
     _truncate_at_line,
@@ -200,10 +200,10 @@ def test_render_findings_sections() -> None:
 
 def test_parse_json_block_tolerant() -> None:
     """JSON достаётся из ограждений/преамбул; мусор — None."""
-    assert _parse_json_block('```json\n{"verdicts": []}\n```') == {"verdicts": []}
-    assert _parse_json_block("Ответ: {\"a\": 1} готово") == {"a": 1}
-    assert _parse_json_block("нет здесь json") is None
-    assert _parse_json_block("[1, 2]") is None  # список, не объект
+    assert parse_json_block('```json\n{"verdicts": []}\n```') == {"verdicts": []}
+    assert parse_json_block("Ответ: {\"a\": 1} готово") == {"a": 1}
+    assert parse_json_block("нет здесь json") is None
+    assert parse_json_block("[1, 2]") is None  # список, не объект
 
 
 def main() -> int:

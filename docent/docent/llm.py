@@ -83,6 +83,35 @@ def chat(
     return resp.json()["choices"][0]["message"]["content"]
 
 
+def chat_full(
+    messages: list[dict],
+    config: Config,
+    model: str | None = None,
+    temperature: float = 0.2,
+    timeout: float = 120.0,
+) -> dict:
+    """Как chat(), но возвращает всё тело ответа, а не только текст.
+
+    Нужно тем, кому важны метаданные ответа: `finish_reason` и служебное поле
+    `gateway` (его добавляет LLM Gateway из дня 48). chat() их отбрасывает, и
+    отличить блокировку прокси от обычного ответа модели становится нельзя.
+    """
+    model_id = resolve_model(model or config.model)
+    with _client(config, timeout) as client:
+        resp = _post(
+            client,
+            "/chat/completions",
+            {
+                "model": model_id,
+                "messages": messages,
+                "temperature": temperature,
+            },
+        )
+    if resp.status_code != 200:
+        raise LLMError(f"chat {resp.status_code}: {resp.text[:300]}")
+    return resp.json()
+
+
 def chat_tools(
     messages: list[dict],
     tools: list[dict],

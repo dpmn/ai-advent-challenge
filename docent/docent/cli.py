@@ -2,7 +2,8 @@
 
 `docent init`  — построить индекс `.docent/` по документации текущего репо.
 `docent ask "…"` — ответить на вопрос о проекте (RAG + git-контекст).
-`docent do "…"` — агентный режим: задача-цель над файлами репо (MCP-тулзы).
+`docent do "…"` — агентный режим: задача-цель над файлами репо (MCP-тулзы);
+                  с `--commit` включает security-ворота и коммит результата.
 `docent review` — AI-ревью diff (из --diff или stdin).
 `docent help`  — показать список команд.
 `docent auth`  — задел под установку ключа через CLI (пока заглушка).
@@ -32,6 +33,7 @@ _COMMANDS_HELP = """🎓 docent — ассистент разработчика 
   📚 init            построить индекс по документации и коду текущего репозитория
   💬 ask "вопрос"    ответить на вопрос о проекте (RAG + git-контекст)
   🤖 do "цель"       агентный режим: работа с файлами репо (поиск, чтение, правка)
+                     --commit: security-скан diff перед коммитом (HIGH/CRITICAL = доработка)
   🔍 review          AI-ревью diff: баги, архитектура, рекомендации (diff из --diff/stdin)
   ❓ help            показать этот список команд
   🔑 auth            установить ключ API (задел, пока не реализовано)
@@ -102,7 +104,11 @@ def _cmd_do(args: argparse.Namespace) -> int:
 
     Модель сама выбирает MCP-инструменты (search/read/write/git); вызовы
     печатаются в stderr по ходу работы, изменения файлов видны как diff.
+    С `--commit` перед коммитом встают security-ворота: код без блокирующих
+    находок коммитится, с находками уходит на доработку. Код возврата 2 —
+    ворота не пропустили изменения (полезно в скриптах и CI).
     """
+    from docent import security
     from docent.agent import run
 
     root = _repo_root()
@@ -111,11 +117,23 @@ def _cmd_do(args: argparse.Namespace) -> int:
         return 1
     config = load_config(root)
     print("🤖 Доцент работает:", file=sys.stderr)
-    result = run(root, config, args.goal)
+    result = run(root, config, args.goal, commit=args.commit)
     render_markdown(result.text)
     # Уникальные имена инструментов с сохранением порядка вызова.
     _print_bullets("🔧 MCP-инструменты", list(dict.fromkeys(result.tool_calls)))
-    return 0
+    if not args.commit:
+        return 0
+
+    verdict = result.verdict
+    level = security.summary(verdict) if verdict else "скан не выполнялся"
+    status = f"коммит {result.commit_sha}" if result.committed else "коммита нет"
+    print(
+        f"🛡  Ворота: {level} | заходов: {result.rounds} | {status}",
+        file=sys.stderr,
+    )
+    if result.log_path:
+        print(f"📝 Лог раундов: {result.log_path}", file=sys.stderr)
+    return 0 if result.committed or verdict is None else 2
 
 
 def _read_diff(args: argparse.Namespace) -> str:
@@ -196,6 +214,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_do = sub.add_parser("do", help="агентный режим: задача-цель над файлами репозитория")
     p_do.add_argument("goal", help="задача на уровне цели (что сделать с файлами)")
+    p_do.add_argument(
+        "--commit",
+        action="store_true",
+        help="security-скан diff перед коммитом; HIGH/CRITICAL — возврат на доработку",
+    )
     p_do.set_defaults(func=_cmd_do)
 
     p_review = sub.add_parser("review", help="AI-ревью diff (баги, архитектура, рекомендации)")
