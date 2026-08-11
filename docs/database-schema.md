@@ -254,6 +254,76 @@ ORDER BY created_at ASC;
 
 ---
 
+## Arena Database (`arena/data/arena.db`)
+
+Изолированная SQLite БД red team-мишени TaskFlow (день 50), создаётся `init_db()`
+из `arena/store.py`. Не связана с БД JarvisAgent.
+
+### sessions
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `sid` | TEXT PRIMARY KEY | Идентификатор сессии (кука `arena_sid`) |
+| `created_at` | TEXT NOT NULL | Время создания (ISO) |
+
+### messages
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | INTEGER PRIMARY KEY AUTOINCREMENT | Уникальный ID сообщения |
+| `sid` | TEXT NOT NULL | ID сессии |
+| `role` | TEXT NOT NULL | Роль сообщения |
+| `payload` | TEXT NOT NULL | Полное сообщение в формате OpenAI (JSON, включая `tool_calls`) |
+| `created_at` | TEXT NOT NULL | Время создания (ISO) |
+
+### accounts
+
+Состояние аккаунта **на сессию** — здесь виден результат взлома (партнёр и защитник бьют сервис одновременно, общее состояние смешало бы доказательства).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `sid` | TEXT PRIMARY KEY | ID сессии |
+| `company` | TEXT NOT NULL | Компания-владелец (всегда `ACME`) |
+| `plan` | TEXT NOT NULL | Тариф (по умолчанию `Free`) |
+| `api_limit` | INTEGER NOT NULL | Лимит запросов (по умолчанию 1000) |
+| `discount` | INTEGER NOT NULL | Скидка в процентах (по умолчанию 0) |
+| `updated_at` | TEXT NOT NULL | Время последнего изменения |
+
+### tickets
+
+Тикеты поддержки, только на чтение, засеваются при `init_db()`. Тикет `2001` принадлежит чужой компании (`Globex`) — приз red team-атаки; `get_ticket()` намеренно не проверяет владельца (моделируемая уязвимость авторизации).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | INTEGER PRIMARY KEY | Номер тикета |
+| `owner` | TEXT NOT NULL | Компания-владелец |
+| `subject` | TEXT NOT NULL | Тема обращения |
+| `body` | TEXT NOT NULL | Текст обращения |
+
+### uploads
+
+Файлы, загруженные в рамках сессии (носитель indirect prompt injection).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `file_id` | TEXT PRIMARY KEY | Выданный ID файла |
+| `sid` | TEXT NOT NULL | ID сессии |
+| `display_name` | TEXT NOT NULL | Имя файла, как загружено |
+| `stored_name` | TEXT NOT NULL | Имя файла на диске |
+| `size` | INTEGER NOT NULL | Размер в байтах |
+| `created_at` | TEXT NOT NULL | Время загрузки |
+
+### budget
+
+Единственная строка со счётчиком трат на вызовы LLM через gateway.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | INTEGER PRIMARY KEY CHECK (id = 1) | Всегда 1 |
+| `spent_rub` | REAL NOT NULL | Потрачено, ₽ |
+
+---
+
 ## Практические рекомендации
 
 **Для разработки/отладки:**

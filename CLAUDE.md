@@ -27,6 +27,7 @@
 ```text
 /
 ├─ agents/              # Ядро агента JarvisAgent и его модули (mixin-файлы, FSM, инварианты, MCP-клиент)
+├─ arena/               # Red team мишень дня 50: чат-бот TaskFlow за токеном с эшелоном обороны 7 слоёв (Flask + SQLite), развёрнут на finland-vds
 ├─ docent/              # Портабельный CLI-ассистент (pip/uv-пакет): RAG по докам репо, git-контекст и агентная работа с файлами через MCP (stdio)
 ├─ gateway/             # LLM Gateway: HTTP-прокси перед LLM (input/output guard, аудит, cost tracking)
 ├─ mcp_servers/         # MCP-серверы (FastMCP, streamable-http): nasa, space_monitor, composer, ragger, support, sources
